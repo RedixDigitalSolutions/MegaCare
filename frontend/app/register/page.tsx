@@ -3,10 +3,24 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
-import { ChevronLeft, Eye, EyeOff } from "lucide-react";
+import Image from "next/image";
 import { useAuth } from "@/contexts/AuthContext";
+import {
+  FaEye,
+  FaEyeSlash,
+  FaChevronLeft,
+  FaUserAlt,
+  FaUserMd,
+  FaPills,
+  FaHospital,
+  FaMicroscope,
+  FaAmbulance,
+  FaUserNurse,
+  FaArrowRight,
+  FaShieldAlt,
+  FaHeartbeat,
+  FaCheckCircle,
+} from "react-icons/fa";
 
 type UserType =
   | "patient"
@@ -128,513 +142,319 @@ export default function RegisterPage() {
     }
   };
 
-  if (!userType) {
-    // Step 1: Choose User Type
-    return (
-      <div className="min-h-screen bg-background flex flex-col">
-        <Header />
-
-        <main className="flex-1 flex items-center justify-center py-12 px-4 pt-32">
-          <div className="w-full max-w-2xl space-y-8">
-            <div className="text-center space-y-4 mb-12">
-              <h1 className="text-4xl font-bold text-foreground">
-                Rejoignez MegaCare
-              </h1>
-              <p className="text-lg text-muted-foreground">
-                Choisissez votre profil pour commencer
-              </p>
-            </div>
-
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* Patient Card */}
-              <button
-                onClick={() => setUserType("patient")}
-                className="group p-5 bg-card rounded-2xl border-2 border-border hover:border-primary hover:shadow-lg transition space-y-3 text-left"
-              >
-                <div className="text-4xl">👤</div>
-                <h3 className="text-lg font-bold text-foreground group-hover:text-primary transition">
-                  Patient
-                </h3>
-                <ul className="space-y-1 text-muted-foreground text-xs">
-                  <li>✓ Consultations</li>
-                  <li>✓ Dossier médical</li>
-                  <li>✓ Prescriptions</li>
-                </ul>
-                <p className="text-sm font-semibold text-primary">Gratuit</p>
-              </button>
-
-              {/* Doctor Card */}
-              <button
-                onClick={() => setUserType("doctor")}
-                className="group p-5 bg-card rounded-2xl border-2 border-border hover:border-primary hover:shadow-lg transition space-y-3 text-left"
-              >
-                <div className="text-4xl">👨‍⚕️</div>
-                <h3 className="text-lg font-bold text-foreground group-hover:text-primary transition">
-                  Médecin
-                </h3>
-                <ul className="space-y-1 text-muted-foreground text-xs">
-                  <li>✓ Gérer agenda</li>
-                  <li>✓ Dossiers patients</li>
-                  <li>✓ Consultations vidéo</li>
-                </ul>
-                <p className="text-sm font-semibold text-primary">Rejoindre</p>
-              </button>
-
-              {/* Pharmacy Card */}
-              <button
-                onClick={() => setUserType("pharmacy")}
-                className="group p-5 bg-card rounded-2xl border-2 border-border hover:border-primary hover:shadow-lg transition space-y-3 text-left"
-              >
-                <div className="text-4xl">💊</div>
-                <h3 className="text-lg font-bold text-foreground group-hover:text-primary transition">
-                  Pharmacien
-                </h3>
-                <ul className="space-y-1 text-muted-foreground text-xs">
-                  <li>✓ Gestion stock</li>
-                  <li>✓ Commandes</li>
-                  <li>✓ Livraisons</li>
-                </ul>
-                <p className="text-sm font-semibold text-primary">
-                  Partenariat
-                </p>
-              </button>
-
-              {/* Medical Service Card */}
-              <button
-                onClick={() => setUserType("medical_service")}
-                className="group p-5 bg-card rounded-2xl border-2 border-border hover:border-primary hover:shadow-lg transition space-y-3 text-left"
-              >
-                <div className="text-4xl">🏥</div>
-                <h3 className="text-lg font-bold text-foreground group-hover:text-primary transition">
-                  Services Médicaux
-                </h3>
-                <ul className="space-y-1 text-muted-foreground text-xs">
-                  <li>✓ Hospitalisation</li>
-                  <li>✓ Soins à domicile</li>
-                  <li>✓ Gestion infirmiers</li>
-                </ul>
-                <p className="text-sm font-semibold text-primary">
-                  Partenariat
-                </p>
-              </button>
-
-              {/* Lab & Radiology Card */}
-              <button
-                onClick={() => setUserType("lab_radiology")}
-                className="group p-5 bg-card rounded-2xl border-2 border-border hover:border-primary hover:shadow-lg transition space-y-3 text-left"
-              >
-                <div className="text-4xl">🔬</div>
-                <h3 className="text-lg font-bold text-foreground group-hover:text-primary transition">
-                  Labos & Radiologie
-                </h3>
-                <ul className="space-y-1 text-muted-foreground text-xs">
-                  <li>✓ Analyses</li>
-                  <li>✓ Imagerie médicale</li>
-                  <li>✓ Résultats patients</li>
-                </ul>
-                <p className="text-sm font-semibold text-primary">
-                  Partenariat
-                </p>
-              </button>
-
-              {/* Medical Transport Card */}
-              <button
-                onClick={() => setUserType("medical_transport")}
-                className="group p-5 bg-card rounded-2xl border-2 border-border hover:border-primary hover:shadow-lg transition space-y-3 text-left"
-              >
-                <div className="text-4xl">🚑</div>
-                <h3 className="text-lg font-bold text-foreground group-hover:text-primary transition">
-                  Transport Médicalisé
-                </h3>
-                <ul className="space-y-1 text-muted-foreground text-xs">
-                  <li>✓ Ambulances</li>
-                  <li>✓ Gestion flotte</li>
-                  <li>✓ Trajets patients</li>
-                </ul>
-                <p className="text-sm font-semibold text-primary">
-                  Partenariat
-                </p>
-              </button>
-
-              {/* Paramedical Card */}
-              <button
-                onClick={() => setUserType("paramedical")}
-                className="group p-5 bg-card rounded-2xl border-2 border-border hover:border-primary hover:shadow-lg transition space-y-3 text-left"
-              >
-                <div className="text-4xl">👩‍⚕️</div>
-                <h3 className="text-lg font-bold text-foreground group-hover:text-primary transition">
-                  Paramédicaux
-                </h3>
-                <ul className="space-y-1 text-muted-foreground text-xs">
-                  <li>✓ Infirmiers</li>
-                  <li>✓ Thérapeutes</li>
-                  <li>✓ Soins patients</li>
-                </ul>
-                <p className="text-sm font-semibold text-primary">Rejoindre</p>
-              </button>
-            </div>
-
-            <p className="text-center text-muted-foreground">
-              Vous avez déjà un compte?{" "}
-              <Link
-                href="/login"
-                className="text-primary font-semibold hover:underline"
-              >
-                Connectez-vous
-              </Link>
-            </p>
-          </div>
-        </main>
-
-        <Footer />
-      </div>
-    );
-  }
-
-  // Step 2: Registration Form
-  const typeLabels = {
-    patient: "Patient",
-    doctor: "Professionnel Médical",
-    pharmacy: "Pharmacien",
-    medical_service: "Services Médicaux",
-    lab_radiology: "Labos & Radiologie",
-    medical_transport: "Transport Médicalisé",
-    paramedical: "Paramédicaux",
-  };
-
-  const specializations = [
-    "Cardiologie",
-    "Dermatologie",
-    "Neurologie",
-    "Gynécologie",
-    "Ophtalmologie",
-    "Orthopédie",
-    "Pédiatrie",
-    "Psychiatrie",
-    "Psychologie",
-    "Thérapie",
-    "Généraliste",
+  const roles = [
+    { key: "patient" as const, label: "Patient", Icon: FaUserAlt, color: "from-blue-500 to-cyan-500", badge: "Gratuit", perks: ["Consultations vidéo", "Dossier médical", "Prescriptions"] },
+    { key: "doctor" as const, label: "Médecin", Icon: FaUserMd, color: "from-emerald-500 to-teal-500", badge: "Rejoindre", perks: ["Gérer agenda", "Dossiers patients", "Consultations vidéo"] },
+    { key: "pharmacy" as const, label: "Pharmacien", Icon: FaPills, color: "from-green-500 to-lime-500", badge: "Partenariat", perks: ["Gestion stock", "Commandes", "Livraisons"] },
+    { key: "medical_service" as const, label: "Services Médicaux", Icon: FaHospital, color: "from-purple-500 to-indigo-500", badge: "Partenariat", perks: ["Hospitalisation", "Soins domicile", "Gestion équipe"] },
+    { key: "lab_radiology" as const, label: "Labos & Radiologie", Icon: FaMicroscope, color: "from-rose-500 to-pink-500", badge: "Partenariat", perks: ["Analyses", "Imagerie médicale", "Résultats patients"] },
+    { key: "medical_transport" as const, label: "Transport Médicalisé", Icon: FaAmbulance, color: "from-orange-500 to-red-500", badge: "Partenariat", perks: ["Ambulances", "Gestion flotte", "Trajets patients"] },
+    { key: "paramedical" as const, label: "Paramédicaux", Icon: FaUserNurse, color: "from-sky-500 to-blue-500", badge: "Rejoindre", perks: ["Infirmiers", "Thérapeutes", "Soins patients"] },
   ];
 
-  return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <Header />
+  const specializations = [
+    "Cardiologie", "Dermatologie", "Neurologie", "Gynécologie",
+    "Ophtalmologie", "Orthopédie", "Pédiatrie", "Psychiatrie",
+    "Psychologie", "Thérapie", "Généraliste",
+  ];
 
-      <main className="flex-1 flex items-center justify-center py-12 px-4 pt-32">
-        <div className="w-full max-w-md space-y-8">
-          {/* Back Button */}
-          <button
-            onClick={() => setUserType(null)}
-            className="flex items-center gap-2 text-primary hover:underline transition"
-          >
-            <ChevronLeft size={20} />
-            Retour
-          </button>
+  if (!userType) {
+    return (
+      <div className="min-h-screen bg-background flex">
+        {/* Left branding panel */}
+        <div className="hidden lg:flex lg:w-2/5 xl:w-1/3 relative flex-col justify-between p-10 bg-gradient-to-br from-primary via-primary/90 to-accent overflow-hidden">
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(255,255,255,0.15),transparent_60%)]" />
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px]" />
 
-          {/* Form Card */}
-          <div className="bg-card rounded-2xl border border-border p-8 space-y-6">
-            {/* Header */}
-            <div className="text-center space-y-2">
-              <div className="flex justify-center mb-4">
-                <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center text-white text-lg font-bold">
-                  MC
-                </div>
+          <Link href="/" className="relative flex items-center gap-3">
+            <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
+              <Image src="/images/logo.png" alt="MegaCare" width={32} height={32} className="object-contain" />
+            </div>
+            <span className="text-white font-bold text-2xl tracking-tight">MEGACARE</span>
+          </Link>
+
+          <div className="relative space-y-8">
+            <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/20 rounded-full text-white/90 text-xs font-medium mb-4">
+                <FaHeartbeat className="text-white" />
+                Rejoignez des milliers de professionnels
               </div>
-              <h1 className="text-2xl font-bold text-foreground">
-                Inscription - {typeLabels[userType]}
-              </h1>
-              <p className="text-muted-foreground">
-                Créez votre compte MegaCare
+              <h2 className="text-3xl xl:text-4xl font-bold text-white leading-tight mb-4">
+                Créez votre compte<br />en quelques minutes
+              </h2>
+              <p className="text-white/70 text-sm leading-relaxed">
+                Que vous soyez patient, médecin ou professionnel de santé, MegaCare vous offre les outils pour exercer et vous soigner en toute sérénité.
               </p>
             </div>
-
-            {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Error Alert */}
-              {authError && (
-                <div className="bg-destructive/10 border border-destructive/30 text-destructive rounded-lg px-4 py-3 text-sm">
-                  {authError}
+            <div className="space-y-3">
+              {["Inscription rapide et sécurisée", "Accès immédiat à votre espace", "Support dédié 7j/7", "Conformité réglementaire garantie"].map((f) => (
+                <div key={f} className="flex items-center gap-3 text-white/80 text-sm">
+                  <FaCheckCircle className="text-white/60 shrink-0" />
+                  {f}
                 </div>
-              )}
+              ))}
+            </div>
+          </div>
 
-              {/* Name Fields */}
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <label
-                    htmlFor="firstName"
-                    className="text-sm font-medium text-foreground"
-                  >
-                    Prénom
-                  </label>
-                  <input
-                    id="firstName"
-                    type="text"
-                    name="firstName"
-                    value={formData.firstName}
-                    onChange={handleInputChange}
-                    placeholder="Prénom"
-                    className="w-full px-4 py-3 bg-input border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label
-                    htmlFor="lastName"
-                    className="text-sm font-medium text-foreground"
-                  >
-                    Nom
-                  </label>
-                  <input
-                    id="lastName"
-                    type="text"
-                    name="lastName"
-                    value={formData.lastName}
-                    onChange={handleInputChange}
-                    placeholder="Nom"
-                    className="w-full px-4 py-3 bg-input border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                    required
-                  />
-                </div>
-              </div>
+          <div className="relative flex items-center gap-2">
+            <FaShieldAlt className="text-white/40" size={14} />
+            <span className="text-white/40 text-xs">Données protégées · Conforme RGPD</span>
+          </div>
+        </div>
 
-              {/* Email Input */}
-              <div className="space-y-2">
-                <label
-                  htmlFor="email"
-                  className="text-sm font-medium text-foreground"
+        {/* Right content */}
+        <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 overflow-y-auto relative">
+          <Link href="/" className="absolute top-5 left-5 flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition group">
+            <FaChevronLeft size={11} className="group-hover:-translate-x-0.5 transition-transform" />
+            Accueil
+          </Link>
+          <Link href="/" className="lg:hidden flex items-center gap-3 mb-8">
+            <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
+              <Image src="/images/logo.png" alt="MegaCare" width={28} height={28} className="object-contain" />
+            </div>
+            <span className="text-foreground font-bold text-xl tracking-tight">MEGACARE</span>
+          </Link>
+
+          <div className="w-full max-w-2xl">
+            <div className="text-center mb-8">
+              <h1 className="text-3xl font-bold text-foreground mb-2">Rejoignez MegaCare</h1>
+              <p className="text-muted-foreground">Choisissez votre profil pour commencer</p>
+            </div>
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mb-8">
+              {roles.map(({ key, label, Icon, color, badge, perks }) => (
+                <button
+                  key={key}
+                  onClick={() => setUserType(key)}
+                  className="group relative p-5 bg-card rounded-2xl border-2 border-border hover:border-transparent hover:shadow-xl transition-all duration-300 text-left overflow-hidden"
                 >
-                  Email
-                </label>
-                <input
-                  id="email"
-                  type="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  placeholder="example@email.com"
-                  className="w-full px-4 py-3 bg-input border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                  required
-                />
-              </div>
-
-              {/* Phone Input */}
-              <div className="space-y-2">
-                <label
-                  htmlFor="phone"
-                  className="text-sm font-medium text-foreground"
-                >
-                  Téléphone
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value="+216"
-                    disabled
-                    className="w-16 px-3 py-3 bg-muted border border-border rounded-lg text-foreground text-center"
-                  />
-                  <input
-                    id="phone"
-                    type="tel"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleInputChange}
-                    placeholder="XXXXXXXX"
-                    className="flex-1 px-4 py-3 bg-input border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                    required
-                  />
-                </div>
-              </div>
-
-              {/* Specialization for Doctor */}
-              {userType === "doctor" && (
-                <div className="space-y-2">
-                  <label
-                    htmlFor="specialization"
-                    className="text-sm font-medium text-foreground"
-                  >
-                    Spécialité
-                  </label>
-                  <select
-                    id="specialization"
-                    name="specialization"
-                    value={formData.specialization}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        specialization: e.target.value,
-                      }))
-                    }
-                    className="w-full px-4 py-3 bg-input border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                    required
-                  >
-                    <option value="">Sélectionner une spécialité</option>
-                    {specializations.map((spec) => (
-                      <option key={spec} value={spec}>
-                        {spec}
-                      </option>
+                  <div className={`absolute inset-0 bg-gradient-to-br ${color} opacity-0 group-hover:opacity-10 transition-opacity duration-300`} />
+                  <div className={`w-10 h-10 mb-3 rounded-xl bg-gradient-to-br ${color} flex items-center justify-center`}>
+                    <Icon className="text-white" size={18} />
+                  </div>
+                  <p className="font-semibold text-foreground text-sm leading-tight mb-2">{label}</p>
+                  <ul className="space-y-1 mb-3">
+                    {perks.map((p) => (
+                      <li key={p} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <FaCheckCircle className="text-primary/60 shrink-0" size={9} />
+                        {p}
+                      </li>
                     ))}
-                  </select>
-                </div>
-              )}
+                  </ul>
+                  <span className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full bg-gradient-to-r ${color} text-white`}>{badge}</span>
+                  <FaArrowRight className="absolute bottom-4 right-4 text-muted-foreground/40 group-hover:text-primary group-hover:translate-x-1 transition-all duration-300" size={12} />
+                </button>
+              ))}
+            </div>
 
-              {/* Doctor ID */}
-              {userType === "doctor" && (
-                <div className="space-y-2">
-                  <label
-                    htmlFor="doctorId"
-                    className="text-sm font-medium text-foreground"
-                  >
-                    Numéro de licence médicale (Ordre des Médecins)
-                  </label>
-                  <input
-                    id="doctorId"
-                    type="text"
-                    name="doctorId"
-                    value={formData.doctorId}
-                    onChange={handleInputChange}
-                    placeholder="Ex: MD123456"
-                    className="w-full px-4 py-3 bg-input border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                    required
-                  />
-                </div>
-              )}
-
-              {/* Pharmacy ID */}
-              {userType === "pharmacy" && (
-                <div className="space-y-2">
-                  <label
-                    htmlFor="pharmacyId"
-                    className="text-sm font-medium text-foreground"
-                  >
-                    Numéro d'agrément pharmacie
-                  </label>
-                  <input
-                    id="pharmacyId"
-                    type="text"
-                    name="pharmacyId"
-                    value={formData.pharmacyId}
-                    onChange={handleInputChange}
-                    placeholder="Ex: PH789456"
-                    className="w-full px-4 py-3 bg-input border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                    required
-                  />
-                </div>
-              )}
-
-              {/* Password Input */}
-              <div className="space-y-2">
-                <label
-                  htmlFor="password"
-                  className="text-sm font-medium text-foreground"
-                >
-                  Mot de passe
-                </label>
-                <div className="relative">
-                  <input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    name="password"
-                    value={formData.password}
-                    onChange={handleInputChange}
-                    placeholder="••••••••"
-                    className="w-full px-4 py-3 bg-input border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary pr-10"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition"
-                  >
-                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                  </button>
-                </div>
-              </div>
-
-              {/* Confirm Password Input */}
-              <div className="space-y-2">
-                <label
-                  htmlFor="confirmPassword"
-                  className="text-sm font-medium text-foreground"
-                >
-                  Confirmer le mot de passe
-                </label>
-                <div className="relative">
-                  <input
-                    id="confirmPassword"
-                    type={showConfirmPassword ? "text" : "password"}
-                    name="confirmPassword"
-                    value={formData.confirmPassword}
-                    onChange={handleInputChange}
-                    placeholder="••••••••"
-                    className="w-full px-4 py-3 bg-input border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary pr-10"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition"
-                  >
-                    {showConfirmPassword ? (
-                      <EyeOff size={20} />
-                    ) : (
-                      <Eye size={20} />
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              {/* Terms Checkbox */}
-              <div className="flex items-start gap-3">
-                <input
-                  id="agreeToTerms"
-                  type="checkbox"
-                  name="agreeToTerms"
-                  checked={formData.agreeToTerms}
-                  onChange={handleInputChange}
-                  className="w-4 h-4 mt-1 bg-input border border-border rounded cursor-pointer accent-primary"
-                  required
-                />
-                <label
-                  htmlFor="agreeToTerms"
-                  className="text-sm text-muted-foreground"
-                >
-                  J'accepte les conditions d'utilisation et la politique de
-                  confidentialité
-                </label>
-              </div>
-
-              {/* Submit Button */}
-              <button
-                type="submit"
-                disabled={isLoading || !formData.agreeToTerms}
-                className="w-full py-3 bg-primary text-primary-foreground font-semibold rounded-lg hover:bg-primary/90 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                {isLoading ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin"></div>
-                    Création du compte...
-                  </>
-                ) : (
-                  "Créer mon compte"
-                )}
-              </button>
-            </form>
-
-            {/* Sign In Link */}
             <p className="text-center text-sm text-muted-foreground">
               Vous avez déjà un compte?{" "}
-              <Link
-                href="/login"
-                className="text-primary font-semibold hover:underline"
-              >
+              <Link href="/login" className="text-primary font-semibold hover:underline">
                 Connectez-vous
               </Link>
             </p>
           </div>
         </div>
-      </main>
+      </div>
+    );
+  }
 
-      <Footer />
+  const activeRole = roles.find((r) => r.key === userType)!;
+
+  return (
+    <div className="min-h-screen bg-background flex">
+      {/* Left branding panel */}
+      <div className="hidden lg:flex lg:w-2/5 xl:w-1/3 relative flex-col justify-between p-10 bg-gradient-to-br from-primary via-primary/90 to-accent overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(255,255,255,0.15),transparent_60%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px]" />
+
+        <Link href="/" className="relative flex items-center gap-3">
+          <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
+            <Image src="/images/logo.png" alt="MegaCare" width={32} height={32} className="object-contain" />
+          </div>
+          <span className="text-white font-bold text-2xl tracking-tight">MEGACARE</span>
+        </Link>
+
+        <div className="relative space-y-6">
+          <div className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${activeRole.color} flex items-center justify-center`}>
+            <activeRole.Icon className="text-white" size={28} />
+          </div>
+          <div>
+            <p className="text-white/60 text-sm mb-1">Inscription en tant que</p>
+            <h2 className="text-3xl font-bold text-white">{activeRole.label}</h2>
+          </div>
+          <div className="space-y-3">
+            {activeRole.perks.map((p) => (
+              <div key={p} className="flex items-center gap-3 text-white/70 text-sm">
+                <FaCheckCircle className="text-white/50 shrink-0" />
+                {p}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="relative flex items-center gap-2">
+          <FaShieldAlt className="text-white/40" size={14} />
+          <span className="text-white/40 text-xs">Données protégées · Conforme RGPD</span>
+        </div>
+      </div>
+
+      {/* Right form panel */}
+      <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 overflow-y-auto relative">
+        <Link href="/" className="absolute top-5 left-5 flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition group">
+          <FaChevronLeft size={11} className="group-hover:-translate-x-0.5 transition-transform" />
+          Accueil
+        </Link>
+        <div className="w-full max-w-md">
+          <button
+            onClick={() => { setUserType(null); setAuthError(null); }}
+            className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition mb-8 group"
+          >
+            <FaChevronLeft size={12} className="group-hover:-translate-x-0.5 transition-transform" />
+            Changer de profil
+          </button>
+
+          <Link href="/" className="lg:hidden flex items-center gap-3 mb-6">
+            <div className="w-9 h-9 bg-primary/10 rounded-xl flex items-center justify-center">
+              <Image src="/images/logo.png" alt="MegaCare" width={24} height={24} className="object-contain" />
+            </div>
+            <span className="text-foreground font-bold text-lg tracking-tight">MEGACARE</span>
+          </Link>
+
+          <div className="mb-6">
+            <div className={`inline-flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-gradient-to-r ${activeRole.color} mb-4`}>
+              <activeRole.Icon className="text-white" size={14} />
+              <span className="text-white text-xs font-semibold">{activeRole.label}</span>
+            </div>
+            <h1 className="text-3xl font-bold text-foreground mb-1">Créer un compte</h1>
+            <p className="text-muted-foreground text-sm">Remplissez le formulaire pour rejoindre MegaCare.</p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {authError && (
+              <div className="bg-destructive/10 border border-destructive/20 text-destructive rounded-xl px-4 py-3 text-sm flex items-start gap-2">
+                <span className="mt-0.5 shrink-0">⚠</span>
+                {authError}
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <label htmlFor="firstName" className="text-sm font-medium text-foreground">Prénom</label>
+                <input id="firstName" type="text" name="firstName" value={formData.firstName} onChange={handleInputChange} placeholder="Prénom"
+                  className="w-full px-4 py-3 bg-input border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition" required />
+              </div>
+              <div className="space-y-1.5">
+                <label htmlFor="lastName" className="text-sm font-medium text-foreground">Nom</label>
+                <input id="lastName" type="text" name="lastName" value={formData.lastName} onChange={handleInputChange} placeholder="Nom"
+                  className="w-full px-4 py-3 bg-input border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition" required />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label htmlFor="email" className="text-sm font-medium text-foreground">Adresse email</label>
+              <input id="email" type="email" name="email" value={formData.email} onChange={handleInputChange} placeholder="exemple@email.com"
+                className="w-full px-4 py-3 bg-input border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition" required />
+            </div>
+
+            <div className="space-y-1.5">
+              <label htmlFor="phone" className="text-sm font-medium text-foreground">Téléphone</label>
+              <div className="flex gap-2">
+                <input type="text" value="+216" disabled className="w-16 px-3 py-3 bg-muted border border-border rounded-xl text-foreground text-center text-sm" />
+                <input id="phone" type="tel" name="phone" value={formData.phone} onChange={handleInputChange} placeholder="XXXXXXXX"
+                  className="flex-1 px-4 py-3 bg-input border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition" required />
+              </div>
+            </div>
+
+            {userType === "doctor" && (
+              <>
+                <div className="space-y-1.5">
+                  <label htmlFor="specialization" className="text-sm font-medium text-foreground">Spécialité</label>
+                  <select id="specialization" name="specialization" value={formData.specialization}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, specialization: e.target.value }))}
+                    className="w-full px-4 py-3 bg-input border border-border rounded-xl text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition" required>
+                    <option value="">Sélectionner une spécialité</option>
+                    {specializations.map((s) => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <label htmlFor="doctorId" className="text-sm font-medium text-foreground">N° de licence médicale</label>
+                  <input id="doctorId" type="text" name="doctorId" value={formData.doctorId} onChange={handleInputChange} placeholder="Ex: MD123456"
+                    className="w-full px-4 py-3 bg-input border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition" required />
+                </div>
+              </>
+            )}
+
+            {userType === "pharmacy" && (
+              <div className="space-y-1.5">
+                <label htmlFor="pharmacyId" className="text-sm font-medium text-foreground">N° d'agrément pharmacie</label>
+                <input id="pharmacyId" type="text" name="pharmacyId" value={formData.pharmacyId} onChange={handleInputChange} placeholder="Ex: PH789456"
+                  className="w-full px-4 py-3 bg-input border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition" required />
+              </div>
+            )}
+
+            <div className="space-y-1.5">
+              <label htmlFor="password" className="text-sm font-medium text-foreground">Mot de passe</label>
+              <div className="relative">
+                <input id="password" type={showPassword ? "text" : "password"} name="password" value={formData.password} onChange={handleInputChange} placeholder="••••••••"
+                  className="w-full px-4 py-3 bg-input border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition pr-11" required />
+                <button type="button" onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition">
+                  {showPassword ? <FaEyeSlash size={17} /> : <FaEye size={17} />}
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label htmlFor="confirmPassword" className="text-sm font-medium text-foreground">Confirmer le mot de passe</label>
+              <div className="relative">
+                <input id="confirmPassword" type={showConfirmPassword ? "text" : "password"} name="confirmPassword" value={formData.confirmPassword} onChange={handleInputChange} placeholder="••••••••"
+                  className="w-full px-4 py-3 bg-input border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition pr-11" required />
+                <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition">
+                  {showConfirmPassword ? <FaEyeSlash size={17} /> : <FaEye size={17} />}
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3 pt-1">
+              <input id="agreeToTerms" type="checkbox" name="agreeToTerms" checked={formData.agreeToTerms} onChange={handleInputChange}
+                className="w-4 h-4 mt-0.5 bg-input border border-border rounded cursor-pointer accent-primary" required />
+              <label htmlFor="agreeToTerms" className="text-sm text-muted-foreground leading-relaxed">
+                J'accepte les{" "}
+                <Link href="#" className="text-primary hover:underline">conditions d'utilisation</Link>
+                {" "}et la{" "}
+                <Link href="#" className="text-primary hover:underline">politique de confidentialité</Link>
+              </label>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading || !formData.agreeToTerms}
+              className={`w-full py-3.5 bg-gradient-to-r ${activeRole.color} text-white font-semibold rounded-xl hover:opacity-90 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg mt-2`}
+            >
+              {isLoading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Création du compte...
+                </>
+              ) : (
+                <>
+                  Créer mon compte
+                  <FaArrowRight size={14} />
+                </>
+              )}
+            </button>
+          </form>
+
+          <p className="text-center text-sm text-muted-foreground mt-6">
+            Vous avez déjà un compte?{" "}
+            <Link href="/login" className="text-primary font-semibold hover:underline">
+              Connectez-vous
+            </Link>
+          </p>
+        </div>
+      </div>
     </div>
   );
 }

@@ -510,7 +510,7 @@ export default function DoctorsPage() {
             {/* Results */}
             <div className="lg:col-span-3">
               {filteredDoctors.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
                   {filteredDoctors.map((doctor) => (
                     <DoctorCard
                       key={doctor.id}

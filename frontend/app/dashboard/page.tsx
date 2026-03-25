@@ -52,7 +52,8 @@ export default function DashboardPage() {
     return null;
   }
 
-  const patientName = user.firstName || "Fatima";
+  const patientName =
+    user.firstName || user.name?.split(" ")[0] || user.email.split("@")[0];
 
   const upcomingAppointments = [
     {

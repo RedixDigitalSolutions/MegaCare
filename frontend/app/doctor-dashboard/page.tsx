@@ -22,6 +22,15 @@ export default function DoctorDashboardPage() {
       };
       router.push(dashboards[user.role as keyof typeof dashboards]);
     }
+    // Block access if account not yet approved
+    if (
+      !isLoading &&
+      user &&
+      user.role === "doctor" &&
+      user.status !== "approved"
+    ) {
+      router.push("/account-review");
+    }
   }, [isLoading, isAuthenticated, user, router]);
 
   if (isLoading) {
@@ -42,7 +51,7 @@ export default function DoctorDashboardPage() {
   const doctorName =
     user.firstName && user.lastName
       ? `${user.firstName} ${user.lastName}`
-      : "Amira Mansouri";
+      : user.name || `${user.email.split("@")[0]}`;
   const licenseId = user.doctorId || "MD-001-2024";
   const specialty = user.specialization || "Cardiologie";
 

@@ -14,10 +14,12 @@ export type UserRole =
 export interface User {
   id: string;
   email: string;
+  name?: string;
   firstName: string;
   lastName: string;
-  role: UserRole;
+  role: UserRole | "admin";
   phone: string;
+  status?: "pending" | "approved" | "rejected";
   specialization?: string;
   doctorId?: string;
   pharmacyId?: string;

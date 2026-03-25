@@ -17,6 +17,9 @@ export const metadata: Metadata = {
   title: "MegaCare - Plateforme Tunisienne de Santé",
   description:
     "Consultations en ligne, pharmacie numérique et dossier médical sécurisé. Accédez à des médecins spécialistes depuis chez vous.",
+  icons: {
+    icon: [{ url: "/favicon.svg", type: "image/svg+xml" }],
+  },
 };
 
 export default function RootLayout({

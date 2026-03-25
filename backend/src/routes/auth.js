@@ -122,4 +122,18 @@ router.post("/logout", (req, res) => {
   res.json({ message: "Logged out" });
 });
 
+// PATCH /api/auth/profile — update own basic info (requires auth)
+const authMiddleware = require("../middleware/auth");
+router.patch("/profile", authMiddleware, async (req, res) => {
+  const user = (global._mcUsers || []).find((u) => u.id === req.user.id);
+  if (!user) return res.status(404).json({ message: "Utilisateur non trouvé" });
+  const { firstName, lastName, phone } = req.body;
+  if (firstName !== undefined) user.firstName = firstName;
+  if (lastName !== undefined) user.lastName = lastName;
+  if (phone !== undefined) user.phone = phone;
+  user.name = `${user.firstName} ${user.lastName}`.trim();
+  const { password: _pw, ...safeUser } = user;
+  res.json({ user: safeUser });
+});
+
 module.exports = router;

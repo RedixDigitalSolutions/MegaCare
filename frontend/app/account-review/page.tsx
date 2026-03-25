@@ -18,6 +18,7 @@ import {
   FaMicroscope,
   FaAmbulance,
   FaUserNurse,
+  FaUser,
 } from "react-icons/fa";
 
 const roleLabels: Record<
@@ -255,6 +256,13 @@ export default function AccountReviewPage() {
 
         {/* Actions */}
         <div className="space-y-3">
+          <Link
+            href="/profile"
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-primary to-accent text-primary-foreground rounded-xl text-sm font-semibold hover:opacity-90 transition shadow-lg shadow-primary/20"
+          >
+            <FaUser size={13} />
+            Modifier mon profil
+          </Link>
           <a
             href="mailto:support@megacare.tn"
             className="w-full flex items-center justify-center gap-2 px-4 py-3 border border-border rounded-xl text-sm font-medium text-foreground hover:bg-muted transition"

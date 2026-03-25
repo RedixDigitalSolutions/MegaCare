@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { DoctorCard } from "@/components/DoctorCard";
+import { DoctorModal, type Doctor } from "@/components/DoctorModal";
 import { Search, ChevronDown } from "lucide-react";
 import { specialtiesMap } from "@/lib/specialties";
 
@@ -56,7 +57,7 @@ const cityToGovernorate: { [key: string]: string } = {
 };
 
 // Mock doctor data
-const mockDoctors = [
+const mockDoctors: Doctor[] = [
   {
     id: "1",
     name: "Amira Mansouri",
@@ -70,6 +71,15 @@ const mockDoctors = [
     availability: "Demain 14h",
     certified: true,
     videoConsultation: true,
+    imageUrl:
+      "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=400&fit=crop&q=80",
+    bio: "Cardiologue spécialisée dans les maladies coronariennes et l'insuffisance cardiaque. Consultante à La Marsa depuis 12 ans.",
+    languages: ["Arabe", "Français", "Anglais"],
+    experience: 12,
+    education: "Faculté de Médecine de Tunis",
+    address: "12 Rue de la République, La Marsa, Tunis",
+    lat: 36.8765,
+    lng: 10.3253,
   },
   {
     id: "2",
@@ -84,6 +94,15 @@ const mockDoctors = [
     availability: "Aujourd'hui 16h",
     certified: true,
     videoConsultation: true,
+    imageUrl:
+      "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=400&fit=crop&q=80",
+    bio: "Cardiologue interventionnel avec une expertise en cardiologie pédiatrique et adulte.",
+    languages: ["Arabe", "Français"],
+    experience: 9,
+    education: "Faculté de Médecine de Sfax",
+    address: "Avenue Habib Bourguiba, Sfax",
+    lat: 34.74,
+    lng: 10.76,
   },
   {
     id: "3",
@@ -98,6 +117,15 @@ const mockDoctors = [
     availability: "Demain 11h",
     certified: true,
     videoConsultation: true,
+    imageUrl:
+      "https://images.unsplash.com/photo-1594824476967-48c8b964273f?w=400&fit=crop&q=80",
+    bio: "Dermatologue et vénérologue. Spécialiste en dermatologie esthétique, acné et maladies de peau chroniques.",
+    languages: ["Arabe", "Français", "Anglais"],
+    experience: 15,
+    education: "Faculté de Médecine de Tunis",
+    address: "Rue Ibn Khaldoun, Tunis Centre",
+    lat: 36.8185,
+    lng: 10.1653,
   },
   {
     id: "4",
@@ -112,6 +140,15 @@ const mockDoctors = [
     availability: "Demain 10h",
     certified: false,
     videoConsultation: true,
+    imageUrl:
+      "https://images.unsplash.com/photo-1537368910025-700350fe46c7?w=400&fit=crop&q=80",
+    bio: "Pédiatre généraliste avec une spécialisation en néonatologie et en suivi du développement de l'enfant.",
+    languages: ["Arabe", "Français"],
+    experience: 7,
+    education: "Faculté de Médecine de Tunis",
+    address: "Centre Médical Ennasr, Ariana",
+    lat: 36.8712,
+    lng: 10.195,
   },
   {
     id: "5",
@@ -126,6 +163,15 @@ const mockDoctors = [
     availability: "Aujourd'hui 15h",
     certified: true,
     videoConsultation: true,
+    imageUrl:
+      "https://images.unsplash.com/photo-1651008376811-b90baee60c1f?w=400&fit=crop&q=80",
+    bio: "Gynécologue-obstétricienne experte en suivi de grossesse, fertilité et chirurgie laparoscopique.",
+    languages: ["Arabe", "Français", "Anglais"],
+    experience: 11,
+    education: "Faculté de Médecine de La Rabta",
+    address: "Clinique les Berges du Lac, Menzah",
+    lat: 36.8457,
+    lng: 10.2009,
   },
   {
     id: "6",
@@ -140,6 +186,15 @@ const mockDoctors = [
     availability: "Demain 09h",
     certified: true,
     videoConsultation: false,
+    imageUrl:
+      "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400&fit=crop&q=80",
+    bio: "Chirurgien orthopédiste spécialisé en chirurgie du genou, de la hanche et du rachis.",
+    languages: ["Arabe", "Français"],
+    experience: 18,
+    education: "Faculté de Médecine de Sousse",
+    address: "Clinique Hannibal, Carthage",
+    lat: 36.8576,
+    lng: 10.3267,
   },
   {
     id: "7",
@@ -154,6 +209,15 @@ const mockDoctors = [
     availability: "Aujourd'hui 17h",
     certified: true,
     videoConsultation: true,
+    imageUrl:
+      "https://images.unsplash.com/photo-1614608682850-e0d6ed316d47?w=400&fit=crop&q=80",
+    bio: "Psychologue clinicienne spécialisée en TCC, gestion du stress, anxiété et accompagnement thérapeutique adulte.",
+    languages: ["Arabe", "Français", "Anglais"],
+    experience: 10,
+    education: "Faculté des Lettres, Arts et Humanités",
+    address: "Cabinet médical, Rue de Rome, Tunis",
+    lat: 36.801,
+    lng: 10.18,
   },
   {
     id: "8",
@@ -168,6 +232,15 @@ const mockDoctors = [
     availability: "Demain 13h",
     certified: true,
     videoConsultation: true,
+    imageUrl:
+      "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=400&fit=crop&q=80",
+    bio: "Psychiatre spécialisé dans les troubles de l'humeur, schizophrénie et psychiatrie de liaison.",
+    languages: ["Arabe", "Français"],
+    experience: 14,
+    education: "Hôpital Razi, La Manouba",
+    address: "Hôpital de Bardo, Ben Arous",
+    lat: 36.8094,
+    lng: 10.1389,
   },
 ];
 
@@ -194,6 +267,8 @@ export default function DoctorsPage() {
   );
   const [priceFilter, setPriceFilter] = useState(100);
   const [showVideoOnly, setShowVideoOnly] = useState(false);
+  const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Filter and sort doctors
   const filteredDoctors = useMemo(() => {
@@ -437,7 +512,14 @@ export default function DoctorsPage() {
               {filteredDoctors.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {filteredDoctors.map((doctor) => (
-                    <DoctorCard key={doctor.id} {...doctor} />
+                    <DoctorCard
+                      key={doctor.id}
+                      {...doctor}
+                      onClick={() => {
+                        setSelectedDoctor(doctor);
+                        setIsModalOpen(true);
+                      }}
+                    />
                   ))}
                 </div>
               ) : (
@@ -456,6 +538,14 @@ export default function DoctorsPage() {
       </main>
 
       <Footer />
+      <DoctorModal
+        doctor={selectedDoctor}
+        isOpen={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setSelectedDoctor(null);
+        }}
+      />
     </div>
   );
 }

@@ -1,8 +1,6 @@
-"use client";
-
-import { useRouter, usePathname } from "next/navigation";
+import React, { useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth, UserRole } from "@/contexts/AuthContext";
-import { useEffect } from "react";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -14,14 +12,14 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   requiredRole,
 }) => {
   const { user, isLoading } = useAuth();
-  const router = useRouter();
-  const pathname = usePathname();
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
 
   useEffect(() => {
     if (isLoading) return;
 
     if (!user) {
-      router.push("/login");
+      navigate("/login");
       return;
     }
 
@@ -29,16 +27,21 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
       const roles = Array.isArray(requiredRole) ? requiredRole : [requiredRole];
       if (!roles.includes(user.role)) {
         // Rediriger vers le dashboard approprié
-        const dashboards = {
+        const dashboards: Partial<Record<UserRole, string>> = {
           patient: "/dashboard",
           doctor: "/doctor-dashboard",
           pharmacy: "/pharmacy-dashboard",
+          medical_service: "/medical-service-dashboard",
+          lab_radiology: "/lab-dashboard",
+          medical_transport: "/transport-dashboard",
+          paramedical: "/paramedical-dashboard",
+          admin: "/admin",
         };
-        router.push(dashboards[user.role]);
+        navigate(dashboards[user.role] ?? "/");
         return;
       }
     }
-  }, [user, isLoading, requiredRole, router, pathname]);
+  }, [user, isLoading, requiredRole, navigate, pathname]);
 
   if (isLoading) {
     return (

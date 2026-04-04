@@ -1,8 +1,7 @@
-"use client";
 
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useRouter } from "next/navigation";
+import { useNavigate } from 'react-router-dom';
 import {
   X,
   Star,
@@ -95,7 +94,7 @@ const MONTH_LABELS = [
 
 export function DoctorModal({ doctor, isOpen, onClose }: DoctorModalProps) {
   const { isAuthenticated } = useAuth();
-  const router = useRouter();
+  const navigate = useNavigate();
   const [tab, setTab] = useState<"profile" | "rdv">("profile");
   const [selectedDayIdx, setSelectedDayIdx] = useState(0);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
@@ -116,7 +115,7 @@ export function DoctorModal({ doctor, isOpen, onClose }: DoctorModalProps) {
 
   const handleBook = () => {
     if (!isAuthenticated) {
-      router.push("/login");
+      navigate("/login");
       return;
     }
     if (!selectedSlot) return;

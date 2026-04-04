@@ -1,6 +1,5 @@
-'use client';
 
-import Link from 'next/link';
+import { Link } from 'react-router-dom';
 import { Package, MapPin, Clock, CheckCircle, ArrowRight } from 'lucide-react';
 
 interface OrderItem {
@@ -99,7 +98,7 @@ export function PrescriptionOrderSummary({
         </button>
 
         <Link
-          href="/pharmacy"
+          to="/pharmacy"
           className="block text-center text-primary hover:underline font-medium text-sm py-2"
         >
           Continuer les achats
@@ -108,3 +107,4 @@ export function PrescriptionOrderSummary({
     </div>
   );
 }
+

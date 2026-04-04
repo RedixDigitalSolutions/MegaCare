@@ -1,8 +1,7 @@
-"use client";
 
 import { useState, useEffect, useRef } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from "@/contexts/AuthContext";
 import type { User } from "@/contexts/AuthContext";
 import {
@@ -23,7 +22,7 @@ export function Header() {
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { user, isAuthenticated, isLoading, logout } = useAuth();
-  const router = useRouter();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -81,7 +80,7 @@ export function Header() {
 
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2 group shrink-0">
+        <Link to="/" className="flex items-center gap-2 group shrink-0">
           <div className="relative w-10 h-10 sm:w-12 sm:h-12 transition-all duration-500 group-hover:scale-105">
             <img
               src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/logo_-_Copie-removebg-preview%20%281%29-1lHtn7bUP56gkeKOohlFiO7U9vRpnw.png"
@@ -196,13 +195,13 @@ export function Header() {
           ) : (
             <>
               <Link
-                href="/login"
+                to="/login"
                 className="px-5 py-2.5 text-foreground/80 hover:text-primary transition-all duration-300 font-medium rounded-xl hover:bg-secondary/50 text-sm"
               >
                 Connexion
               </Link>
               <Link
-                href="/register"
+                to="/register"
                 className="group relative px-5 py-2.5 bg-gradient-to-r from-primary to-accent text-primary-foreground rounded-xl font-semibold overflow-hidden transition-all duration-500 hover:shadow-xl hover:shadow-primary/25 hover:scale-105 text-sm"
               >
                 <span className="relative z-10 flex items-center gap-2">
@@ -225,13 +224,13 @@ export function Header() {
           ) : (
             <>
               <Link
-                href="/login"
+                to="/login"
                 className="px-4 py-2 text-foreground/80 hover:text-primary transition-colors font-medium rounded-xl hover:bg-secondary/50 text-sm"
               >
                 Connexion
               </Link>
               <Link
-                href="/register"
+                to="/register"
                 className="px-4 py-2 bg-gradient-to-r from-primary to-accent text-primary-foreground rounded-xl font-semibold text-sm hover:opacity-90 transition-opacity"
               >
                 S'inscrire
@@ -377,7 +376,7 @@ export function Header() {
                   </div>
                 </div>
                 <Link
-                  href="/profile"
+                  to="/profile"
                   onClick={() => setIsOpen(false)}
                   className="block py-2.5 px-4 text-foreground/80 hover:text-primary hover:bg-secondary/50 rounded-xl transition-all duration-300 font-medium text-sm"
                 >
@@ -385,7 +384,7 @@ export function Header() {
                 </Link>
                 {user.status === "approved" && (
                   <Link
-                    href={
+                    to={
                       (
                         {
                           patient: "/dashboard",
@@ -407,7 +406,7 @@ export function Header() {
                 )}
                 {(user.status === "pending" || user.status === "rejected") && (
                   <Link
-                    href="/account-review"
+                    to="/account-review"
                     onClick={() => setIsOpen(false)}
                     className="block py-2.5 px-4 text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/5 rounded-xl transition-all duration-300 font-medium text-sm"
                   >
@@ -418,7 +417,7 @@ export function Header() {
                   onClick={() => {
                     logout();
                     setIsOpen(false);
-                    router.push("/");
+                    navigate("/");
                   }}
                   className="w-full text-left block py-2.5 px-4 text-destructive hover:bg-destructive/5 rounded-xl transition-all duration-300 font-medium text-sm"
                 >
@@ -428,14 +427,14 @@ export function Header() {
             ) : (
               <>
                 <Link
-                  href="/login"
+                  to="/login"
                   onClick={() => setIsOpen(false)}
                   className="block py-3 px-4 text-center text-foreground/80 hover:text-primary hover:bg-secondary/50 rounded-xl transition-all duration-300 font-medium text-sm"
                 >
                   Connexion
                 </Link>
                 <Link
-                  href="/register"
+                  to="/register"
                   onClick={() => setIsOpen(false)}
                   className="flex items-center justify-center gap-2 py-3 px-4 bg-gradient-to-r from-primary to-accent text-primary-foreground rounded-xl text-center font-semibold hover:shadow-lg hover:shadow-primary/25 transition-all duration-300 text-sm"
                 >
@@ -460,7 +459,7 @@ function NavLink({
 }) {
   return (
     <Link
-      href={href}
+      to={href}
       className="relative px-4 py-2.5 text-foreground/80 hover:text-primary rounded-xl transition-all duration-300 font-medium text-sm group"
     >
       {children}
@@ -482,7 +481,7 @@ function DropdownLink({
 }) {
   return (
     <Link
-      href={href}
+      to={href}
       className="flex items-start gap-3 p-3 rounded-xl hover:bg-secondary/50 transition-all duration-300 group"
     >
       <span className="text-xl mt-0.5 group-hover:scale-110 transition-transform duration-300 leading-none">
@@ -511,7 +510,7 @@ function MobileNavLink({
 }) {
   return (
     <Link
-      href={href}
+      to={href}
       onClick={onClick}
       className="block py-3 px-4 text-foreground/80 hover:text-primary hover:bg-secondary/50 rounded-xl transition-all duration-300 font-medium text-sm"
     >
@@ -531,7 +530,7 @@ function MobileSubLink({
 }) {
   return (
     <Link
-      href={href}
+      to={href}
       onClick={onClick}
       className="block py-2.5 px-3 text-sm text-foreground/70 hover:text-primary hover:bg-secondary/30 rounded-lg transition-colors duration-300"
     >
@@ -547,7 +546,7 @@ function ProfileMenuButton({
   user: User;
   logout: () => void;
 }) {
-  const router = useRouter();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -586,7 +585,7 @@ function ProfileMenuButton({
   const handleLogout = () => {
     logout();
     setOpen(false);
-    router.push("/");
+    navigate("/");
   };
 
   return (
@@ -659,7 +658,7 @@ function ProfileMenuButton({
 
           <div className="py-1.5">
             <Link
-              href="/profile"
+              to="/profile"
               onClick={() => setOpen(false)}
               className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-foreground/80 hover:text-primary hover:bg-secondary/50 transition-colors"
             >
@@ -668,7 +667,7 @@ function ProfileMenuButton({
             </Link>
             {!isPending && !isRejected && (
               <Link
-                href={dashboards[user.role] || "/dashboard"}
+                to={dashboards[user.role] || "/dashboard"}
                 onClick={() => setOpen(false)}
                 className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-foreground/80 hover:text-primary hover:bg-secondary/50 transition-colors"
               >
@@ -678,7 +677,7 @@ function ProfileMenuButton({
             )}
             {(isPending || isRejected) && (
               <Link
-                href="/account-review"
+                to="/account-review"
                 onClick={() => setOpen(false)}
                 className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/5 transition-colors"
               >
@@ -702,3 +701,4 @@ function ProfileMenuButton({
     </div>
   );
 }
+

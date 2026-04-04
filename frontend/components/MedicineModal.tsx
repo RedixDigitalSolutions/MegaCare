@@ -1,7 +1,6 @@
-"use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useNavigate } from 'react-router-dom';
 import {
   X,
   Star,
@@ -46,14 +45,14 @@ export function MedicineModal({
   onAddToCart,
 }: MedicineModalProps) {
   const { isAuthenticated } = useAuth();
-  const router = useRouter();
+  const navigate = useNavigate();
   const [addedFeedback, setAddedFeedback] = useState(false);
 
   if (!isOpen || !medicine) return null;
 
   const handleAddToCart = () => {
     if (!isAuthenticated) {
-      router.push("/register");
+      navigate("/register");
       return;
     }
     onAddToCart(medicine);

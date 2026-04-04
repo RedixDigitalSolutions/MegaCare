@@ -1,9 +1,8 @@
-"use client";
 
 import React from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useRouter } from "next/navigation";
+import { Link } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from "@/contexts/AuthContext";
 import {
   LayoutDashboard,
@@ -62,13 +61,13 @@ interface DashboardSidebarProps {
 export function DashboardSidebar({
   userName = "Fatima",
 }: DashboardSidebarProps) {
-  const pathname = usePathname();
-  const router = useRouter();
+  const { pathname } = useLocation();
+  const navigate = useNavigate();
   const { logout } = useAuth();
 
   const handleLogout = () => {
     logout();
-    router.push("/login");
+    navigate("/login");
   };
 
   return (
@@ -97,7 +96,7 @@ export function DashboardSidebar({
             return (
               <Link
                 key={item.href}
-                href={item.href}
+                to={item.href}
                 className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all relative ${
                   isActive
                     ? "bg-sidebar-primary text-sidebar-primary-foreground font-semibold border-l-4 border-sidebar-accent"
@@ -136,3 +135,4 @@ export function DashboardSidebar({
     </aside>
   );
 }
+

@@ -1,7 +1,6 @@
-'use client';
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { Link } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
   Calendar,
@@ -31,13 +30,13 @@ interface DoctorDashboardSidebarProps {
 }
 
 export function DoctorDashboardSidebar({ doctorName = 'Amira Mansouri' }: DoctorDashboardSidebarProps) {
-  const pathname = usePathname();
+  const { pathname } = useLocation();
 
   return (
     <aside className="w-full md:w-64 bg-sidebar text-sidebar-foreground border-b md:border-b-0 md:border-r border-sidebar-border">
       {/* Logo & Profile */}
       <div className="p-6 border-b border-sidebar-border space-y-4">
-        <Link href="/" className="flex items-center gap-2 font-bold text-xl text-primary">
+        <Link to="/" className="flex items-center gap-2 font-bold text-xl text-primary">
           <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white text-sm font-bold">
             MC
           </div>
@@ -67,7 +66,7 @@ export function DoctorDashboardSidebar({ doctorName = 'Amira Mansouri' }: Doctor
             return (
               <Link
                 key={item.href}
-                href={item.href}
+                to={item.href}
                 className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all ${
                   isActive
                     ? 'bg-sidebar-primary text-sidebar-primary-foreground font-semibold border-l-4 border-sidebar-accent'
@@ -104,3 +103,4 @@ export function DoctorDashboardSidebar({ doctorName = 'Amira Mansouri' }: Doctor
     </aside>
   );
 }
+

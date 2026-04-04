@@ -1,5 +1,3 @@
-"use client";
-
 import { ExtractedMedicine } from "@/lib/ocr-utils";
 import { Card } from "./ui/card";
 import { Badge } from "./ui/badge";
@@ -127,7 +125,7 @@ export function MedicineResults({
                 >
                   {cartItems.has(medicine.name) ? (
                     <>
-                      <CheckCircle2 className="w-4 h-4 mr-1" />
+                      <CircleCheckBig className="w-4 h-4 mr-1" />
                       Ajouté
                     </>
                   ) : (

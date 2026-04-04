@@ -1,5 +1,3 @@
-"use client";
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 
 export type UserRole =
@@ -9,7 +7,8 @@ export type UserRole =
   | "medical_service"
   | "lab_radiology"
   | "medical_transport"
-  | "paramedical";
+  | "paramedical"
+  | "admin";
 
 export interface User {
   id: string;
@@ -17,7 +16,7 @@ export interface User {
   name?: string;
   firstName: string;
   lastName: string;
-  role: UserRole | "admin";
+  role: UserRole;
   phone: string;
   status?: "pending" | "approved" | "rejected";
   specialization?: string;

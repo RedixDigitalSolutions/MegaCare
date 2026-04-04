@@ -1,4 +1,3 @@
-'use client';
 
 import { Pharmacy } from '@/lib/pharmacy-data';
 import { MapPin, Phone, Clock } from 'lucide-react';

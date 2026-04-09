@@ -9,20 +9,90 @@ const JWT_SECRET = process.env.JWT_SECRET || "megacare_secret_key";
 // In-memory user store (shared via module-level variable)
 if (!global._mcUsers) {
   global._mcUsers = [];
-  // Seed default admin account
-  bcrypt.hash("Admin@megacare2024", 10).then((hash) => {
-    global._mcUsers.push({
-      id: randomUUID(),
+
+  // Seed one demo account per role (all pre-approved)
+  const seedUsers = [
+    {
       name: "Admin MegaCare",
       firstName: "Admin",
       lastName: "MegaCare",
       email: "admin@megacare.tn",
-      password: hash,
+      plainPassword: "Admin@megacare2024",
       role: "admin",
-      status: "approved",
       phone: "",
-    });
-  });
+    },
+    {
+      name: "Patient Demo",
+      firstName: "Patient",
+      lastName: "Demo",
+      email: "patient@megacare.tn",
+      plainPassword: "Patient@2024",
+      role: "patient",
+      phone: "20000001",
+    },
+    {
+      name: "Dr. Demo Médecin",
+      firstName: "Demo",
+      lastName: "Médecin",
+      email: "medecin@megacare.tn",
+      plainPassword: "Medecin@2024",
+      role: "doctor",
+      phone: "20000002",
+      specialization: "Médecine générale",
+    },
+    {
+      name: "Labo Demo",
+      firstName: "Labo",
+      lastName: "Demo",
+      email: "labo@megacare.tn",
+      plainPassword: "Labo@2024",
+      role: "lab_radiology",
+      phone: "20000003",
+      labId: "LAB-DEMO-001",
+    },
+    {
+      name: "Pharmacie Demo",
+      firstName: "Pharmacie",
+      lastName: "Demo",
+      email: "pharmacien@megacare.tn",
+      plainPassword: "Pharmacien@2024",
+      role: "pharmacy",
+      phone: "20000004",
+      pharmacyId: "PHARM-DEMO-001",
+    },
+    {
+      name: "Paramédical Demo",
+      firstName: "Paramédical",
+      lastName: "Demo",
+      email: "paramedical@megacare.tn",
+      plainPassword: "Paramedical@2024",
+      role: "paramedical",
+      phone: "20000005",
+      paramedicalId: "PARA-DEMO-001",
+    },
+    {
+      name: "Service Médical Demo",
+      firstName: "Service",
+      lastName: "Médical",
+      email: "service@megacare.tn",
+      plainPassword: "Service@2024",
+      role: "medical_service",
+      phone: "20000006",
+      serviceId: "SVC-DEMO-001",
+    },
+  ];
+
+  Promise.all(
+    seedUsers.map(async ({ plainPassword, ...rest }) => {
+      const password = await bcrypt.hash(plainPassword, 10);
+      global._mcUsers.push({
+        id: randomUUID(),
+        ...rest,
+        password,
+        status: "approved",
+      });
+    }),
+  );
 }
 const users = global._mcUsers;
 
@@ -41,7 +111,6 @@ router.post("/register", async (req, res) => {
     pharmacyId,
     serviceId,
     labId,
-    transportId,
     paramedicalId,
     companyName,
   } = req.body;
@@ -77,7 +146,6 @@ router.post("/register", async (req, res) => {
     ...(pharmacyId && { pharmacyId }),
     ...(serviceId && { serviceId }),
     ...(labId && { labId }),
-    ...(transportId && { transportId }),
     ...(paramedicalId && { paramedicalId }),
     ...(companyName && { companyName }),
   };

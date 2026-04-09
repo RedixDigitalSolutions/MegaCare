@@ -1,8 +1,5 @@
-
-import React from "react";
-import { Link } from 'react-router-dom';
-import { useLocation } from 'react-router-dom';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   LayoutDashboard,
@@ -11,12 +8,14 @@ import {
   FileText,
   Pill,
   ShoppingBag,
-  Package,
   Bell,
   Settings,
   LogOut,
   Search,
   Camera,
+  Menu,
+  X,
+  Heart,
 } from "lucide-react";
 
 const menuItems = [
@@ -34,10 +33,9 @@ const menuItems = [
     href: "/pharmacy/prescription-scanner",
     label: "Pharmacie en ligne",
     icon: Camera,
-    badge: "NEW",
+    badge: "NEW" as const,
   },
   { href: "/dashboard/orders", label: "Mes commandes", icon: ShoppingBag },
-  { href: "/dashboard/tracking", label: "Suivi livraison", icon: Package },
   {
     href: "/dashboard/notifications",
     label: "Notifications",
@@ -47,92 +45,151 @@ const menuItems = [
   { href: "/dashboard/settings", label: "Paramètres", icon: Settings },
 ];
 
-interface MenuItem {
-  href: string;
-  label: string;
-  icon: React.ElementType;
-  badge?: number | string;
-}
-
 interface DashboardSidebarProps {
   userName?: string;
 }
 
 export function DashboardSidebar({
-  userName = "Fatima",
+  userName = "Patient",
 }: DashboardSidebarProps) {
   const { pathname } = useLocation();
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
     navigate("/login");
   };
 
-  return (
-    <aside className="w-full md:w-64 bg-sidebar text-sidebar-foreground border-b md:border-b-0 md:border-r border-sidebar-border">
-      {/* Profile Section */}
-      <div className="p-6 border-b border-sidebar-border">
-        <div className="flex items-center gap-4 mb-4">
-          <div className="w-12 h-12 rounded-full bg-sidebar-accent text-sidebar-accent-foreground flex items-center justify-center text-lg font-bold">
-            F
+  const initials = user
+    ? `${user.firstName?.[0] ?? ""}${user.lastName?.[0] ?? ""}`.toUpperCase() ||
+      userName[0].toUpperCase()
+    : userName[0].toUpperCase();
+
+  const NavContent = () => (
+    <>
+      {/* Logo */}
+      <div className="flex items-center gap-3 px-5 py-5 border-b border-sidebar-border shrink-0">
+        <div className="w-9 h-9 bg-sidebar-primary/20 rounded-xl flex items-center justify-center">
+          <Heart size={17} className="text-sidebar-primary" />
+        </div>
+        <span className="font-bold text-lg text-sidebar-foreground tracking-tight">
+          MEGA<span className="text-sidebar-primary">CARE</span>
+        </span>
+      </div>
+
+      {/* Profile */}
+      <div className="px-4 py-3 border-b border-sidebar-border shrink-0">
+        <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-sidebar-accent/40">
+          <div className="relative shrink-0">
+            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-xs font-bold text-white">
+              {initials}
+            </div>
+            <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-sidebar" />
           </div>
-          <div className="flex-1">
-            <p className="font-semibold text-sm text-sidebar-foreground">
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-sm text-sidebar-foreground truncate">
               {userName}
             </p>
-            <p className="text-xs text-sidebar-foreground/70">Patient</p>
+            <p className="text-xs text-sidebar-foreground/50">Patient</p>
           </div>
         </div>
       </div>
 
       {/* Navigation */}
-      <nav className="p-4">
-        <div className="space-y-1">
-          {menuItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = pathname === item.href;
-            return (
-              <Link
-                key={item.href}
-                to={item.href}
-                className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-all relative ${
-                  isActive
-                    ? "bg-sidebar-primary text-sidebar-primary-foreground font-semibold border-l-4 border-sidebar-accent"
-                    : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                }`}
-              >
-                <Icon size={20} />
-                <span className="flex-1 text-sm">{item.label}</span>
-                {item.badge && (
-                  <span
-                    className={`text-xs font-bold px-2 py-1 rounded-full ${
-                      typeof item.badge === "string"
-                        ? "bg-amber-100 text-amber-700"
-                        : "bg-destructive text-destructive-foreground"
-                    }`}
-                  >
-                    {item.badge}
-                  </span>
-                )}
-              </Link>
-            );
-          })}
-        </div>
+      <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-0.5">
+        {menuItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = pathname === item.href;
+          return (
+            <Link
+              key={item.href}
+              to={item.href}
+              onClick={() => setMobileOpen(false)}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-sm ${
+                isActive
+                  ? "bg-sidebar-accent text-sidebar-foreground font-semibold"
+                  : "text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+              }`}
+            >
+              <Icon
+                size={17}
+                className={isActive ? "text-sidebar-primary" : ""}
+              />
+              <span className="flex-1">{item.label}</span>
+              {item.badge !== undefined && (
+                <span
+                  className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                    typeof item.badge === "string"
+                      ? "bg-amber-400/20 text-amber-400"
+                      : "bg-destructive text-white"
+                  }`}
+                >
+                  {item.badge}
+                </span>
+              )}
+            </Link>
+          );
+        })}
       </nav>
 
-      {/* Logout Button */}
-      <div className="p-4 border-t border-sidebar-border mt-auto">
+      {/* Logout */}
+      <div className="px-3 py-3 border-t border-sidebar-border shrink-0">
         <button
           onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-4 py-3 text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground rounded-lg transition-all text-sm font-medium"
+          className="w-full flex items-center gap-3 px-3 py-2.5 text-sidebar-foreground/50 hover:text-destructive hover:bg-destructive/10 rounded-lg transition-all text-sm font-medium"
         >
-          <LogOut size={20} />
+          <LogOut size={17} />
           Se déconnecter
         </button>
       </div>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* Desktop sidebar — sticky full-height */}
+      <aside className="hidden md:flex flex-col w-64 shrink-0 bg-sidebar h-screen sticky top-0">
+        <NavContent />
+      </aside>
+
+      {/* Mobile top bar */}
+      <div className="md:hidden flex items-center justify-between px-4 py-3 bg-sidebar border-b border-sidebar-border sticky top-0 z-40">
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 bg-sidebar-primary/20 rounded-lg flex items-center justify-center">
+            <Heart size={13} className="text-sidebar-primary" />
+          </div>
+          <span className="font-bold text-sidebar-foreground tracking-tight text-sm">
+            MEGACARE
+          </span>
+        </div>
+        <button
+          onClick={() => setMobileOpen(true)}
+          className="p-1.5 text-sidebar-foreground/70 hover:text-sidebar-foreground transition"
+        >
+          <Menu size={20} />
+        </button>
+      </div>
+
+      {/* Mobile drawer */}
+      {mobileOpen && (
+        <div className="md:hidden fixed inset-0 z-50 flex">
+          <div
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            onClick={() => setMobileOpen(false)}
+          />
+          <aside className="relative w-72 bg-sidebar flex flex-col h-full overflow-hidden shadow-2xl animate-slide-right">
+            <button
+              onClick={() => setMobileOpen(false)}
+              className="absolute top-4 right-4 z-10 p-1.5 text-sidebar-foreground/50 hover:text-sidebar-foreground transition"
+            >
+              <X size={18} />
+            </button>
+            <NavContent />
+          </aside>
+        </div>
+      )}
+    </>
   );
 }
-

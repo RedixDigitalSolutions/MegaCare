@@ -6,8 +6,8 @@ export type UserRole =
   | "pharmacy"
   | "medical_service"
   | "lab_radiology"
-  | "medical_transport"
   | "paramedical"
+  | "medical_transport"
   | "admin";
 
 export interface User {
@@ -24,7 +24,6 @@ export interface User {
   pharmacyId?: string;
   serviceId?: string;
   labId?: string;
-  transportId?: string;
   paramedicalId?: string;
   companyName?: string;
   avatar?: string;

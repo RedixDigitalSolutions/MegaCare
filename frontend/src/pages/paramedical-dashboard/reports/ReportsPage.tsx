@@ -1,143 +1,271 @@
+import { useState } from "react";
+import { ParamedicalDashboardSidebar } from "@/components/ParamedicalDashboardSidebar";
+import {
+  Download,
+  FileText,
+  CalendarDays,
+  Clock,
+  Users,
+  ChevronDown,
+  ChevronUp,
+  CheckCircle2,
+  History,
+} from "lucide-react";
 
-import { useAuth } from '@/contexts/AuthContext';
-import { Link } from 'react-router-dom';
-import { ChevronLeft, Download } from 'lucide-react';
-import { useState } from 'react';
+type ReportType = "daily" | "weekly";
+type ViewMode = "daily" | "weekly";
 
-const mockReports = [
-  {
-    id: 1,
-    date: '2024-03-08',
-    type: 'Journalier',
-    visites: 6,
-    heures: '8h 30',
-    patients: 'Mme Khaled, M. Ben Ali, Mme Zahra, M. Riadh, Mme Karmous, M. Hassan',
-  },
-  {
-    id: 2,
-    date: '2024-03-07',
-    type: 'Journalier',
-    visites: 5,
-    heures: '7h 45',
-    patients: 'Mme Khaled, M. Ben Ali, Mme Zahra, M. Riadh, Mme Karmous',
-  },
-  {
-    id: 3,
-    date: '2024-03-04 à 2024-03-08',
-    type: 'Hebdomadaire',
-    visites: 28,
-    heures: '38h 30',
-    patients: '12 patients suivis',
-  },
+interface Report {
+  id: number;
+  date: string;
+  type: ReportType;
+  visits: number;
+  hours: string;
+  patientsNote: string;
+}
+
+interface HistoryEntry {
+  id: number;
+  date: string;
+  patient: string;
+  care: string;
+  duration: string;
+  practitioner: string;
+}
+
+const REPORTS: Report[] = [
+  { id: 1, date: "2026-04-06", type: "daily",   visits: 6,  hours: "8h 30",  patientsNote: "Mme Khaled, M. Ben Ali, Mme Zahra, M. Riadh, Mme Karmous, M. Hassan" },
+  { id: 2, date: "2026-04-05", type: "daily",   visits: 5,  hours: "7h 15",  patientsNote: "Mme Khaled, M. Ben Ali, Mme Zahra, M. Riadh, Mme Karmous" },
+  { id: 3, date: "2026-04-04", type: "daily",   visits: 4,  hours: "6h 00",  patientsNote: "Mme Khaled, M. Ben Ali, M. Riadh, M. Hassan" },
+  { id: 4, date: "2026-03-30 – 2026-04-05", type: "weekly", visits: 28, hours: "37h 30", patientsNote: "12 patients suivis cette semaine" },
+  { id: 5, date: "2026-03-23 – 2026-03-29", type: "weekly", visits: 31, hours: "40h 00", patientsNote: "13 patients suivis cette semaine" },
+  { id: 6, date: "2026-03-22", type: "daily",   visits: 7,  hours: "9h 15",  patientsNote: "Mme Khaled, M. Ben Ali, Mme Zahra, M. Riadh, Mme Karmous, M. Hassan, Mme Bakir" },
 ];
 
-const mockHistory = [
-  { date: '2024-03-08 11:30', patient: 'Mme Zahra', soin: 'Perfusion', duree: '30 min' },
-  { date: '2024-03-08 09:45', patient: 'M. Ali Ben', soin: 'Injection', duree: '15 min' },
-  { date: '2024-03-08 08:00', patient: 'Mme Khaled', soin: 'Pansement', duree: '20 min' },
-  { date: '2024-03-07 16:30', patient: 'M. Riadh', soin: 'Kinésithérapie', duree: '45 min' },
-  { date: '2024-03-07 14:00', patient: 'Mme Karmous', soin: 'Prise de sang', duree: '10 min' },
+const HISTORY: HistoryEntry[] = [
+  { id: 1,  date: "06/04/2026 16:30", patient: "M. Hassan Jebali",   care: "Soins plaie",        duration: "25 min", practitioner: "Vous" },
+  { id: 2,  date: "06/04/2026 15:00", patient: "Mme Amira Karmous",  care: "Prise de sang",      duration: "10 min", practitioner: "Vous" },
+  { id: 3,  date: "06/04/2026 13:30", patient: "M. Riadh Maaloul",   care: "Kinésithérapie",     duration: "45 min", practitioner: "Vous" },
+  { id: 4,  date: "06/04/2026 11:00", patient: "Mme Zahra Trabelsi", care: "Perfusion IV",       duration: "35 min", practitioner: "Vous" },
+  { id: 5,  date: "06/04/2026 09:30", patient: "M. Ali Ben Salah",   care: "Injection",          duration: "15 min", practitioner: "Vous" },
+  { id: 6,  date: "06/04/2026 08:00", patient: "Mme Fatima Khaled",  care: "Pansement",          duration: "20 min", practitioner: "Vous" },
+  { id: 7,  date: "05/04/2026 16:00", patient: "Mme Amira Karmous",  care: "Évaluation douleur", duration: "30 min", practitioner: "Vous" },
+  { id: 8,  date: "05/04/2026 14:00", patient: "M. Riadh Maaloul",   care: "Kinésithérapie",     duration: "45 min", practitioner: "Vous" },
+  { id: 9,  date: "05/04/2026 11:30", patient: "Mme Zahra Trabelsi", care: "Constantes",         duration: "10 min", practitioner: "Vous" },
+  { id: 10, date: "05/04/2026 09:00", patient: "Mme Fatima Khaled",  care: "Pansement",          duration: "20 min", practitioner: "Vous" },
 ];
+
+const fmtDate = (d: string) => {
+  if (d.includes("–")) return d;
+  const dt = new Date(d);
+  return dt.toLocaleDateString("fr-FR", { day: "2-digit", month: "long", year: "numeric" });
+};
+
+const handlePdfDownload = (r: Report) => {
+  const lines = [
+    `RAPPORT ${r.type === "daily" ? "JOURNALIER" : "HEBDOMADAIRE"}`,
+    `Période : ${fmtDate(r.date)}`,
+    `Visites : ${r.visits}`,
+    `Heures : ${r.hours}`,
+    `Patients : ${r.patientsNote}`,
+    ``,
+    `Généré par MegaCare – ${new Date().toLocaleDateString("fr-FR")}`,
+  ].join("\n");
+  const blob = new Blob([lines], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `rapport-${r.date}.txt`;
+  a.click();
+  URL.revokeObjectURL(url);
+};
 
 export default function ReportsPage() {
-  const { user, isLoading, isAuthenticated } = useAuth();
-  const [selectedTab, setSelectedTab] = useState<'reports' | 'history'>('reports');
+  const [view, setView] = useState<ViewMode>("daily");
+  const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [histPage, setHistPage] = useState(0);
+  const PAGE_SIZE = 5;
 
-  if (isLoading || !isAuthenticated || !user) {
-    return null;
-  }
+  const filtered = REPORTS.filter((r) => r.type === view);
+  const histSlice = HISTORY.slice(histPage * PAGE_SIZE, (histPage + 1) * PAGE_SIZE);
+  const totalHistPages = Math.ceil(HISTORY.length / PAGE_SIZE);
+
+  const toggle = (id: number) => setExpandedId(expandedId === id ? null : id);
+
+  // Weekly KPIs
+  const weeklyReport = REPORTS.find((r) => r.type === "weekly");
+  const kpis = [
+    { label: "Visites aujourd'hui", value: "6", icon: CheckCircle2, color: "text-green-600" },
+    { label: "Heures cette semaine", value: weeklyReport?.hours ?? "—", icon: Clock, color: "text-blue-600" },
+    { label: "Visites cette semaine", value: String(weeklyReport?.visits ?? "—"), icon: CalendarDays, color: "text-primary" },
+    { label: "Patients actifs", value: "12", icon: Users, color: "text-violet-600" },
+  ];
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="bg-card border-b border-border sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-          <Link to="/paramedical-dashboard" className="flex items-center gap-2 text-primary hover:underline">
-            <ChevronLeft size={20} />
-            Retour
-          </Link>
-          <h1 className="text-2xl font-bold text-foreground">Rapports et Historique</h1>
-          <div className="w-12"></div>
-        </div>
-      </header>
+    <div className="flex min-h-screen bg-background">
+      <ParamedicalDashboardSidebar />
 
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Tabs */}
-        <div className="flex gap-4 mb-8 border-b border-border">
-          <button
-            onClick={() => setSelectedTab('reports')}
-            className={`px-6 py-3 font-semibold transition border-b-2 ${
-              selectedTab === 'reports'
-                ? 'text-primary border-b-primary'
-                : 'text-muted-foreground border-b-transparent hover:text-foreground'
-            }`}
-          >
-            Rapports
-          </button>
-          <button
-            onClick={() => setSelectedTab('history')}
-            className={`px-6 py-3 font-semibold transition border-b-2 ${
-              selectedTab === 'history'
-                ? 'text-primary border-b-primary'
-                : 'text-muted-foreground border-b-transparent hover:text-foreground'
-            }`}
-          >
-            Historique des Soins
-          </button>
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Header */}
+        <div className="px-6 py-5 border-b border-border bg-card/50 shrink-0">
+          <h1 className="text-xl font-bold text-foreground">Rapports</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">Résumés de soins et historique</p>
         </div>
 
-        {/* Reports Section */}
-        {selectedTab === 'reports' && (
-          <div className="space-y-4">
-            {mockReports.map((report) => (
-              <div key={report.id} className="bg-card border border-border rounded-xl p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div>
-                    <h3 className="font-semibold text-foreground">Rapport {report.type}</h3>
-                    <p className="text-sm text-muted-foreground mt-1">{report.date}</p>
+        <main className="flex-1 overflow-y-auto p-6 space-y-6">
+          {/* KPI row */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {kpis.map((k) => {
+              const Icon = k.icon;
+              return (
+                <div key={k.label} className="bg-card border border-border rounded-xl p-4 flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-xl bg-muted flex items-center justify-center shrink-0`}>
+                    <Icon size={18} className={k.color} />
                   </div>
-                  <button className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition flex items-center gap-2 text-sm">
-                    <Download size={16} />
-                    PDF
+                  <div>
+                    <p className="text-lg font-bold text-foreground">{k.value}</p>
+                    <p className="text-xs text-muted-foreground">{k.label}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Reports section */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <h2 className="font-semibold text-foreground flex items-center gap-2">
+                <FileText size={16} />
+                Rapports de soins
+              </h2>
+              {/* Toggle */}
+              <div className="flex rounded-lg border border-border overflow-hidden text-sm">
+                {(["daily", "weekly"] as ViewMode[]).map((v) => (
+                  <button
+                    key={v}
+                    onClick={() => setView(v)}
+                    className={`px-4 py-1.5 font-medium transition ${
+                      view === v ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {v === "daily" ? "Journaliers" : "Hebdomadaires"}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-2.5">
+              {filtered.map((r) => {
+                const isOpen = expandedId === r.id;
+                return (
+                  <div key={r.id} className="bg-card border border-border rounded-xl overflow-hidden">
+                    <button
+                      onClick={() => toggle(r.id)}
+                      className="w-full flex items-center gap-4 px-5 py-4 hover:bg-muted/30 transition text-left"
+                    >
+                      <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                        <FileText size={16} className="text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-foreground">{fmtDate(r.date)}</p>
+                        <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1"><CalendarDays size={10} />{r.visits} visites</span>
+                          <span className="flex items-center gap-1"><Clock size={10} />{r.hours}</span>
+                        </div>
+                      </div>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handlePdfDownload(r); }}
+                        className="flex items-center gap-1.5 px-3 py-1.5 border border-border rounded-lg text-xs text-muted-foreground hover:text-primary hover:border-primary transition"
+                        title="Télécharger"
+                      >
+                        <Download size={12} />
+                        PDF
+                      </button>
+                      <div className="text-muted-foreground">
+                        {isOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                      </div>
+                    </button>
+
+                    {isOpen && (
+                      <div className="px-5 pb-4 pt-0 border-t border-border bg-muted/20">
+                        <div className="grid grid-cols-3 gap-4 py-3 text-sm">
+                          <div>
+                            <p className="text-xs text-muted-foreground">Visites</p>
+                            <p className="font-semibold text-foreground">{r.visits}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">Heures</p>
+                            <p className="font-semibold text-foreground">{r.hours}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">Type</p>
+                            <p className="font-semibold text-foreground capitalize">{r.type === "daily" ? "Journalier" : "Hebdomadaire"}</p>
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-1">Patients</p>
+                          <p className="text-sm text-foreground">{r.patientsNote}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Care history log */}
+          <div className="space-y-3">
+            <h2 className="font-semibold text-foreground flex items-center gap-2">
+              <History size={16} />
+              Historique des soins
+            </h2>
+
+            <div className="bg-card border border-border rounded-xl overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-muted/30">
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">Date & heure</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground">Patient</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground hidden sm:table-cell">Soin</th>
+                    <th className="text-left px-4 py-3 text-xs font-semibold text-muted-foreground hidden md:table-cell">Durée</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {histSlice.map((h) => (
+                    <tr key={h.id} className="hover:bg-muted/20 transition">
+                      <td className="px-4 py-3 text-xs text-muted-foreground">{h.date}</td>
+                      <td className="px-4 py-3 font-medium text-foreground">{h.patient}</td>
+                      <td className="px-4 py-3 text-muted-foreground hidden sm:table-cell">{h.care}</td>
+                      <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">{h.duration}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {totalHistPages > 1 && (
+                <div className="flex items-center justify-between px-4 py-3 border-t border-border bg-muted/10 text-sm">
+                  <button
+                    onClick={() => setHistPage((p) => Math.max(0, p - 1))}
+                    disabled={histPage === 0}
+                    className="px-3 py-1.5 border border-border rounded-lg text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed transition"
+                  >
+                    Précédent
+                  </button>
+                  <span className="text-muted-foreground text-xs">Page {histPage + 1} / {totalHistPages}</span>
+                  <button
+                    onClick={() => setHistPage((p) => Math.min(totalHistPages - 1, p + 1))}
+                    disabled={histPage === totalHistPages - 1}
+                    className="px-3 py-1.5 border border-border rounded-lg text-muted-foreground hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed transition"
+                  >
+                    Suivant
                   </button>
                 </div>
-
-                <div className="grid grid-cols-3 gap-4 mb-4">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Visites</p>
-                    <p className="text-lg font-bold text-foreground">{report.visites}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Heures</p>
-                    <p className="text-lg font-bold text-foreground">{report.heures}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">Patients</p>
-                    <p className="text-sm font-semibold text-foreground">{report.patients}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
+              )}
+            </div>
           </div>
-        )}
-
-        {/* History Section */}
-        {selectedTab === 'history' && (
-          <div className="space-y-3">
-            {mockHistory.map((item, idx) => (
-              <div key={idx} className="bg-card border border-border rounded-xl p-4 flex items-start justify-between">
-                <div>
-                  <p className="font-semibold text-foreground">{item.patient}</p>
-                  <p className="text-sm text-muted-foreground mt-1">{item.soin}</p>
-                  <p className="text-xs text-muted-foreground mt-1">{item.date}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-semibold text-primary">{item.duree}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </main>
+        </main>
+      </div>
     </div>
   );
 }

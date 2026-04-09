@@ -1,8 +1,6 @@
-
 import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from 'react-router-dom';
-import { Link } from 'react-router-dom';
-;
+import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useEffect } from "react";
 import {
   FaClock,
@@ -15,7 +13,6 @@ import {
   FaPills,
   FaHospital,
   FaMicroscope,
-  FaAmbulance,
   FaUserNurse,
   FaUser,
 } from "react-icons/fa";
@@ -44,11 +41,6 @@ const roleLabels: Record<
     Icon: FaMicroscope,
     color: "from-rose-500 to-pink-500",
   },
-  medical_transport: {
-    label: "Transport Médicalisé",
-    Icon: FaAmbulance,
-    color: "from-orange-500 to-red-500",
-  },
   paramedical: {
     label: "Paramédicaux",
     Icon: FaUserNurse,
@@ -72,7 +64,6 @@ export default function AccountReviewPage() {
         pharmacy: "/pharmacy-dashboard",
         medical_service: "/medical-service-dashboard",
         lab_radiology: "/lab-dashboard",
-        medical_transport: "/transport-dashboard",
         paramedical: "/paramedical-dashboard",
         admin: "/admin",
       };
@@ -286,4 +277,3 @@ export default function AccountReviewPage() {
     </div>
   );
 }
-

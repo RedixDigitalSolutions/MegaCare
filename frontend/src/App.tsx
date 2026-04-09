@@ -1,8 +1,10 @@
 import { Routes, Route, Navigate } from "react-router-dom";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 
 // Public pages
 import HomePage from "@/src/pages/HomePage";
 import LoginPage from "@/src/pages/login/LoginPage";
+import LoginTestDataPage from "@/src/pages/login-test-data/LoginTestDataPage";
 import RegisterPage from "@/src/pages/register/RegisterPage";
 import DoctorsPage from "@/src/pages/doctors/DoctorsPage";
 import GuidePage from "@/src/pages/guide/GuidePage";
@@ -13,12 +15,23 @@ import AccountReviewPage from "@/src/pages/account-review/AccountReviewPage";
 import NotFoundPage from "@/src/pages/NotFoundPage";
 import ConditionsPage from "@/src/pages/conditions-utilisation/ConditionsPage";
 import PolitiquePage from "@/src/pages/politique-confidentialite/PolitiquePage";
+import ParamedicalPage from "@/src/pages/paramedical/ParamedicalPage";
+import ParamedicalProductPage from "@/src/pages/paramedical/product/ParamedicalProductPage";
+import ServicesMediauxPage from "@/src/pages/services-medicaux/ServicesMediauxPage";
+import ServiceMedicalDetailPage from "@/src/pages/services-medicaux/[id]/ServiceMedicalDetailPage";
+import LabosRadiologiePage from "@/src/pages/labos-radiologie/LabosRadiologiePage";
+import LaboDetailPage from "@/src/pages/labos-radiologie/[id]/LaboDetailPage";
 
 // Doctor profile (dynamic)
 import DoctorDetailPage from "@/src/pages/doctor/[id]/DoctorDetailPage";
 
 // Admin
 import AdminPage from "@/src/pages/admin/AdminPage";
+import AdminUsersPage from "@/src/pages/admin/users/AdminUsersPage";
+import AdminPendingPage from "@/src/pages/admin/pending/AdminPendingPage";
+import AdminSuspendedPage from "@/src/pages/admin/suspended/AdminSuspendedPage";
+import AdminStatsPage from "@/src/pages/admin/stats/AdminStatsPage";
+import AdminSettingsPage from "@/src/pages/admin/settings/AdminSettingsPage";
 
 // Patient dashboard
 import DashboardPage from "@/src/pages/dashboard/DashboardPage";
@@ -31,7 +44,6 @@ import DashboardNotificationsPage from "@/src/pages/dashboard/notifications/Noti
 import DashboardOrdersPage from "@/src/pages/dashboard/orders/OrdersPage";
 import DashboardPrescriptionsPage from "@/src/pages/dashboard/prescriptions/PrescriptionsPage";
 import DashboardSettingsPage from "@/src/pages/dashboard/settings/SettingsPage";
-import DashboardTrackingPage from "@/src/pages/dashboard/tracking/TrackingPage";
 
 // Doctor dashboard
 import DoctorDashboardPage from "@/src/pages/doctor-dashboard/DoctorDashboardPage";
@@ -79,11 +91,6 @@ import MedicalServiceTeamPage from "@/src/pages/medical-service-dashboard/team/T
 import MedicalServiceTeleconsultationPage from "@/src/pages/medical-service-dashboard/teleconsultation/TeleconsultationPage";
 import MedicalServiceVitalsPage from "@/src/pages/medical-service-dashboard/vitals/VitalsPage";
 
-// Transport dashboard
-import TransportDashboardPage from "@/src/pages/transport-dashboard/TransportDashboardPage";
-import TransportTripsPage from "@/src/pages/transport-dashboard/trips/TripsPage";
-import TransportVehiclesPage from "@/src/pages/transport-dashboard/vehicles/VehiclesPage";
-
 // Paramedical dashboard
 import ParamedicalDashboardPage from "@/src/pages/paramedical-dashboard/ParamedicalDashboardPage";
 import ParamedicalAppointmentsPage from "@/src/pages/paramedical-dashboard/appointments/ParamedicalAppointmentsPage";
@@ -105,6 +112,7 @@ export default function App() {
       {/* Public */}
       <Route path="/" element={<HomePage />} />
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/login-test-data" element={<LoginTestDataPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/doctors" element={<DoctorsPage />} />
       <Route path="/doctor/:id" element={<DoctorDetailPage />} />
@@ -116,12 +124,35 @@ export default function App() {
       <Route path="/conditions-utilisation" element={<ConditionsPage />} />
       <Route path="/politique-confidentialite" element={<PolitiquePage />} />
 
+      {/* Paramédicaux — catalogue & détail produit */}
+      <Route path="/paramedical" element={<ParamedicalPage />} />
+      <Route
+        path="/paramedical/product/:id"
+        element={<ParamedicalProductPage />}
+      />
+
+      {/* Services Médicaux — listing & detail */}
+      <Route path="/services-medicaux" element={<ServicesMediauxPage />} />
+      <Route
+        path="/services-medicaux/:id"
+        element={<ServiceMedicalDetailPage />}
+      />
+
+      {/* Labos & Radiologie — listing & detail */}
+      <Route path="/labos-radiologie" element={<LabosRadiologiePage />} />
+      <Route path="/labos-radiologie/:id" element={<LaboDetailPage />} />
+
       {/* Redirects */}
       <Route path="/how-it-works" element={<Navigate to="/guide" replace />} />
       <Route path="/pricing" element={<Navigate to="/guide" replace />} />
 
       {/* Admin */}
       <Route path="/admin" element={<AdminPage />} />
+      <Route path="/admin/users" element={<AdminUsersPage />} />
+      <Route path="/admin/pending" element={<AdminPendingPage />} />
+      <Route path="/admin/suspended" element={<AdminSuspendedPage />} />
+      <Route path="/admin/stats" element={<AdminStatsPage />} />
+      <Route path="/admin/settings" element={<AdminSettingsPage />} />
 
       {/* Patient dashboard */}
       <Route path="/dashboard" element={<DashboardPage />} />
@@ -155,7 +186,6 @@ export default function App() {
         element={<DashboardPrescriptionsPage />}
       />
       <Route path="/dashboard/settings" element={<DashboardSettingsPage />} />
-      <Route path="/dashboard/tracking" element={<DashboardTrackingPage />} />
 
       {/* Doctor dashboard */}
       <Route path="/doctor-dashboard" element={<DoctorDashboardPage />} />
@@ -216,8 +246,22 @@ export default function App() {
 
       {/* Lab dashboard */}
       <Route path="/lab-dashboard" element={<LabDashboardPage />} />
-      <Route path="/lab-dashboard/results" element={<LabResultsPage />} />
-      <Route path="/lab-dashboard/tests" element={<LabTestsPage />} />
+      <Route
+        path="/lab-dashboard/results"
+        element={
+          <ProtectedRoute requiredRole="lab_radiology">
+            <LabResultsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/lab-dashboard/tests"
+        element={
+          <ProtectedRoute requiredRole="lab_radiology">
+            <LabTestsPage />
+          </ProtectedRoute>
+        }
+      />
 
       {/* Medical service dashboard */}
       <Route
@@ -269,69 +313,110 @@ export default function App() {
         element={<MedicalServiceVitalsPage />}
       />
 
-      {/* Transport dashboard */}
-      <Route path="/transport-dashboard" element={<TransportDashboardPage />} />
-      <Route
-        path="/transport-dashboard/trips"
-        element={<TransportTripsPage />}
-      />
-      <Route
-        path="/transport-dashboard/vehicles"
-        element={<TransportVehiclesPage />}
-      />
-
       {/* Paramedical dashboard */}
       <Route
         path="/paramedical-dashboard"
-        element={<ParamedicalDashboardPage />}
+        element={
+          <ProtectedRoute requiredRole="paramedical">
+            <ParamedicalDashboardPage />
+          </ProtectedRoute>
+        }
       />
       <Route
         path="/paramedical-dashboard/appointments"
-        element={<ParamedicalAppointmentsPage />}
+        element={
+          <ProtectedRoute requiredRole="paramedical">
+            <ParamedicalAppointmentsPage />
+          </ProtectedRoute>
+        }
       />
       <Route
         path="/paramedical-dashboard/care-record"
-        element={<ParamedicalCareRecordPage />}
+        element={
+          <ProtectedRoute requiredRole="paramedical">
+            <ParamedicalCareRecordPage />
+          </ProtectedRoute>
+        }
       />
       <Route
         path="/paramedical-dashboard/map"
-        element={<ParamedicalMapPage />}
+        element={
+          <ProtectedRoute requiredRole="paramedical">
+            <ParamedicalMapPage />
+          </ProtectedRoute>
+        }
       />
       <Route
         path="/paramedical-dashboard/messaging"
-        element={<ParamedicalMessagingPage />}
+        element={
+          <ProtectedRoute requiredRole="paramedical">
+            <ParamedicalMessagingPage />
+          </ProtectedRoute>
+        }
       />
       <Route
         path="/paramedical-dashboard/notifications"
-        element={<ParamedicalNotificationsPage />}
+        element={
+          <ProtectedRoute requiredRole="paramedical">
+            <ParamedicalNotificationsPage />
+          </ProtectedRoute>
+        }
       />
       <Route
         path="/paramedical-dashboard/patients"
-        element={<ParamedicalPatientsPage />}
+        element={
+          <ProtectedRoute requiredRole="paramedical">
+            <ParamedicalPatientsPage />
+          </ProtectedRoute>
+        }
       />
       <Route
         path="/paramedical-dashboard/planning"
-        element={<ParamedicalPlanningPage />}
+        element={
+          <ProtectedRoute requiredRole="paramedical">
+            <ParamedicalPlanningPage />
+          </ProtectedRoute>
+        }
       />
       <Route
         path="/paramedical-dashboard/reports"
-        element={<ParamedicalReportsPage />}
+        element={
+          <ProtectedRoute requiredRole="paramedical">
+            <ParamedicalReportsPage />
+          </ProtectedRoute>
+        }
       />
       <Route
         path="/paramedical-dashboard/settings"
-        element={<ParamedicalSettingsPage />}
+        element={
+          <ProtectedRoute requiredRole="paramedical">
+            <ParamedicalSettingsPage />
+          </ProtectedRoute>
+        }
       />
       <Route
         path="/paramedical-dashboard/supplies"
-        element={<ParamedicalSuppliesPage />}
+        element={
+          <ProtectedRoute requiredRole="paramedical">
+            <ParamedicalSuppliesPage />
+          </ProtectedRoute>
+        }
       />
       <Route
         path="/paramedical-dashboard/teleconsultation"
-        element={<ParamedicalTeleconsultationPage />}
+        element={
+          <ProtectedRoute requiredRole="paramedical">
+            <ParamedicalTeleconsultationPage />
+          </ProtectedRoute>
+        }
       />
       <Route
         path="/paramedical-dashboard/vitals"
-        element={<ParamedicalVitalsPage />}
+        element={
+          <ProtectedRoute requiredRole="paramedical">
+            <ParamedicalVitalsPage />
+          </ProtectedRoute>
+        }
       />
 
       {/* 404 fallback */}

@@ -1,133 +1,241 @@
+import { useState } from "react";
+import { MedicalServiceDashboardSidebar } from "@/components/MedicalServiceDashboardSidebar";
+import { Building2, Bell, Shield, Save, Eye, EyeOff, AlertTriangle } from "lucide-react";
 
-import { Link } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
-import { useState } from 'react';
+interface ServiceInfo {
+  name: string;
+  address: string;
+  phone: string;
+  email: string;
+  director: string;
+  capacity: string;
+  type: string;
+}
 
-export default function SettingsPage() {
-  const [formData, setFormData] = useState({
-    companyName: 'HAD Tunisie',
-    email: 'contact@hadtunisie.tn',
-    phone: '+216 71 123 456',
-    address: 'Tunis, Tunisie',
-    licenseNumber: 'HAD-2024-001',
+interface Notifs {
+  newPatient: boolean;
+  vitalAlert: boolean;
+  appointmentReminder: boolean;
+  teamMessage: boolean;
+  billing: boolean;
+  maintenance: boolean;
+}
+
+const initialService: ServiceInfo = {
+  name: "Service Soins à Domicile — Tunis Nord",
+  address: "12 Rue de la Santé, Les Berges du Lac, 1053 Tunis",
+  phone: "+216 71 123 456",
+  email: "soins.domicile@megacare.tn",
+  director: "Pr. Amira Khelil",
+  capacity: "30",
+  type: "Soins infirmiers à domicile",
+};
+
+export default function MedicalServiceSettingsPage() {
+  const [service, setService] = useState<ServiceInfo>(initialService);
+  const [editingService, setEditingService] = useState(false);
+  const [serviceForm, setServiceForm] = useState<ServiceInfo>(initialService);
+
+  const [notifs, setNotifs] = useState<Notifs>({
+    newPatient: true,
+    vitalAlert: true,
+    appointmentReminder: true,
+    teamMessage: false,
+    billing: true,
+    maintenance: false,
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
+  const [pwForm, setPwForm] = useState({ current: "", next: "", confirm: "" });
+  const [showPw, setShowPw] = useState(false);
+  const [twoFA, setTwoFA] = useState(false);
+  const [savedMsg, setSavedMsg] = useState("");
+
+  function saveService() {
+    setService(serviceForm);
+    setEditingService(false);
+    flash("Informations du service enregistrées.");
+  }
+
+  function savePassword() {
+    if (!pwForm.current || !pwForm.next) return;
+    if (pwForm.next !== pwForm.confirm) { flash("Les mots de passe ne correspondent pas."); return; }
+    setPwForm({ current: "", next: "", confirm: "" });
+    flash("Mot de passe mis à jour.");
+  }
+
+  function flash(msg: string) {
+    setSavedMsg(msg);
+    setTimeout(() => setSavedMsg(""), 3000);
+  }
+
+  const notifLabels: { key: keyof Notifs; label: string; desc: string }[] = [
+    { key: "newPatient", label: "Nouveau patient", desc: "Notification lors de l'ajout d'un nouveau patient" },
+    { key: "vitalAlert", label: "Alerte constantes vitales", desc: "Alerte quand une constante est critique" },
+    { key: "appointmentReminder", label: "Rappel visite", desc: "Rappel 1h avant une visite planifiée" },
+    { key: "teamMessage", label: "Messagerie équipe", desc: "Notifications de nouveaux messages de l'équipe" },
+    { key: "billing", label: "Facturation", desc: "Alertes sur les paiements en retard" },
+    { key: "maintenance", label: "Maintenance équipement", desc: "Rappels pour les maintenances d'équipements" },
+  ];
+
+  const serviceFields: { label: string; key: keyof ServiceInfo; type: string }[] = [
+    { label: "Nom du service", key: "name", type: "text" },
+    { label: "Adresse", key: "address", type: "text" },
+    { label: "Téléphone", key: "phone", type: "tel" },
+    { label: "Email", key: "email", type: "email" },
+    { label: "Directeur / Responsable", key: "director", type: "text" },
+    { label: "Capacité (patients simultanés)", key: "capacity", type: "number" },
+    { label: "Type de service", key: "type", type: "text" },
+  ];
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="bg-card border-b border-border sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center gap-3">
-          <Link to="/medical-service-dashboard" className="text-primary hover:text-primary/80">
-            <ArrowLeft size={24} />
-          </Link>
-          <h1 className="text-2xl font-bold text-foreground">Paramètres du Service</h1>
-        </div>
-      </header>
+    <div className="flex min-h-screen bg-background">
+      <MedicalServiceDashboardSidebar />
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <header className="bg-card border-b border-border px-6 py-4 shrink-0">
+          <h1 className="text-xl font-bold text-foreground">Paramètres</h1>
+          <p className="text-xs text-muted-foreground">Configuration du service médical</p>
+        </header>
 
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Service Information */}
-        <div className="bg-card rounded-xl border border-border p-6 mb-8">
-          <h2 className="text-lg font-semibold text-foreground mb-6">Informations du Service</h2>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-semibold text-foreground mb-2">Nom du Service</label>
-              <input
-                type="text"
-                name="companyName"
-                value={formData.companyName}
-                onChange={handleChange}
-                className="w-full px-4 py-2 bg-input border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-              />
+        <main className="flex-1 overflow-y-auto p-6 space-y-6 max-w-3xl">
+          {/* Saved toast */}
+          {savedMsg && (
+            <div className="flex items-center gap-2 px-4 py-3 bg-green-50 border border-green-200 rounded-xl text-green-700 text-sm font-medium">
+              <Save size={15} />{savedMsg}
             </div>
-            <div>
-              <label className="block text-sm font-semibold text-foreground mb-2">Email</label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                className="w-full px-4 py-2 bg-input border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-foreground mb-2">Téléphone</label>
-              <input
-                type="tel"
-                name="phone"
-                value={formData.phone}
-                onChange={handleChange}
-                className="w-full px-4 py-2 bg-input border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-foreground mb-2">Adresse</label>
-              <input
-                type="text"
-                name="address"
-                value={formData.address}
-                onChange={handleChange}
-                className="w-full px-4 py-2 bg-input border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-foreground mb-2">Numéro de Licence</label>
-              <input
-                type="text"
-                name="licenseNumber"
-                value={formData.licenseNumber}
-                onChange={handleChange}
-                className="w-full px-4 py-2 bg-input border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </div>
-          </div>
-          <button className="mt-6 px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 font-semibold">
-            Enregistrer les Modifications
-          </button>
-        </div>
+          )}
 
-        {/* Notifications */}
-        <div className="bg-card rounded-xl border border-border p-6 mb-8">
-          <h2 className="text-lg font-semibold text-foreground mb-6">Notifications</h2>
-          <div className="space-y-4">
-            {[
-              { label: 'Alertes Patients Urgentes', enabled: true },
-              { label: 'Confirmations de Visites', enabled: true },
-              { label: 'Rappels de Paiement', enabled: true },
-              { label: 'Mises à Jour du Système', enabled: false },
-            ].map((notification) => (
-              <div key={notification.label} className="flex items-center justify-between">
-                <label className="text-sm font-semibold text-foreground">{notification.label}</label>
-                <input
-                  type="checkbox"
-                  defaultChecked={notification.enabled}
-                  className="w-5 h-5 cursor-pointer"
-                />
+          {/* Service info */}
+          <div className="bg-card rounded-xl border border-border overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+              <div className="flex items-center gap-2">
+                <Building2 size={18} className="text-primary" />
+                <h2 className="font-semibold text-foreground">Informations du service</h2>
               </div>
-            ))}
+              {!editingService && (
+                <button onClick={() => { setServiceForm(service); setEditingService(true); }}
+                  className="text-sm text-primary hover:underline font-medium">Modifier</button>
+              )}
+            </div>
+            <div className="p-5">
+              {editingService ? (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {serviceFields.map((f) => (
+                      <div key={f.key} className={f.key === "name" || f.key === "address" ? "sm:col-span-2" : ""}>
+                        <label className="text-xs font-medium text-muted-foreground block mb-1">{f.label}</label>
+                        <input type={f.type} value={serviceForm[f.key]}
+                          onChange={(e) => setServiceForm((prev) => ({ ...prev, [f.key]: e.target.value }))}
+                          className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary" />
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex gap-3">
+                    <button onClick={() => setEditingService(false)} className="px-4 py-2 border border-border rounded-lg text-sm hover:bg-muted transition">Annuler</button>
+                    <button onClick={saveService} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm hover:bg-primary/90 transition font-medium flex items-center gap-2">
+                      <Save size={14} />Enregistrer
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {serviceFields.map((f) => (
+                    <div key={f.key} className={f.key === "name" || f.key === "address" ? "sm:col-span-2" : ""}>
+                      <p className="text-xs text-muted-foreground">{f.label}</p>
+                      <p className="text-sm font-medium text-foreground mt-0.5">{service[f.key]}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
 
-        {/* Security */}
-        <div className="bg-card rounded-xl border border-border p-6">
-          <h2 className="text-lg font-semibold text-foreground mb-6">Sécurité</h2>
-          <div className="space-y-4">
-            <button className="w-full px-4 py-3 border border-border rounded-lg hover:bg-muted font-semibold text-sm text-left">
-              Changer le Mot de Passe
-            </button>
-            <button className="w-full px-4 py-3 border border-border rounded-lg hover:bg-muted font-semibold text-sm text-left">
-              Authentification à Deux Facteurs
-            </button>
-            <button className="w-full px-4 py-3 border border-red-200 rounded-lg hover:bg-red-50 font-semibold text-sm text-left text-red-600">
-              Supprimer le Compte
-            </button>
+          {/* Notifications */}
+          <div className="bg-card rounded-xl border border-border overflow-hidden">
+            <div className="flex items-center gap-2 px-5 py-4 border-b border-border">
+              <Bell size={18} className="text-primary" />
+              <h2 className="font-semibold text-foreground">Notifications</h2>
+            </div>
+            <div className="divide-y divide-border">
+              {notifLabels.map((n) => (
+                <div key={n.key} className="flex items-center justify-between px-5 py-3">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{n.label}</p>
+                    <p className="text-xs text-muted-foreground">{n.desc}</p>
+                  </div>
+                  <button onClick={() => setNotifs((prev) => ({ ...prev, [n.key]: !prev[n.key] }))}
+                    className={`relative inline-flex h-5 w-9 rounded-full transition-colors duration-200 ${notifs[n.key] ? "bg-primary" : "bg-muted"}`}>
+                    <span className={`inline-block w-4 h-4 rounded-full bg-white shadow transform transition-transform duration-200 mt-0.5 ${notifs[n.key] ? "translate-x-4 ml-0.5" : "translate-x-0.5"}`} />
+                  </button>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      </main>
+
+          {/* Security */}
+          <div className="bg-card rounded-xl border border-border overflow-hidden">
+            <div className="flex items-center gap-2 px-5 py-4 border-b border-border">
+              <Shield size={18} className="text-primary" />
+              <h2 className="font-semibold text-foreground">Sécurité</h2>
+            </div>
+            <div className="p-5 space-y-5">
+              {/* Change password */}
+              <div className="space-y-3">
+                <p className="text-sm font-medium text-foreground">Changer le mot de passe</p>
+                {[
+                  { label: "Mot de passe actuel", key: "current" as const },
+                  { label: "Nouveau mot de passe", key: "next" as const },
+                  { label: "Confirmer le nouveau mot de passe", key: "confirm" as const },
+                ].map((f) => (
+                  <div key={f.key}>
+                    <label className="text-xs text-muted-foreground block mb-1">{f.label}</label>
+                    <div className="relative">
+                      <input type={showPw ? "text" : "password"} value={pwForm[f.key]}
+                        onChange={(e) => setPwForm((prev) => ({ ...prev, [f.key]: e.target.value }))}
+                        className="w-full border border-border rounded-lg px-3 py-2 pr-10 text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary" />
+                      <button type="button" onClick={() => setShowPw((p) => !p)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition">
+                        {showPw ? <EyeOff size={15} /> : <Eye size={15} />}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+                <button onClick={savePassword}
+                  className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm hover:bg-primary/90 transition font-medium flex items-center gap-2">
+                  <Save size={14} />Mettre à jour
+                </button>
+              </div>
+
+              <hr className="border-border" />
+
+              {/* 2FA */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-foreground">Double authentification (2FA)</p>
+                  <p className="text-xs text-muted-foreground">Renforcer la sécurité de votre compte</p>
+                </div>
+                <button onClick={() => setTwoFA((p) => !p)}
+                  className={`relative inline-flex h-5 w-9 rounded-full transition-colors duration-200 ${twoFA ? "bg-primary" : "bg-muted"}`}>
+                  <span className={`inline-block w-4 h-4 rounded-full bg-white shadow transform transition-transform duration-200 mt-0.5 ${twoFA ? "translate-x-4 ml-0.5" : "translate-x-0.5"}`} />
+                </button>
+              </div>
+
+              <hr className="border-border" />
+
+              {/* Danger zone */}
+              <div className="rounded-xl border border-red-200 bg-red-50/30 p-4 space-y-2">
+                <div className="flex items-center gap-2 text-red-600">
+                  <AlertTriangle size={16} />
+                  <p className="text-sm font-semibold">Zone de danger</p>
+                </div>
+                <p className="text-xs text-red-600/70">La suppression du compte est irréversible. Toutes les données seront perdues.</p>
+                <button className="px-4 py-2 border border-red-300 text-red-600 rounded-lg text-sm hover:bg-red-100 transition font-medium">
+                  Supprimer le compte
+                </button>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
     </div>
   );
 }

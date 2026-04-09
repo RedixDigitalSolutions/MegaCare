@@ -1,8 +1,6 @@
-
 import { useState } from "react";
-import { useNavigate } from 'react-router-dom';
-import { Link } from 'react-router-dom';
-;
+import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   FaEye,
@@ -13,7 +11,6 @@ import {
   FaPills,
   FaHospital,
   FaMicroscope,
-  FaAmbulance,
   FaUserNurse,
   FaArrowRight,
   FaShieldAlt,
@@ -27,7 +24,6 @@ type UserType =
   | "pharmacy"
   | "medical_service"
   | "lab_radiology"
-  | "medical_transport"
   | "paramedical"
   | null;
 
@@ -51,7 +47,6 @@ export default function RegisterPage() {
     pharmacyId: "",
     serviceId: "",
     labId: "",
-    transportId: "",
     paramedicalId: "",
     companyName: "",
     agreeToTerms: false,
@@ -98,7 +93,6 @@ export default function RegisterPage() {
           ...(formData.pharmacyId && { pharmacyId: formData.pharmacyId }),
           ...(formData.serviceId && { serviceId: formData.serviceId }),
           ...(formData.labId && { labId: formData.labId }),
-          ...(formData.transportId && { transportId: formData.transportId }),
           ...(formData.paramedicalId && {
             paramedicalId: formData.paramedicalId,
           }),
@@ -134,7 +128,6 @@ export default function RegisterPage() {
         pharmacy: "/pharmacy-dashboard",
         medical_service: "/medical-service-dashboard",
         lab_radiology: "/lab-dashboard",
-        medical_transport: "/transport-dashboard",
         paramedical: "/paramedical-dashboard",
       };
 
@@ -188,14 +181,6 @@ export default function RegisterPage() {
       color: "from-rose-500 to-pink-500",
       badge: "Partenariat",
       perks: ["Analyses", "Imagerie médicale", "Résultats patients"],
-    },
-    {
-      key: "medical_transport" as const,
-      label: "Transport Médicalisé",
-      Icon: FaAmbulance,
-      color: "from-orange-500 to-red-500",
-      badge: "Partenariat",
-      perks: ["Ambulances", "Gestion flotte", "Trajets patients"],
     },
     {
       key: "paramedical" as const,
@@ -324,49 +309,103 @@ export default function RegisterPage() {
               </p>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 mb-8">
-              {roles.map(({ key, label, Icon, color, badge, perks }) => (
+            {/* Patient — featured card */}
+            {(() => {
+              const patient = roles.find((r) => r.key === "patient")!;
+              return (
                 <button
-                  key={key}
-                  onClick={() => setUserType(key)}
-                  className="group relative p-5 bg-card rounded-2xl border-2 border-border hover:border-transparent hover:shadow-xl transition-all duration-300 text-left overflow-hidden"
+                  onClick={() => setUserType("patient")}
+                  className="group w-full mb-4 relative p-5 bg-card rounded-2xl border-2 border-border hover:border-blue-400/50 hover:shadow-xl transition-all duration-300 overflow-hidden text-left"
                 >
-                  <div
-                    className={`absolute inset-0 bg-gradient-to-br ${color} opacity-0 group-hover:opacity-10 transition-opacity duration-300`}
-                  />
-                  <div
-                    className={`w-10 h-10 mb-3 rounded-xl bg-gradient-to-br ${color} flex items-center justify-center`}
-                  >
-                    <Icon className="text-white" size={18} />
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-cyan-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  <div className="flex items-start gap-4">
+                    <div className="w-14 h-14 shrink-0 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
+                      <patient.Icon className="text-white" size={24} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <span className="font-bold text-foreground text-base">
+                          Patient
+                        </span>
+                        <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                          Gratuit
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap gap-x-4 gap-y-1">
+                        {patient.perks.map((p) => (
+                          <span
+                            key={p}
+                            className="flex items-center gap-1.5 text-xs text-muted-foreground"
+                          >
+                            <FaCheckCircle
+                              className="text-primary/60 shrink-0"
+                              size={9}
+                            />
+                            {p}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                    <FaArrowRight
+                      className="shrink-0 mt-1 text-muted-foreground/30 group-hover:text-blue-500 group-hover:translate-x-1 transition-all duration-300"
+                      size={15}
+                    />
                   </div>
-                  <p className="font-semibold text-foreground text-sm leading-tight mb-2">
-                    {label}
-                  </p>
-                  <ul className="space-y-1 mb-3">
-                    {perks.map((p) => (
-                      <li
-                        key={p}
-                        className="flex items-center gap-1.5 text-xs text-muted-foreground"
-                      >
-                        <FaCheckCircle
-                          className="text-primary/60 shrink-0"
-                          size={9}
-                        />
-                        {p}
-                      </li>
-                    ))}
-                  </ul>
-                  <span
-                    className={`inline-block text-xs font-semibold px-2 py-0.5 rounded-full bg-gradient-to-r ${color} text-white`}
-                  >
-                    {badge}
-                  </span>
-                  <FaArrowRight
-                    className="absolute bottom-4 right-4 text-muted-foreground/40 group-hover:text-primary group-hover:translate-x-1 transition-all duration-300"
-                    size={12}
-                  />
                 </button>
-              ))}
+              );
+            })()}
+
+            {/* Professional roles */}
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3 px-0.5">
+              Professionnels de santé
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8">
+              {roles
+                .filter((r) => r.key !== "patient")
+                .map(({ key, label, Icon, color, badge, perks }) => (
+                  <button
+                    key={key}
+                    onClick={() => setUserType(key)}
+                    className="group relative p-4 bg-card rounded-2xl border-2 border-border hover:border-transparent hover:shadow-xl transition-all duration-300 text-left overflow-hidden"
+                  >
+                    <div
+                      className={`absolute inset-0 bg-gradient-to-br ${color} opacity-0 group-hover:opacity-[0.07] transition-opacity duration-300`}
+                    />
+                    <div
+                      className={`w-10 h-10 mb-3 rounded-xl bg-gradient-to-br ${color} flex items-center justify-center shadow-md`}
+                    >
+                      <Icon className="text-white" size={17} />
+                    </div>
+                    <div className="flex items-start justify-between mb-2">
+                      <p className="font-semibold text-foreground text-sm leading-tight">
+                        {label}
+                      </p>
+                      <span
+                        className={`shrink-0 ml-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-gradient-to-r ${color} text-white`}
+                      >
+                        {badge}
+                      </span>
+                    </div>
+                    <ul className="space-y-0.5">
+                      {perks.map((p) => (
+                        <li
+                          key={p}
+                          className="flex items-center gap-1.5 text-xs text-muted-foreground"
+                        >
+                          <FaCheckCircle
+                            className="text-primary/50 shrink-0"
+                            size={8}
+                          />
+                          {p}
+                        </li>
+                      ))}
+                    </ul>
+                    <FaArrowRight
+                      className="absolute bottom-3.5 right-3.5 text-muted-foreground/25 group-hover:text-primary group-hover:translate-x-0.5 transition-all duration-300"
+                      size={11}
+                    />
+                  </button>
+                ))}
             </div>
 
             <p className="text-center text-sm text-muted-foreground">
@@ -797,4 +836,3 @@ export default function RegisterPage() {
     </div>
   );
 }
-

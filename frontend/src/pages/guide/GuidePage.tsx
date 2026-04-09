@@ -1,6 +1,5 @@
-
 import { useState } from "react";
-import { Link } from 'react-router-dom';
+import { Link } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import {
@@ -125,13 +124,6 @@ const doctorPricing = [
 ];
 
 const pharmacyPricing = [
-  { name: "Livraison standard", price: 5, delay: "24 – 48 heures", icon: "📦" },
-  {
-    name: "Livraison express",
-    price: 8,
-    delay: "Livré aujourd'hui",
-    icon: "⚡",
-  },
   { name: "Retrait pharmacie", price: 0, delay: "Prêt en 1 heure", icon: "🏪" },
 ];
 
@@ -640,4 +632,3 @@ export default function GuidePage() {
     </div>
   );
 }
-

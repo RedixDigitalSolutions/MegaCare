@@ -33,7 +33,6 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
           pharmacy: "/pharmacy-dashboard",
           medical_service: "/medical-service-dashboard",
           lab_radiology: "/lab-dashboard",
-          medical_transport: "/transport-dashboard",
           paramedical: "/paramedical-dashboard",
           admin: "/admin",
         };

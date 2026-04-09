@@ -5,11 +5,9 @@ import { Link } from "react-router-dom";
 import {
   Download,
   Phone,
-  MapPin,
   Clock,
   CheckCircle,
   Package,
-  Truck,
   ArrowLeft,
 } from "lucide-react";
 
@@ -18,19 +16,15 @@ export default function OrderDetailPage() {
   const order = {
     id: id,
     date: "2024-01-18",
-    status: "en_livraison",
+    status: "pret",
     items: [
       { name: "Ibuproféne 400mg", quantity: 1, price: 6.0 },
       { name: "Paracétamol 500mg", quantity: 2, price: 2.0 },
     ],
     subtotal: 10.0,
-    shipping: 3.99,
-    total: 13.99,
+    total: 10.0,
     pharmacy: "Pharmacie El Amal",
-    pharmacyPhone: "+212 5 22 12 34 56",
-    address: "123 Rue de la Paix, Casablanca 20000",
-    deliveryDate: "2024-01-21",
-    deliveryTime: "14:00 - 16:00",
+    pharmacyPhone: "+216 74 12 34 56",
   };
 
   const timeline = [
@@ -41,8 +35,7 @@ export default function OrderDetailPage() {
       completed: true,
     },
     { status: "En préparation", date: "2024-01-18 14:00", completed: true },
-    { status: "En livraison", date: "2024-01-21 09:00", completed: true },
-    { status: "Livrée", date: "Aujourd'hui", completed: false },
+    { status: "Prête pour retrait", date: "Aujourd'hui", completed: false },
   ];
 
   return (
@@ -142,24 +135,16 @@ export default function OrderDetailPage() {
                         </p>
                       </div>
                       <p className="font-bold text-primary">
-                        {(item.price * item.quantity).toFixed(2)}€
+                        {(item.price * item.quantity).toFixed(2)} DT
                       </p>
                     </div>
                   ))}
                 </div>
                 <div className="border-t border-border pt-4 space-y-2">
-                  <div className="flex justify-between text-muted-foreground">
-                    <span>Sous-total</span>
-                    <span>{order.subtotal.toFixed(2)}€</span>
-                  </div>
-                  <div className="flex justify-between text-muted-foreground">
-                    <span>Livraison</span>
-                    <span>{order.shipping.toFixed(2)}€</span>
-                  </div>
                   <div className="flex justify-between font-bold text-lg">
                     <span>Total</span>
                     <span className="text-primary">
-                      {order.total.toFixed(2)}€
+                      {order.total.toFixed(2)} DT
                     </span>
                   </div>
                 </div>
@@ -168,40 +153,15 @@ export default function OrderDetailPage() {
 
             {/* Sidebar */}
             <div className="space-y-4">
-              {/* Delivery Info */}
+              {/* Pickup Info */}
               <div className="bg-card border border-border rounded-lg p-6 space-y-4">
-                <h3 className="font-bold text-foreground">Livraison</h3>
-                <div className="space-y-3">
-                  <div className="flex gap-3">
-                    <MapPin
-                      size={18}
-                      className="text-muted-foreground flex-shrink-0 mt-1"
-                    />
-                    <div>
-                      <p className="text-sm text-muted-foreground">Adresse</p>
-                      <p className="font-semibold text-foreground text-sm">
-                        {order.address}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex gap-3">
-                    <Clock
-                      size={18}
-                      className="text-muted-foreground flex-shrink-0 mt-1"
-                    />
-                    <div>
-                      <p className="text-sm text-muted-foreground">
-                        Date & Heure
-                      </p>
-                      <p className="font-semibold text-foreground text-sm">
-                        {new Date(order.deliveryDate).toLocaleDateString(
-                          "fr-FR",
-                        )}
-                        <br /> {order.deliveryTime}
-                      </p>
-                    </div>
-                  </div>
-                </div>
+                <h3 className="font-bold text-foreground">
+                  Retrait en pharmacie
+                </h3>
+                <p className="text-sm text-muted-foreground">
+                  Présentez-vous à la pharmacie munie de votre ordonnance
+                  lorsque votre commande est prête.
+                </p>
               </div>
 
               {/* Pharmacy Info */}

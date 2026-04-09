@@ -1,226 +1,186 @@
+import { useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate, Link } from "react-router-dom";
+import { MedicalServiceDashboardSidebar } from "@/components/MedicalServiceDashboardSidebar";
+import {
+  Users,
+  Calendar,
+  UserCheck,
+  TrendingUp,
+  FileText,
+  Video,
+  Activity,
+  Package,
+  CreditCard,
+  MessageSquare,
+  BarChart3,
+  Settings,
+  ClipboardList,
+  Plus,
+  AlertCircle,
+  CheckCircle2,
+  Clock,
+} from "lucide-react";
 
-import { useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import { Link } from 'react-router-dom';
-import { Users, Calendar, Home, BarChart3, Settings, LogOut } from 'lucide-react';
+const quickActions = [
+  { href: "/medical-service-dashboard/patients", icon: Users, label: "Patients", desc: "Suivre les hospitalisations", color: "bg-blue-50 text-blue-600" },
+  { href: "/medical-service-dashboard/team", icon: UserCheck, label: "Mon Équipe", desc: "Infirmiers & paramédicaux", color: "bg-purple-50 text-purple-600" },
+  { href: "/medical-service-dashboard/schedule", icon: Calendar, label: "Planification", desc: "Visites et rendez-vous", color: "bg-indigo-50 text-indigo-600" },
+  { href: "/medical-service-dashboard/prescriptions", icon: FileText, label: "Ordonnances", desc: "Prescrire et gérer", color: "bg-emerald-50 text-emerald-600" },
+  { href: "/medical-service-dashboard/teleconsultation", icon: Video, label: "Téléconsultation", desc: "Consultations vidéo", color: "bg-sky-50 text-sky-600" },
+  { href: "/medical-service-dashboard/vitals", icon: Activity, label: "Constantes Vitales", desc: "Suivi TA, pouls, SpO₂", color: "bg-red-50 text-red-600" },
+  { href: "/medical-service-dashboard/equipment", icon: Package, label: "Équipements", desc: "Inventaire médical", color: "bg-amber-50 text-amber-600" },
+  { href: "/medical-service-dashboard/billing", icon: CreditCard, label: "Facturation", desc: "Factures & paiements", color: "bg-lime-50 text-lime-600" },
+  { href: "/medical-service-dashboard/messaging", icon: MessageSquare, label: "Messagerie", desc: "Chat équipe & médecins", color: "bg-cyan-50 text-cyan-600" },
+  { href: "/medical-service-dashboard/analytics", icon: BarChart3, label: "Statistiques", desc: "Rapports & analytics", color: "bg-violet-50 text-violet-600" },
+  { href: "/medical-service-dashboard/settings", icon: Settings, label: "Paramètres", desc: "Configuration du service", color: "bg-slate-50 text-slate-600" },
+];
+
+const recentActivities = [
+  { id: 1, icon: Plus, color: "bg-blue-100 text-blue-600", text: "Nouveau patient admis : Fatima Ben Ali", time: "Il y a 20 min" },
+  { id: 2, icon: CheckCircle2, color: "bg-green-100 text-green-600", text: "Visite complétée : Mohammed Gharbi — Samir K.", time: "Il y a 1h" },
+  { id: 3, icon: AlertCircle, color: "bg-red-100 text-red-600", text: "Alerte critique : SpO₂ 88% — Ahmed Nasser", time: "Il y a 2h" },
+  { id: 4, icon: FileText, color: "bg-purple-100 text-purple-600", text: "Ordonnance créée : Leila Mansouri — Insuline", time: "Il y a 3h" },
+  { id: 5, icon: ClipboardList, color: "bg-amber-100 text-amber-600", text: "Nouvelle visite planifiée : Youssef T. — 09:00", time: "Il y a 4h" },
+  { id: 6, icon: CreditCard, color: "bg-lime-100 text-lime-600", text: "Paiement reçu : Facture #2024-089 — 1 500 DT", time: "Il y a 6h" },
+  { id: 7, icon: UserCheck, color: "bg-indigo-100 text-indigo-600", text: "Membre d'équipe ajouté : Hana Riahi — Infirmière", time: "Hier" },
+];
 
 export default function MedicalServiceDashboardPage() {
-  const { user, isLoading, isAuthenticated, logout } = useAuth();
+  const { user, isLoading, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      navigate('/login');
-    }
-    if (!isLoading && user && user.role !== 'medical_service') {
-      const dashboards = {
-        patient: '/dashboard',
-        doctor: '/doctor-dashboard',
-        pharmacy: '/pharmacy-dashboard',
-        lab_radiology: '/lab-dashboard',
-        medical_transport: '/transport-dashboard',
-        paramedical: '/paramedical-dashboard',
+    if (!isLoading && !isAuthenticated) navigate("/login");
+    if (!isLoading && user && user.role !== "medical_service") {
+      const dashboards: Record<string, string> = {
+        patient: "/dashboard",
+        doctor: "/doctor-dashboard",
+        pharmacy: "/pharmacy-dashboard",
+        lab_radiology: "/lab-dashboard",
+        paramedical: "/paramedical-dashboard",
       };
-      navigate(dashboards[user.role as keyof typeof dashboards]);
+      navigate(dashboards[user.role] ?? "/login");
     }
   }, [isLoading, isAuthenticated, user, navigate]);
 
-  if (isLoading || !isAuthenticated || !user || user.role !== 'medical_service') {
+  if (isLoading || !isAuthenticated || !user || user.role !== "medical_service") {
     return null;
   }
 
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
+  const firstName = user.firstName || "Gestionnaire";
+  const todayLabel = new Date().toLocaleDateString("fr-FR", {
+    weekday: "long", day: "numeric", month: "long", year: "numeric",
+  });
+  const initials = `${user.firstName?.[0] ?? ""}${user.lastName?.[0] ?? ""}`.toUpperCase() || "MS";
+
+  const kpiCards = [
+    { icon: Users, label: "Patients Actifs", value: "24", sub: "+2 cette semaine", subColor: "text-green-600", iconColor: "text-blue-500", iconBg: "bg-blue-50" },
+    { icon: Calendar, label: "Visites Aujourd'hui", value: "8", sub: "4 en cours", subColor: "text-amber-600", iconColor: "text-indigo-500", iconBg: "bg-indigo-50" },
+    { icon: UserCheck, label: "Taille de l'Équipe", value: "12", sub: "8 actifs aujourd'hui", subColor: "text-blue-600", iconColor: "text-purple-500", iconBg: "bg-purple-50" },
+    { icon: TrendingUp, label: "Revenus Mensuels", value: "48 500 DT", sub: "+15% ce mois", subColor: "text-green-600", iconColor: "text-emerald-500", iconBg: "bg-emerald-50" },
+  ];
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="bg-card border-b border-border sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+    <div className="flex min-h-screen bg-background">
+      <MedicalServiceDashboardSidebar />
+
+      <div className="flex-1 flex flex-col min-h-screen overflow-hidden">
+        {/* Top bar */}
+        <header className="bg-card border-b border-border px-6 py-4 flex items-center justify-between shrink-0">
+          <div>
+            <h1 className="text-xl font-bold text-foreground">Tableau de bord</h1>
+            <p className="text-xs text-muted-foreground capitalize">{todayLabel}</p>
+          </div>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center text-white font-bold">
-              🏥
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-xs font-bold text-white">
+              {initials}
             </div>
-            <h1 className="text-2xl font-bold text-foreground">Services Médicaux</h1>
-          </div>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-muted-foreground">{user.firstName} {user.lastName}</span>
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-2 px-4 py-2 text-muted-foreground hover:text-foreground transition"
-            >
-              <LogOut size={20} />
-              Déconnexion
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Welcome Section */}
-        <div className="mb-12">
-          <h2 className="text-3xl font-bold text-foreground mb-2">
-            Bienvenue, {user.firstName}!
-          </h2>
-          <p className="text-muted-foreground">Gérez votre service d'hospitalisation à domicile</p>
-        </div>
-
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-          <div className="bg-card rounded-xl border border-border p-6 space-y-2">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm text-muted-foreground">Patients Actifs</h3>
-              <Users size={20} className="text-primary" />
+            <div className="hidden sm:block text-right">
+              <p className="text-sm font-semibold text-foreground">{firstName}</p>
+              <p className="text-xs text-muted-foreground">Services Médicaux</p>
             </div>
-            <p className="text-3xl font-bold text-foreground">24</p>
-            <p className="text-xs text-green-600">+2 cette semaine</p>
+          </div>
+        </header>
+
+        <main className="flex-1 overflow-y-auto p-6 space-y-8">
+          {/* Welcome */}
+          <div>
+            <h2 className="text-2xl font-bold text-foreground mb-1">Bonjour, {firstName} 👋</h2>
+            <p className="text-muted-foreground text-sm">Voici un résumé de votre service d'hospitalisation à domicile.</p>
           </div>
 
-          <div className="bg-card rounded-xl border border-border p-6 space-y-2">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm text-muted-foreground">Rendez-vous Aujourd'hui</h3>
-              <Calendar size={20} className="text-primary" />
-            </div>
-            <p className="text-3xl font-bold text-foreground">8</p>
-            <p className="text-xs text-yellow-600">4 en cours</p>
-          </div>
-
-          <div className="bg-card rounded-xl border border-border p-6 space-y-2">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm text-muted-foreground">Infirmiers en Équipe</h3>
-              <Users size={20} className="text-primary" />
-            </div>
-            <p className="text-3xl font-bold text-foreground">12</p>
-            <p className="text-xs text-blue-600">8 actifs aujourd'hui</p>
-          </div>
-
-          <div className="bg-card rounded-xl border border-border p-6 space-y-2">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm text-muted-foreground">Revenus Mensuels</h3>
-              <BarChart3 size={20} className="text-primary" />
-            </div>
-            <p className="text-3xl font-bold text-foreground">48,500 DT</p>
-            <p className="text-xs text-green-600">+15% par rapport au mois dernier</p>
-          </div>
-        </div>
-
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-          <Link to="/medical-service-dashboard/patients" className="bg-card rounded-xl border border-border p-6 hover:shadow-lg transition space-y-4">
-            <div className="text-3xl">📋</div>
-            <h3 className="font-semibold text-foreground">Gérer les Patients</h3>
-            <p className="text-sm text-muted-foreground">Ajouter et suivre les patients en hospitalisation</p>
-            <span className="text-primary text-sm font-semibold hover:underline inline-block">Accéder →</span>
-          </Link>
-
-          <Link to="/medical-service-dashboard/team" className="bg-card rounded-xl border border-border p-6 hover:shadow-lg transition space-y-4">
-            <div className="text-3xl">👨‍⚕️</div>
-            <h3 className="font-semibold text-foreground">Mon Équipe</h3>
-            <p className="text-sm text-muted-foreground">Gérer les infirmiers et paramédicaux</p>
-            <span className="text-primary text-sm font-semibold hover:underline inline-block">Accéder →</span>
-          </Link>
-
-          <Link to="/medical-service-dashboard/schedule" className="bg-card rounded-xl border border-border p-6 hover:shadow-lg transition space-y-4">
-            <div className="text-3xl">📅</div>
-            <h3 className="font-semibold text-foreground">Planifier</h3>
-            <p className="text-sm text-muted-foreground">Programmer les visites et consultations</p>
-            <span className="text-primary text-sm font-semibold hover:underline inline-block">Accéder →</span>
-          </Link>
-
-          <Link to="/medical-service-dashboard/prescriptions" className="bg-card rounded-xl border border-border p-6 hover:shadow-lg transition space-y-4">
-            <div className="text-3xl">💊</div>
-            <h3 className="font-semibold text-foreground">Ordonnances</h3>
-            <p className="text-sm text-muted-foreground">Prescrire et gérer les traitements</p>
-            <span className="text-primary text-sm font-semibold hover:underline inline-block">Accéder →</span>
-          </Link>
-
-          <Link to="/medical-service-dashboard/teleconsultation" className="bg-card rounded-xl border border-border p-6 hover:shadow-lg transition space-y-4">
-            <div className="text-3xl">📹</div>
-            <h3 className="font-semibold text-foreground">Téléconsultation</h3>
-            <p className="text-sm text-muted-foreground">Consultations vidéo avec patients</p>
-            <span className="text-primary text-sm font-semibold hover:underline inline-block">Accéder →</span>
-          </Link>
-
-          <Link to="/medical-service-dashboard/vitals" className="bg-card rounded-xl border border-border p-6 hover:shadow-lg transition space-y-4">
-            <div className="text-3xl">❤️</div>
-            <h3 className="font-semibold text-foreground">Suivi Médical</h3>
-            <p className="text-sm text-muted-foreground">Constantes vitales et alertes</p>
-            <span className="text-primary text-sm font-semibold hover:underline inline-block">Accéder →</span>
-          </Link>
-
-          <Link to="/medical-service-dashboard/equipment" className="bg-card rounded-xl border border-border p-6 hover:shadow-lg transition space-y-4">
-            <div className="text-3xl">🏥</div>
-            <h3 className="font-semibold text-foreground">Logistique</h3>
-            <p className="text-sm text-muted-foreground">Équipements et matériels médicaux</p>
-            <span className="text-primary text-sm font-semibold hover:underline inline-block">Accéder →</span>
-          </Link>
-
-          <Link to="/medical-service-dashboard/billing" className="bg-card rounded-xl border border-border p-6 hover:shadow-lg transition space-y-4">
-            <div className="text-3xl">💳</div>
-            <h3 className="font-semibold text-foreground">Facturation</h3>
-            <p className="text-sm text-muted-foreground">Gérer les factures et paiements</p>
-            <span className="text-primary text-sm font-semibold hover:underline inline-block">Accéder →</span>
-          </Link>
-
-          <Link to="/medical-service-dashboard/messaging" className="bg-card rounded-xl border border-border p-6 hover:shadow-lg transition space-y-4">
-            <div className="text-3xl">💬</div>
-            <h3 className="font-semibold text-foreground">Messagerie</h3>
-            <p className="text-sm text-muted-foreground">Communication entre l'équipe</p>
-            <span className="text-primary text-sm font-semibold hover:underline inline-block">Accéder →</span>
-          </Link>
-
-          <Link to="/medical-service-dashboard/analytics" className="bg-card rounded-xl border border-border p-6 hover:shadow-lg transition space-y-4">
-            <div className="text-3xl">📊</div>
-            <h3 className="font-semibold text-foreground">Statistiques</h3>
-            <p className="text-sm text-muted-foreground">Rapports et analytics détaillés</p>
-            <span className="text-primary text-sm font-semibold hover:underline inline-block">Accéder →</span>
-          </Link>
-
-          <Link to="/medical-service-dashboard/settings" className="bg-card rounded-xl border border-border p-6 hover:shadow-lg transition space-y-4">
-            <div className="text-3xl">⚙️</div>
-            <h3 className="font-semibold text-foreground">Paramètres</h3>
-            <p className="text-sm text-muted-foreground">Configurer votre service</p>
-            <span className="text-primary text-sm font-semibold hover:underline inline-block">Accéder →</span>
-          </Link>
-        </div>
-
-        {/* Recent Activity */}
-        <div className="bg-card rounded-xl border border-border p-6">
-          <h3 className="text-lg font-semibold text-foreground mb-4">Activité Récente</h3>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between py-3 border-b border-border last:border-b-0">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">👤</div>
-                <div>
-                  <p className="text-sm font-semibold text-foreground">Nouveau patient: Fatima B.</p>
-                  <p className="text-xs text-muted-foreground">Il y a 2 heures</p>
+          {/* KPI Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+            {kpiCards.map((k) => {
+              const Icon = k.icon;
+              return (
+                <div key={k.label} className="bg-card rounded-xl border border-border p-5">
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-sm text-muted-foreground">{k.label}</p>
+                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${k.iconBg}`}>
+                      <Icon size={18} className={k.iconColor} />
+                    </div>
+                  </div>
+                  <p className="text-2xl font-bold text-foreground">{k.value}</p>
+                  <p className={`text-xs mt-1 font-medium ${k.subColor}`}>{k.sub}</p>
                 </div>
-              </div>
-            </div>
-            <div className="flex items-center justify-between py-3 border-b border-border last:border-b-0">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">📋</div>
-                <div>
-                  <p className="text-sm font-semibold text-foreground">Visite médicale complétée</p>
-                  <p className="text-xs text-muted-foreground">Il y a 4 heures</p>
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center justify-between py-3 border-b border-border last:border-b-0">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">💰</div>
-                <div>
-                  <p className="text-sm font-semibold text-foreground">Paiement reçu: 1,500 DT</p>
-                  <p className="text-xs text-muted-foreground">Il y a 1 jour</p>
-                </div>
-              </div>
+              );
+            })}
+          </div>
+
+          {/* Quick Actions — 11-tile grid */}
+          <div>
+            <h3 className="text-base font-semibold text-foreground mb-4">Accès rapide</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
+              {quickActions.map((action) => {
+                const Icon = action.icon;
+                return (
+                  <Link
+                    key={action.href}
+                    to={action.href}
+                    className="bg-card border border-border rounded-xl p-4 hover:shadow-md hover:border-primary/30 transition-all group flex flex-col items-center text-center gap-2"
+                  >
+                    <div className={`w-11 h-11 rounded-xl flex items-center justify-center ${action.color} group-hover:scale-110 transition-transform`}>
+                      <Icon size={20} />
+                    </div>
+                    <p className="text-xs font-semibold text-foreground leading-tight">{action.label}</p>
+                    <p className="text-xs text-muted-foreground leading-tight hidden sm:block">{action.desc}</p>
+                  </Link>
+                );
+              })}
             </div>
           </div>
-        </div>
-      </main>
+
+          {/* Recent Activity */}
+          <div className="bg-card rounded-xl border border-border">
+            <div className="px-6 py-4 border-b border-border flex items-center justify-between">
+              <h3 className="font-semibold text-foreground flex items-center gap-2">
+                <Clock size={16} className="text-muted-foreground" />
+                Activité Récente
+              </h3>
+              <span className="text-xs text-muted-foreground">{recentActivities.length} événements</span>
+            </div>
+            <div className="divide-y divide-border">
+              {recentActivities.map((activity) => {
+                const Icon = activity.icon;
+                return (
+                  <div key={activity.id} className="flex items-start gap-4 px-6 py-4 hover:bg-muted/30 transition-colors">
+                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${activity.color}`}>
+                      <Icon size={16} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-foreground font-medium leading-snug">{activity.text}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">{activity.time}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </main>
+      </div>
     </div>
   );
 }
+

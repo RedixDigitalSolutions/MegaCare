@@ -76,7 +76,7 @@ router.get("/products/:id", (req, res) => {
 
 // POST /api/pharmacy/orders  (requires auth)
 router.post("/orders", authMiddleware, (req, res) => {
-  const { items, deliveryAddress } = req.body;
+  const { items } = req.body;
   if (!items || !Array.isArray(items) || items.length === 0) {
     return res.status(400).json({ message: "Au moins un article requis" });
   }
@@ -88,7 +88,6 @@ router.post("/orders", authMiddleware, (req, res) => {
     id: randomUUID(),
     userId: req.user.id,
     items,
-    deliveryAddress: deliveryAddress || "",
     total: Math.round(total * 100) / 100,
     status: "pending",
     createdAt: new Date().toISOString(),

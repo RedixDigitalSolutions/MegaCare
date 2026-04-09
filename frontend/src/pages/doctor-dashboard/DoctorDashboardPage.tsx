@@ -1,13 +1,12 @@
-
 import { DoctorDashboardSidebar } from "@/components/DoctorDashboardSidebar";
 import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from 'react-router-dom';
-import { Link } from 'react-router-dom';
-import { Video, TrendingUp, Star, Clock, LogOut } from "lucide-react";
-import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
+import { Video, TrendingUp, Star, Clock, Settings } from "lucide-react";
+import { useEffect, useState } from "react";
 
 export default function DoctorDashboardPage() {
-  const { user, logout, isLoading, isAuthenticated } = useAuth();
+  const { user, isLoading, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -136,11 +135,26 @@ export default function DoctorDashboardPage() {
   ];
 
   const nextConsultation = {
-    patientName: "Prochaine consultation",
-    timeUntil: "45 minutes",
+    patientName: "Fatima B.",
     patientAge: 52,
     reason: "Suivi cardiaque régulier",
   };
+
+  // Live countdown — 45 min from page load for demo purposes
+  const [countdown, setCountdown] = useState(45 * 60);
+  useEffect(() => {
+    const timer = setInterval(
+      () => setCountdown((s) => Math.max(0, s - 1)),
+      1000,
+    );
+    return () => clearInterval(timer);
+  }, []);
+  const countdownMin = Math.floor(countdown / 60);
+  const countdownSec = countdown % 60;
+  const countdownDisplay =
+    countdown > 0
+      ? `${countdownMin}m ${String(countdownSec).padStart(2, "0")}s`
+      : "Maintenant";
 
   return (
     <div className="min-h-screen bg-background">
@@ -150,29 +164,23 @@ export default function DoctorDashboardPage() {
         <main className="flex-1 overflow-auto">
           {/* Header */}
           <div className="bg-card border-b border-border p-6 sticky top-0 z-10">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-3xl font-bold text-foreground">
                   Dr. {doctorName}
                 </h1>
                 <p className="text-muted-foreground mt-1">
-                  {specialty} • Licence: {licenseId}
+                  {specialty} • {todayDate}
                 </p>
               </div>
-              <div className="flex gap-2">
-                <button className="px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition font-medium">
-                  Paramètres du profil
-                </button>
-                <button
-                  onClick={logout}
-                  className="px-6 py-2 border border-border hover:bg-muted rounded-lg transition font-medium flex items-center gap-2"
-                >
-                  <LogOut size={18} />
-                  Déconnexion
-                </button>
-              </div>
+              <Link
+                to="/doctor-dashboard/settings"
+                className="px-5 py-2 border border-border hover:bg-muted rounded-lg transition font-medium flex items-center gap-2 text-sm"
+              >
+                <Settings size={16} />
+                Mon profil
+              </Link>
             </div>
-            <p className="text-muted-foreground">{todayDate}</p>
           </div>
 
           {/* Content */}
@@ -309,8 +317,10 @@ export default function DoctorDashboardPage() {
                 <div className="space-y-3">
                   <div className="bg-white/60 rounded-lg p-4 space-y-2">
                     <p className="text-sm text-muted-foreground">Dans</p>
-                    <p className="text-3xl font-bold text-primary">
-                      {nextConsultation.timeUntil}
+                    <p
+                      className={`text-3xl font-bold ${countdown === 0 ? "text-destructive animate-pulse" : "text-primary"}`}
+                    >
+                      {countdownDisplay}
                     </p>
                   </div>
                   <div className="space-y-2">

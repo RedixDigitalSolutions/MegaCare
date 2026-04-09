@@ -183,6 +183,6 @@
 | `medical_service`   | Medical Service Dashboard | Yes               |
 | `medical_transport` | Transport Dashboard       | Yes               |
 | `paramedical`       | Paramedical Dashboard     | Yes               |
-| `admin`             | Admin Panel               | —                 |
+| `admin`             | Admin Panel               | —                 | 
 
 Non-patient accounts are redirected to `/account-review` immediately after registration and gain dashboard access only after admin approval.

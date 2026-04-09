@@ -1,7 +1,6 @@
-
 import { useState, useEffect, useRef } from "react";
-import { Link } from 'react-router-dom';
-import { useNavigate } from 'react-router-dom';
+import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import type { User } from "@/contexts/AuthContext";
 import {
@@ -158,25 +157,19 @@ export function Header() {
                   </p>
                 </div>
                 <DropdownLink
-                  href="/medical-service-dashboard"
+                  href="/services-medicaux"
                   icon="🏥"
                   title="Services Medicaux"
                   description="Hopitaux et cliniques partenaires"
                 />
                 <DropdownLink
-                  href="/lab-dashboard"
+                  href="/labos-radiologie"
                   icon="🔬"
                   title="Labos & Radiologie"
                   description="Analyses et examens medicaux"
                 />
                 <DropdownLink
-                  href="/transport-dashboard"
-                  icon="🚑"
-                  title="Transport Medicalise"
-                  description="Ambulances et transport sanitaire"
-                />
-                <DropdownLink
-                  href="/paramedical-dashboard"
+                  href="/paramedical"
                   icon="💉"
                   title="Paramedicaux"
                   description="Soins infirmiers a domicile"
@@ -297,25 +290,19 @@ export function Header() {
                 Autres services
               </p>
               <MobileSubLink
-                href="/medical-service-dashboard"
+                href="/services-medicaux"
                 onClick={() => setIsOpen(false)}
               >
                 🏥 Services Medicaux
               </MobileSubLink>
               <MobileSubLink
-                href="/lab-dashboard"
+                href="/labos-radiologie"
                 onClick={() => setIsOpen(false)}
               >
                 🔬 Labos & Radiologie
               </MobileSubLink>
               <MobileSubLink
-                href="/transport-dashboard"
-                onClick={() => setIsOpen(false)}
-              >
-                🚑 Transport Medicalise
-              </MobileSubLink>
-              <MobileSubLink
-                href="/paramedical-dashboard"
+                href="/paramedical"
                 onClick={() => setIsOpen(false)}
               >
                 💉 Paramedicaux
@@ -392,7 +379,6 @@ export function Header() {
                           pharmacy: "/pharmacy-dashboard",
                           medical_service: "/medical-service-dashboard",
                           lab_radiology: "/lab-dashboard",
-                          medical_transport: "/transport-dashboard",
                           paramedical: "/paramedical-dashboard",
                           admin: "/admin",
                         } as Record<string, string>
@@ -577,7 +563,6 @@ function ProfileMenuButton({
     pharmacy: "/pharmacy-dashboard",
     medical_service: "/medical-service-dashboard",
     lab_radiology: "/lab-dashboard",
-    medical_transport: "/transport-dashboard",
     paramedical: "/paramedical-dashboard",
     admin: "/admin",
   };
@@ -701,4 +686,3 @@ function ProfileMenuButton({
     </div>
   );
 }
-

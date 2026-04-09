@@ -1,15 +1,13 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { Header } from "@/components/Header";
-import { useNavigate } from 'react-router-dom';
-import { Link } from 'react-router-dom';
+import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import {
   FaUserMd,
   FaPills,
   FaHospital,
   FaMicroscope,
-  FaAmbulance,
   FaUserNurse,
   FaUserAlt,
   FaCamera,
@@ -50,11 +48,6 @@ const roleConfig: Record<
     Icon: FaMicroscope,
     color: "from-rose-500 to-pink-500",
   },
-  medical_transport: {
-    label: "Transport Médicalisé",
-    Icon: FaAmbulance,
-    color: "from-orange-500 to-red-500",
-  },
   paramedical: {
     label: "Paramédicaux",
     Icon: FaUserNurse,
@@ -73,7 +66,6 @@ const dashboardLinks: Record<string, string> = {
   pharmacy: "/pharmacy-dashboard",
   medical_service: "/medical-service-dashboard",
   lab_radiology: "/lab-dashboard",
-  medical_transport: "/transport-dashboard",
   paramedical: "/paramedical-dashboard",
   admin: "/admin",
 };
@@ -441,4 +433,3 @@ export default function ProfilePage() {
     </div>
   );
 }
-

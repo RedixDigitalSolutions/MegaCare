@@ -1,104 +1,349 @@
+import { useState } from "react";
+import { ParamedicalDashboardSidebar } from "@/components/ParamedicalDashboardSidebar";
+import {
+  Plus,
+  Search,
+  Calendar,
+  Clock,
+  MapPin,
+  Edit2,
+  X,
+  Home,
+  Building2,
+  Filter,
+} from "lucide-react";
 
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowLeft, Plus, Search, Calendar, Clock, MapPin } from 'lucide-react';
+type AppStatus = "Confirmé" | "En attente" | "Annulé";
+type Location = "Domicile" | "Cabinet";
 
-export default function AppointmentsPage() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [appointments, setAppointments] = useState([
-    { id: 1, patient: 'Fatima Ben Ali', type: 'Soins infirmiers', date: '2024-03-08', time: '10:00', location: 'Domicile', status: 'Confirmé' },
-    { id: 2, patient: 'Mohammed Gharbi', type: 'Kinésithérapie', date: '2024-03-08', time: '14:00', location: 'Cabinet', status: 'Confirmé' },
-    { id: 3, patient: 'Leila Mansouri', type: 'Soins infirmiers', date: '2024-03-09', time: '09:30', location: 'Domicile', status: 'Confirmé' },
-    { id: 4, patient: 'Ahmed Nasser', type: 'Massage thérapeutique', date: '2024-03-09', time: '15:00', location: 'Cabinet', status: 'En attente' },
-  ]);
+interface Appointment {
+  id: number;
+  patient: string;
+  type: string;
+  date: string;
+  time: string;
+  location: Location;
+  status: AppStatus;
+  notes?: string;
+}
 
-  const filteredAppointments = appointments.filter(a => 
-    a.patient.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    a.type.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+const initialAppointments: Appointment[] = [
+  { id: 1, patient: "Fatima Ben Ali", type: "Soins infirmiers", date: "2026-04-05", time: "09:00", location: "Domicile", status: "Confirmé" },
+  { id: 2, patient: "Mohammed Gharbi", type: "Kinésithérapie", date: "2026-04-05", time: "11:00", location: "Cabinet", status: "Confirmé" },
+  { id: 3, patient: "Leila Mansouri", type: "Pansement", date: "2026-04-05", time: "14:30", location: "Domicile", status: "Confirmé" },
+  { id: 4, patient: "Ahmed Nasser", type: "Injection", date: "2026-04-06", time: "09:30", location: "Domicile", status: "En attente" },
+  { id: 5, patient: "Sara Meddeb", type: "Massage thérapeutique", date: "2026-04-06", time: "15:00", location: "Cabinet", status: "Confirmé" },
+  { id: 6, patient: "Riadh Karmous", type: "Prise de sang", date: "2026-04-07", time: "08:00", location: "Domicile", status: "En attente" },
+  { id: 7, patient: "Nour Chaabane", type: "Perfusion", date: "2026-04-07", time: "10:00", location: "Domicile", status: "Annulé" },
+];
+
+const statusColors: Record<AppStatus, string> = {
+  "Confirmé": "bg-green-100 text-green-700",
+  "En attente": "bg-amber-100 text-amber-700",
+  "Annulé": "bg-red-100 text-red-700",
+};
+
+const careTypes = [
+  "Soins infirmiers", "Kinésithérapie", "Pansement", "Injection",
+  "Perfusion", "Prise de sang", "Massage thérapeutique", "Rééducation",
+];
+
+const emptyForm = {
+  patient: "", type: careTypes[0], date: "", time: "",
+  location: "Domicile" as Location, status: "En attente" as AppStatus, notes: "",
+};
+
+export default function ParamedicalAppointmentsPage() {
+  const [appointments, setAppointments] = useState<Appointment[]>(initialAppointments);
+  const [search, setSearch] = useState("");
+  const [filterStatus, setFilterStatus] = useState<AppStatus | "Tous">("Tous");
+  const [showModal, setShowModal] = useState(false);
+  const [editId, setEditId] = useState<number | null>(null);
+  const [form, setForm] = useState(emptyForm);
+
+  const filtered = appointments.filter((a) => {
+    const matchSearch =
+      a.patient.toLowerCase().includes(search.toLowerCase()) ||
+      a.type.toLowerCase().includes(search.toLowerCase());
+    const matchStatus = filterStatus === "Tous" || a.status === filterStatus;
+    return matchSearch && matchStatus;
+  });
+
+  const openAdd = () => {
+    setEditId(null);
+    setForm(emptyForm);
+    setShowModal(true);
+  };
+
+  const openEdit = (a: Appointment) => {
+    setEditId(a.id);
+    setForm({ patient: a.patient, type: a.type, date: a.date, time: a.time, location: a.location, status: a.status, notes: a.notes ?? "" });
+    setShowModal(true);
+  };
+
+  const handleSubmit = () => {
+    if (!form.patient || !form.date || !form.time) return;
+    if (editId !== null) {
+      setAppointments((prev) =>
+        prev.map((a) => (a.id === editId ? { ...a, ...form } : a))
+      );
+    } else {
+      const newId = Math.max(0, ...appointments.map((a) => a.id)) + 1;
+      setAppointments((prev) => [...prev, { id: newId, ...form }]);
+    }
+    setShowModal(false);
+  };
+
+  const statusCounts = {
+    Tous: appointments.length,
+    Confirmé: appointments.filter((a) => a.status === "Confirmé").length,
+    "En attente": appointments.filter((a) => a.status === "En attente").length,
+    Annulé: appointments.filter((a) => a.status === "Annulé").length,
+  };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="bg-card border-b border-border sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link to="/paramedical-dashboard" className="p-2 hover:bg-muted rounded-lg transition">
-              <ArrowLeft size={20} className="text-foreground" />
-            </Link>
-            <h1 className="text-2xl font-bold text-foreground">Mon Agenda</h1>
-          </div>
-          <button className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition font-medium">
-            <Plus size={20} />
-            Ajouter Rendez-vous
-          </button>
-        </div>
-      </header>
+    <div className="flex min-h-screen bg-background">
+      <ParamedicalDashboardSidebar />
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Search */}
-        <div className="mb-8">
-          <div className="relative">
-            <Search className="absolute left-3 top-3 text-muted-foreground" size={20} />
-            <input
-              type="text"
-              placeholder="Rechercher un rendez-vous..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-input border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-            />
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Header */}
+        <div className="px-6 py-5 border-b border-border bg-card/50 shrink-0">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-xl font-bold text-foreground">Rendez-vous</h1>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                Gérez vos consultations et visites à domicile
+              </p>
+            </div>
+            <button
+              onClick={openAdd}
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition"
+            >
+              <Plus size={15} />
+              Nouveau rendez-vous
+            </button>
           </div>
         </div>
 
-        {/* Appointments List */}
-        <div className="space-y-4">
-          {filteredAppointments.map((appointment) => (
-            <div key={appointment.id} className="bg-card rounded-xl border border-border p-6">
-              <div className="flex items-start justify-between mb-4">
+        <main className="flex-1 overflow-y-auto p-6 space-y-5">
+          {/* Stats strip */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {(["Tous", "Confirmé", "En attente", "Annulé"] as const).map((s) => (
+              <button
+                key={s}
+                onClick={() => setFilterStatus(s)}
+                className={`rounded-xl border p-3 text-left transition ${
+                  filterStatus === s
+                    ? "border-primary bg-primary/5"
+                    : "border-border bg-card hover:border-primary/40"
+                }`}
+              >
+                <p className="text-xl font-bold text-foreground">{statusCounts[s]}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{s}</p>
+              </button>
+            ))}
+          </div>
+
+          {/* Filters */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
+              <input
+                type="text"
+                placeholder="Rechercher patient ou type de soin..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-9 pr-4 py-2.5 bg-card border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <Filter size={15} className="text-muted-foreground shrink-0" />
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value as AppStatus | "Tous")}
+                className="px-3 py-2.5 bg-card border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+              >
+                <option value="Tous">Tous les statuts</option>
+                <option value="Confirmé">Confirmé</option>
+                <option value="En attente">En attente</option>
+                <option value="Annulé">Annulé</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Appointments list */}
+          <div className="space-y-3">
+            {filtered.length === 0 ? (
+              <div className="bg-card rounded-xl border border-border p-10 text-center text-muted-foreground text-sm">
+                Aucun rendez-vous trouvé.
+              </div>
+            ) : (
+              filtered.map((a) => (
+                <div
+                  key={a.id}
+                  className="bg-card rounded-xl border border-border p-4 flex flex-col sm:flex-row sm:items-center gap-4"
+                >
+                  {/* Patient info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <p className="font-semibold text-sm text-foreground">{a.patient}</p>
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${statusColors[a.status]}`}>
+                        {a.status}
+                      </span>
+                    </div>
+                    <p className="text-sm text-muted-foreground">{a.type}</p>
+                  </div>
+
+                  {/* Meta */}
+                  <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1.5">
+                      <Calendar size={13} />
+                      {new Date(a.date).toLocaleDateString("fr-FR", { day: "numeric", month: "long" })}
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <Clock size={13} />
+                      {a.time}
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      {a.location === "Domicile" ? <Home size={13} /> : <Building2 size={13} />}
+                      {a.location}
+                    </span>
+                  </div>
+
+                  {/* Action */}
+                  <button
+                    onClick={() => openEdit(a)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs border border-border rounded-lg hover:border-primary hover:text-primary transition shrink-0"
+                  >
+                    <Edit2 size={13} />
+                    Modifier
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+        </main>
+      </div>
+
+      {/* Modal */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-card rounded-2xl border border-border shadow-2xl w-full max-w-md">
+            {/* Modal header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+              <h2 className="font-semibold text-foreground">
+                {editId !== null ? "Modifier le rendez-vous" : "Nouveau rendez-vous"}
+              </h2>
+              <button
+                onClick={() => setShowModal(false)}
+                className="p-1.5 text-muted-foreground hover:text-foreground transition"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Modal body */}
+            <div className="px-6 py-5 space-y-4">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground block mb-1.5">Patient</label>
+                <input
+                  type="text"
+                  placeholder="Nom du patient"
+                  value={form.patient}
+                  onChange={(e) => setForm({ ...form, patient: e.target.value })}
+                  className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-muted-foreground block mb-1.5">Type de soin</label>
+                <select
+                  value={form.type}
+                  onChange={(e) => setForm({ ...form, type: e.target.value })}
+                  className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                >
+                  {careTypes.map((t) => <option key={t}>{t}</option>)}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <h3 className="font-semibold text-foreground text-lg">{appointment.patient}</h3>
-                  <p className="text-sm text-muted-foreground">{appointment.type}</p>
+                  <label className="text-xs font-medium text-muted-foreground block mb-1.5">Date</label>
+                  <input
+                    type="date"
+                    value={form.date}
+                    onChange={(e) => setForm({ ...form, date: e.target.value })}
+                    className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  />
                 </div>
-                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                  appointment.status === 'Confirmé' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
-                }`}>
-                  {appointment.status}
-                </span>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                <div className="flex items-center gap-2">
-                  <Calendar size={16} className="text-primary flex-shrink-0" />
-                  <span className="text-sm text-muted-foreground">{appointment.date}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Clock size={16} className="text-primary flex-shrink-0" />
-                  <span className="text-sm text-muted-foreground">{appointment.time}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <MapPin size={16} className="text-primary flex-shrink-0" />
-                  <span className="text-sm text-muted-foreground">{appointment.location}</span>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground block mb-1.5">Heure</label>
+                  <input
+                    type="time"
+                    value={form.time}
+                    onChange={(e) => setForm({ ...form, time: e.target.value })}
+                    className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  />
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 pt-4 border-t border-border">
-                <button className="flex-1 px-3 py-2 bg-primary/10 text-primary rounded-lg hover:bg-primary/20 transition text-sm font-medium">
-                  Voir Détails
-                </button>
-                <button className="flex-1 px-3 py-2 border border-border text-foreground rounded-lg hover:bg-muted transition text-sm font-medium">
-                  Modifier
-                </button>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground block mb-1.5">Lieu</label>
+                  <select
+                    value={form.location}
+                    onChange={(e) => setForm({ ...form, location: e.target.value as Location })}
+                    className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  >
+                    <option value="Domicile">Domicile</option>
+                    <option value="Cabinet">Cabinet</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground block mb-1.5">Statut</label>
+                  <select
+                    value={form.status}
+                    onChange={(e) => setForm({ ...form, status: e.target.value as AppStatus })}
+                    className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  >
+                    <option value="Confirmé">Confirmé</option>
+                    <option value="En attente">En attente</option>
+                    <option value="Annulé">Annulé</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-muted-foreground block mb-1.5">Notes (optionnel)</label>
+                <textarea
+                  rows={2}
+                  placeholder="Observations..."
+                  value={form.notes}
+                  onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                  className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/40"
+                />
               </div>
             </div>
-          ))}
-        </div>
 
-        {filteredAppointments.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-muted-foreground text-lg">Aucun rendez-vous trouvé</p>
+            {/* Modal footer */}
+            <div className="flex gap-3 px-6 py-4 border-t border-border">
+              <button
+                onClick={() => setShowModal(false)}
+                className="flex-1 px-4 py-2 text-sm border border-border rounded-lg hover:bg-muted transition"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleSubmit}
+                disabled={!form.patient || !form.date || !form.time}
+                className="flex-1 px-4 py-2 text-sm bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {editId !== null ? "Enregistrer" : "Ajouter"}
+              </button>
+            </div>
           </div>
-        )}
-      </main>
+        </div>
+      )}
     </div>
   );
 }

@@ -21,7 +21,6 @@ import {
   Sparkles,
   Video,
   FileText,
-  Truck,
   Users,
   Award,
   TrendingUp,
@@ -439,7 +438,7 @@ function HeroSection() {
                   <div>
                     <p className="font-semibold text-sm">Ordonnance prete</p>
                     <p className="text-xs text-muted-foreground">
-                      Livraison demain
+                      Prête pour retrait
                     </p>
                   </div>
                 </div>
@@ -637,11 +636,11 @@ function ServicesSection() {
       link: "/pharmacy",
       modalTitle: "Pharmacie Numerique",
       modalBody:
-        "Achetez vos medicaments en toute simplicite depuis notre pharmacie en ligne partenaire. Importez votre ordonnance, choisissez votre pharmacie et faites-vous livrer a domicile en quelques heures.",
+        "Achetez vos medicaments en toute simplicite depuis notre pharmacie en ligne partenaire. Importez votre ordonnance, choisissez votre pharmacie et retirez votre commande en quelques heures.",
       features: [
         "Catalogue de plus de 5 000 references",
         "Scan et validation d'ordonnance integres",
-        "Livraison rapide ou retrait en pharmacie",
+        "Retrait rapide en pharmacie",
         "Rappels de prise de medicaments",
       ],
     },
@@ -659,22 +658,6 @@ function ServicesSection() {
         "Partage securise avec vos praticiens",
         "Suivi de vos constantes et vaccinations",
         "Conformite RGPD et donnees hebergees en Tunisie",
-      ],
-    },
-    {
-      icon: Truck,
-      title: "Transport medicalise",
-      description: "Service d'ambulance et transport sanitaire",
-      color: "from-orange-500 to-red-500",
-      link: "/transport-dashboard",
-      modalTitle: "Transport Sanitaire",
-      modalBody:
-        "Reservez en quelques secondes un vehicule sanitaire adapte a votre situation : ambulance, VSL ou taxi medical. Notre reseau couvre l'ensemble du territoire tunisien avec suivi GPS en temps reel.",
-      features: [
-        "Disponibilite 24h/24 et 7j/7 pour les urgences",
-        "Suivi GPS du vehicule en direct",
-        "Vehicules equipes et personnels formes",
-        "Prise en charge administrative facilitee",
       ],
     },
   ];
@@ -1048,9 +1031,9 @@ function FeaturesSection() {
       color: "from-green-500 to-emerald-500",
     },
     {
-      title: "Livraison express",
+      title: "Retrait express en pharmacie",
       description:
-        "Recevez vos medicaments directement chez vous en moins de 2 heures dans les grandes villes tunisiennes.",
+        "Commandez en ligne et retirez vos médicaments en pharmacie en moins d'une heure dans les grandes villes tunisiennes.",
       icon: Zap,
       color: "from-orange-500 to-amber-500",
     },
@@ -1300,7 +1283,7 @@ function TestimonialsSection() {
     {
       name: "Mohamed Karim",
       role: "Patient",
-      text: "Service impeccable, pharmaciens competents et livraison ultra rapide. J'ai recu mes medicaments en moins de 2 heures. Je recommande vivement!",
+      text: "Service impeccable, pharmaciens compétents et retrait rapide. Ma commande était prête en moins d'une heure. Je recommande vivement !",
       rating: 5,
       avatar: "M",
       location: "Sousse",

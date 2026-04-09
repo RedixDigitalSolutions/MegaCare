@@ -4,48 +4,27 @@ import {
   TrendingUp,
   ShoppingCart,
   AlertCircle,
-  Plus,
-  Download,
-  LogOut,
+  AlertTriangle,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
+import { PharmacyDashboardSidebar } from "@/components/PharmacyDashboardSidebar";
 
 export default function PharmacyDashboardPage() {
-  const { user, logout, isLoading, isAuthenticated } = useAuth();
+  const { user, isLoading, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
+    if (!isLoading && (!isAuthenticated || !user || user.role !== "pharmacy")) {
       navigate("/login");
-    }
-    if (!isLoading && user && user.role !== "pharmacy") {
-      const dashboards = {
-        patient: "/dashboard",
-        doctor: "/doctor-dashboard",
-      };
-      navigate(dashboards[user.role as keyof typeof dashboards]);
     }
   }, [isLoading, isAuthenticated, user, navigate]);
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="space-y-4 text-center">
-          <div className="w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin mx-auto"></div>
-          <p className="text-muted-foreground">Chargement du dashboard...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isAuthenticated || !user || user.role !== "pharmacy") {
+  if (isLoading || !isAuthenticated || !user || user.role !== "pharmacy")
     return null;
-  }
 
   const pharmacyName = user.firstName || "Pharmacie Central";
-  const agreementId = user.pharmacyId || "PH-001-2024";
 
   const todayDate = new Date().toLocaleDateString("fr-FR", {
     weekday: "long",
@@ -65,25 +44,25 @@ export default function PharmacyDashboardPage() {
     },
     {
       icon: ShoppingCart,
-      title: "Commandes",
+      title: "Commandes en attente",
       value: "28",
-      subtitle: "+5 en attente de traitement",
-      color: "text-green-500",
-      bgColor: "bg-green-50",
-    },
-    {
-      icon: TrendingUp,
-      title: "Chiffre d'affaires",
-      value: "12,450 DT",
-      subtitle: "Cette semaine",
+      subtitle: "5 à traiter aujourd'hui",
       color: "text-orange-500",
       bgColor: "bg-orange-50",
     },
     {
+      icon: TrendingUp,
+      title: "Revenu ce mois",
+      value: "12,450 DT",
+      subtitle: "+18% vs mois dernier",
+      color: "text-green-500",
+      bgColor: "bg-green-50",
+    },
+    {
       icon: AlertCircle,
-      title: "Produits en alerte",
+      title: "Alertes stock faible",
       value: "8",
-      subtitle: "Stock faible",
+      subtitle: "Produits sous le seuil",
       color: "text-red-500",
       bgColor: "bg-red-50",
     },
@@ -114,282 +93,279 @@ export default function PharmacyDashboardPage() {
       orderDate: "Hier 15:30",
       status: "Prête pour livraison",
     },
+    {
+      id: "CMD-P-004",
+      customer: "Karim Belhaj",
+      items: 3,
+      total: 142.0,
+      orderDate: "Hier 17:00",
+      status: "En attente",
+    },
   ];
 
   const lowStockProducts = [
-    { name: "Aspirine 500mg", current: 12, minimum: 50, reorder: 100 },
-    { name: "Ibuprofène 200mg", current: 8, minimum: 40, reorder: 80 },
-    { name: "Amoxicilline 500mg", current: 15, minimum: 60, reorder: 120 },
-    { name: "Vitamine C 1000mg", current: 22, minimum: 75, reorder: 150 },
+    { name: "Aspirine 500mg", current: 12, minimum: 50 },
+    { name: "Ibuprofène 200mg", current: 8, minimum: 40 },
+    { name: "Amoxicilline 500mg", current: 15, minimum: 60 },
+    { name: "Vitamine C 1000mg", current: 22, minimum: 75 },
+    { name: "Sérum Physiologique", current: 18, minimum: 80 },
+    { name: "Cétirizine 10mg", current: 22, minimum: 60 },
   ];
 
   const topSelling = [
-    { name: "Paracétamol 500mg", sold: 342, revenue: 2568 },
-    { name: "Vitamine D 2000UI", sold: 256, revenue: 3840 },
-    { name: "Oméga-3", sold: 189, revenue: 4725 },
-    { name: "Masques chirurgicaux", sold: 1245, revenue: 1245 },
-    { name: "Désinfectant 500ml", sold: 456, revenue: 2280 },
+    { rank: 1, name: "Paracétamol 500mg", sold: 342, revenue: 2568 },
+    { rank: 2, name: "Vitamine D 2000UI", sold: 256, revenue: 3840 },
+    { rank: 3, name: "Oméga-3 1000mg", sold: 189, revenue: 4725 },
+    { rank: 4, name: "Masques chirurgicaux", sold: 1245, revenue: 1245 },
+    { rank: 5, name: "Désinfectant 500ml", sold: 456, revenue: 2280 },
   ];
+  const maxSold = Math.max(...topSelling.map((p) => p.sold));
+
+  const orderStatusCfg: Record<
+    string,
+    { bg: string; badge: string; text: string }
+  > = {
+    "En attente": {
+      bg: "bg-orange-50 border-orange-200",
+      badge: "bg-orange-100 text-orange-700",
+      text: "En attente",
+    },
+    "En préparation": {
+      bg: "bg-blue-50 border-blue-200",
+      badge: "bg-blue-100 text-blue-700",
+      text: "En préparation",
+    },
+    "Prête pour livraison": {
+      bg: "bg-green-50 border-green-200",
+      badge: "bg-green-100 text-green-700",
+      text: "Prête",
+    },
+  };
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="flex flex-col">
-        {/* Header */}
-        <header className="bg-card border-b border-border p-6 sticky top-0 z-10">
-          <div className="max-w-7xl mx-auto flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-foreground">
-                Tableau de bord Pharmacie
-              </h1>
-              <p className="text-muted-foreground mt-1">{todayDate}</p>
-            </div>
-            <div className="flex gap-3">
-              <button className="px-4 py-2 bg-secondary text-foreground rounded-lg hover:bg-secondary/80 transition font-medium flex items-center gap-2">
-                <Download size={20} />
-                Rapport
-              </button>
-              <button className="px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition font-medium flex items-center gap-2">
-                <Plus size={20} />
-                Ajouter produit
-              </button>
-            </div>
-          </div>
-        </header>
+      <div className="flex flex-col md:flex-row">
+        <PharmacyDashboardSidebar pharmacyName={pharmacyName} />
 
-        {/* Main Content */}
-        <main className="p-6 max-w-7xl mx-auto w-full space-y-8">
-          {/* KPI Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {kpiCards.map((card, idx) => {
-              const Icon = card.icon;
-              return (
-                <div
-                  key={idx}
-                  className="bg-card rounded-xl border border-border p-6 space-y-3"
-                >
-                  <div
-                    className={`w-12 h-12 rounded-lg ${card.bgColor} flex items-center justify-center`}
-                  >
-                    <Icon className={`w-6 h-6 ${card.color}`} />
-                  </div>
-                  <div>
-                    <p className="text-sm text-muted-foreground">
-                      {card.title}
-                    </p>
-                    <p className="text-2xl font-bold text-foreground">
-                      {card.value}
-                    </p>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {card.subtitle}
-                  </p>
-                </div>
-              );
-            })}
+        <main className="flex-1 overflow-auto">
+          {/* Sticky Header */}
+          <div className="bg-card border-b border-border p-6 sticky top-0 z-10">
+            <h1 className="text-3xl font-bold text-foreground">
+              Tableau de bord
+            </h1>
+            <p className="text-muted-foreground mt-1 capitalize">{todayDate}</p>
           </div>
 
-          {/* Low Stock Alert */}
-          {lowStockProducts.length > 0 && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-6 space-y-4">
-              <h3 className="font-semibold text-red-900 flex items-center gap-2">
-                <AlertCircle size={20} />
-                {lowStockProducts.length} produits en stock faible
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {lowStockProducts.map((product, idx) => (
+          <div className="p-6 space-y-6">
+            {/* KPI Cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {kpiCards.map((card, idx) => {
+                const Icon = card.icon;
+                return (
                   <div
                     key={idx}
-                    className="bg-white rounded-lg p-4 border border-red-100 flex items-center justify-between"
+                    className="bg-card rounded-xl border border-border p-5 space-y-3"
                   >
+                    <div
+                      className={`w-11 h-11 rounded-lg ${card.bgColor} flex items-center justify-center`}
+                    >
+                      <Icon className={`w-5 h-5 ${card.color}`} />
+                    </div>
                     <div>
-                      <p className="font-medium text-foreground">
-                        {product.name}
+                      <p className="text-xs text-muted-foreground">
+                        {card.title}
                       </p>
-                      <p className="text-sm text-muted-foreground">
-                        Stock: {product.current} / Minimum: {product.minimum}
+                      <p className="text-2xl font-bold text-foreground mt-0.5">
+                        {card.value}
                       </p>
                     </div>
-                    <button className="px-3 py-1 bg-primary text-primary-foreground rounded text-sm hover:bg-primary/90 transition font-medium">
-                      Recommander
-                    </button>
+                    <p className="text-xs text-muted-foreground">
+                      {card.subtitle}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Low Stock Alert Panel */}
+            <div className="bg-red-50 border border-red-200 rounded-xl p-5 space-y-3">
+              <h3 className="font-semibold text-red-800 flex items-center gap-2 text-sm">
+                <AlertTriangle size={16} className="text-red-500" />
+                {lowStockProducts.length} produits en alerte de stock faible
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                {lowStockProducts.map((p, i) => (
+                  <div
+                    key={i}
+                    className="bg-white rounded-lg border border-red-100 px-4 py-3 flex items-center justify-between gap-3"
+                  >
+                    <div className="min-w-0">
+                      <p className="font-medium text-foreground text-sm truncate">
+                        {p.name}
+                      </p>
+                      <p className="text-xs text-red-600 mt-0.5">
+                        {p.current} / {p.minimum} unités min.
+                      </p>
+                    </div>
+                    <Link
+                      to="/pharmacy-dashboard/stock"
+                      className="shrink-0 px-2.5 py-1 bg-primary text-primary-foreground rounded-lg text-xs font-medium hover:bg-primary/90 transition"
+                    >
+                      Gérer
+                    </Link>
                   </div>
                 ))}
               </div>
             </div>
-          )}
 
-          {/* Two Column Layout */}
-          <div className="grid lg:grid-cols-3 gap-8">
-            {/* Pending Orders */}
-            <div className="lg:col-span-2 bg-card rounded-xl border border-border p-6 space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xl font-bold text-foreground">
-                  Commandes récentes
+            {/* Pending Orders + Stock Summary */}
+            <div className="grid lg:grid-cols-3 gap-6">
+              {/* Pending Orders */}
+              <div className="lg:col-span-2 bg-card rounded-xl border border-border p-5 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-bold text-foreground">
+                    Commandes en attente
+                  </h3>
+                  <Link
+                    to="/pharmacy-dashboard/orders"
+                    className="text-primary hover:underline text-sm font-medium"
+                  >
+                    Voir toutes →
+                  </Link>
+                </div>
+                <div className="space-y-3">
+                  {pendingOrders.map((order) => {
+                    const cfg =
+                      orderStatusCfg[order.status] ??
+                      orderStatusCfg["En attente"];
+                    return (
+                      <div
+                        key={order.id}
+                        className={`rounded-lg p-4 border ${cfg.bg} transition`}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <div>
+                            <p className="font-semibold text-foreground text-sm">
+                              {order.customer}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {order.id} · {order.items} article
+                              {order.items > 1 ? "s" : ""} · {order.orderDate}
+                            </p>
+                          </div>
+                          <p className="font-bold text-primary">
+                            {order.total} DT
+                          </p>
+                        </div>
+                        <div className="flex items-center justify-between pt-2 border-t border-current/10">
+                          <span
+                            className={`text-xs px-2.5 py-1 rounded-full font-medium ${cfg.badge}`}
+                          >
+                            {cfg.text}
+                          </span>
+                          <button className="text-xs px-2.5 py-1 border border-primary text-primary rounded-lg hover:bg-primary/5 transition font-medium">
+                            Détails
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Stock Summary */}
+              <div className="bg-gradient-to-br from-primary/15 to-primary/5 rounded-xl border border-primary/20 p-5 space-y-4 flex flex-col justify-between">
+                <h3 className="font-bold text-foreground text-lg">
+                  État du stock
                 </h3>
+                <div className="space-y-3">
+                  <div className="bg-white/70 rounded-xl p-4">
+                    <p className="text-xs text-muted-foreground">
+                      Produits actifs
+                    </p>
+                    <p className="text-2xl font-bold text-primary">1,245</p>
+                  </div>
+                  <div className="bg-white/70 rounded-xl p-4">
+                    <p className="text-xs text-muted-foreground">
+                      Valeur du stock
+                    </p>
+                    <p className="text-2xl font-bold text-foreground">
+                      48,320 DT
+                    </p>
+                  </div>
+                  <div className="bg-white/70 rounded-xl p-4">
+                    <p className="text-xs text-muted-foreground">
+                      Alertes actives
+                    </p>
+                    <p className="text-2xl font-bold text-red-600">8</p>
+                  </div>
+                </div>
                 <Link
-                  to="#"
-                  className="text-primary hover:underline text-sm font-medium"
+                  to="/pharmacy-dashboard/stock"
+                  className="w-full py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition text-center block"
                 >
-                  Voir toutes
+                  Gérer le stock →
                 </Link>
               </div>
+            </div>
 
-              <div className="space-y-3">
-                {pendingOrders.map((order) => (
+            {/* Top 5 Best-selling */}
+            <div className="bg-card rounded-xl border border-border overflow-hidden">
+              <div className="p-5 border-b border-border flex items-center justify-between">
+                <h3 className="font-semibold text-foreground">
+                  Top 5 médicaments vendus ce mois
+                </h3>
+                <Link
+                  to="/pharmacy-dashboard/sales"
+                  className="text-primary hover:underline text-sm font-medium"
+                >
+                  Voir les ventes →
+                </Link>
+              </div>
+              <div className="divide-y divide-border">
+                {topSelling.map((med) => (
                   <div
-                    key={order.id}
-                    className={`rounded-lg p-4 border transition ${
-                      order.status === "En attente"
-                        ? "bg-orange-50 border-orange-200"
-                        : order.status === "En préparation"
-                          ? "bg-blue-50 border-blue-200"
-                          : "bg-green-50 border-green-200"
-                    }`}
+                    key={med.rank}
+                    className="px-5 py-3 flex items-center gap-4"
                   >
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex-1">
-                        <p className="font-semibold text-foreground">
-                          {order.customer}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {order.id}
-                        </p>
-                      </div>
-                      <p className="font-bold text-primary text-lg">
-                        {order.total} DT
-                      </p>
-                    </div>
-                    <div className="flex items-center justify-between pt-3 border-t border-current/10">
-                      <p className="text-xs text-muted-foreground">
-                        {order.items} article{order.items > 1 ? "s" : ""} •{" "}
-                        {order.orderDate}
-                      </p>
-                      <div className="flex gap-2">
-                        <span
-                          className={`text-xs px-2 py-1 rounded-full font-medium ${
-                            order.status === "En attente"
+                    <span
+                      className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+                        med.rank === 1
+                          ? "bg-yellow-100 text-yellow-700"
+                          : med.rank === 2
+                            ? "bg-gray-100 text-gray-600"
+                            : med.rank === 3
                               ? "bg-orange-100 text-orange-700"
-                              : order.status === "En préparation"
-                                ? "bg-blue-100 text-blue-700"
-                                : "bg-green-100 text-green-700"
-                          }`}
-                        >
-                          {order.status}
-                        </span>
-                        <button className="text-xs px-2 py-1 border border-primary text-primary rounded hover:bg-primary/5 transition">
-                          Voir détails
-                        </button>
+                              : "bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      {med.rank}
+                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="font-medium text-foreground text-sm truncate">
+                          {med.name}
+                        </p>
+                        <p className="text-green-600 font-semibold text-sm shrink-0 ml-2">
+                          {med.revenue.toLocaleString()} DT
+                        </p>
                       </div>
+                      <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-primary/70 rounded-full"
+                          style={{
+                            width: `${Math.round((med.sold / maxSold) * 100)}%`,
+                          }}
+                        />
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {med.sold} unités vendues
+                      </p>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
-
-            {/* Inventory Summary */}
-            <div className="bg-gradient-to-br from-primary/20 to-primary/5 rounded-xl border-2 border-primary/30 p-6 space-y-4">
-              <h3 className="font-bold text-foreground text-lg">
-                État du stock
-              </h3>
-              <div className="space-y-4">
-                <div className="bg-white/60 rounded-lg p-4">
-                  <p className="text-sm text-muted-foreground">
-                    Produits actifs
-                  </p>
-                  <p className="text-3xl font-bold text-primary">1,245</p>
-                </div>
-                <div className="bg-white/60 rounded-lg p-4">
-                  <p className="text-sm text-muted-foreground">
-                    Valeur du stock
-                  </p>
-                  <p className="text-3xl font-bold text-primary">45,320 DT</p>
-                </div>
-                <div className="bg-white/60 rounded-lg p-4">
-                  <p className="text-sm text-muted-foreground">En alerte</p>
-                  <p className="text-3xl font-bold text-red-500">8</p>
-                </div>
-              </div>
-              <button className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition font-medium mt-4">
-                Gérer le stock
-              </button>
-            </div>
-          </div>
-
-          {/* Top Selling Products */}
-          <div className="bg-card rounded-xl border border-border p-6 space-y-4">
-            <h3 className="text-xl font-bold text-foreground">
-              Top produits vendus
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-              {topSelling.map((product, idx) => (
-                <div
-                  key={idx}
-                  className="bg-secondary/30 rounded-lg p-4 space-y-2"
-                >
-                  <p className="font-semibold text-foreground text-sm">
-                    {product.name}
-                  </p>
-                  <div className="space-y-1">
-                    <p className="text-2xl font-bold text-primary">
-                      {product.sold}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      unités vendues
-                    </p>
-                  </div>
-                  <p className="text-sm font-semibold text-green-600">
-                    {product.revenue} DT
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Quick Actions */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Link
-              to="#"
-              className="bg-card rounded-xl border border-border p-6 hover:shadow-lg transition text-center space-y-3"
-            >
-              <div className="text-3xl">📦</div>
-              <h4 className="font-semibold text-foreground">Gérer stock</h4>
-              <p className="text-sm text-muted-foreground">
-                Ajouter/modifier produits
-              </p>
-            </Link>
-
-            <Link
-              to="#"
-              className="bg-card rounded-xl border border-border p-6 hover:shadow-lg transition text-center space-y-3"
-            >
-              <div className="text-3xl">🚚</div>
-              <h4 className="font-semibold text-foreground">Livraisons</h4>
-              <p className="text-sm text-muted-foreground">
-                Suivi des commandes
-              </p>
-            </Link>
-
-            <Link
-              to="#"
-              className="bg-card rounded-xl border border-border p-6 hover:shadow-lg transition text-center space-y-3"
-            >
-              <div className="text-3xl">📊</div>
-              <h4 className="font-semibold text-foreground">Rapports</h4>
-              <p className="text-sm text-muted-foreground">
-                Analytiques et revenus
-              </p>
-            </Link>
-
-            <Link
-              to="#"
-              className="bg-card rounded-xl border border-border p-6 hover:shadow-lg transition text-center space-y-3"
-            >
-              <div className="text-3xl">⚙️</div>
-              <h4 className="font-semibold text-foreground">Paramètres</h4>
-              <p className="text-sm text-muted-foreground">
-                Configuration pharmacie
-              </p>
-            </Link>
           </div>
         </main>
       </div>

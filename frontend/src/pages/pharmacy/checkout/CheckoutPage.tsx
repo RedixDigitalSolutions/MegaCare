@@ -1,16 +1,12 @@
-
 import React, { useState } from "react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import { Link } from 'react-router-dom';
+import { Link } from "react-router-dom";
 import { ChevronRight, Check } from "lucide-react";
 
 export default function CheckoutPage() {
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
-    address: "",
-    city: "",
-    zipCode: "",
     phone: "",
     email: "",
     paymentMethod: "card",
@@ -36,7 +32,7 @@ export default function CheckoutPage() {
 
           {/* Steps Indicator */}
           <div className="flex gap-4 mb-12">
-            {[1, 2, 3].map((s) => (
+            {[1, 2].map((s) => (
               <div key={s} className="flex-1">
                 <div
                   className={`flex items-center justify-center w-10 h-10 rounded-full ${step >= s ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"}`}
@@ -44,103 +40,14 @@ export default function CheckoutPage() {
                   {step > s ? <Check size={20} /> : s}
                 </div>
                 <p className="text-xs text-center mt-2 text-muted-foreground">
-                  {s === 1 ? "Adresse" : s === 2 ? "Paiement" : "Confirmation"}
+                  {s === 1 ? "Paiement" : "Confirmation"}
                 </p>
               </div>
             ))}
           </div>
 
-          {/* Step 1: Shipping Address */}
+          {/* Step 1: Payment */}
           {step === 1 && (
-            <div className="bg-card border border-border rounded-lg p-8 space-y-6 mb-8">
-              <h2 className="text-xl font-bold text-foreground">
-                Adresse de livraison
-              </h2>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="text-sm font-semibold text-foreground">
-                    Adresse
-                  </label>
-                  <input
-                    type="text"
-                    name="address"
-                    value={formData.address}
-                    onChange={handleChange}
-                    placeholder="123 Rue de la Paix"
-                    className="w-full mt-1 px-4 py-2 bg-background border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-semibold text-foreground">
-                      Ville
-                    </label>
-                    <input
-                      type="text"
-                      name="city"
-                      value={formData.city}
-                      onChange={handleChange}
-                      placeholder="Casablanca"
-                      className="w-full mt-1 px-4 py-2 bg-background border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-semibold text-foreground">
-                      Code postal
-                    </label>
-                    <input
-                      type="text"
-                      name="zipCode"
-                      value={formData.zipCode}
-                      onChange={handleChange}
-                      placeholder="20000"
-                      className="w-full mt-1 px-4 py-2 bg-background border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="text-sm font-semibold text-foreground">
-                    Téléphone
-                  </label>
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleChange}
-                    placeholder="+212 6 12 34 56 78"
-                    className="w-full mt-1 px-4 py-2 bg-background border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-sm font-semibold text-foreground">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    placeholder="exemple@email.com"
-                    className="w-full mt-1 px-4 py-2 bg-background border border-border rounded-lg text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                  />
-                </div>
-              </div>
-
-              <button
-                onClick={() => setStep(2)}
-                className="w-full bg-primary text-primary-foreground py-3 rounded-lg font-semibold hover:bg-primary/90 transition flex items-center justify-center gap-2"
-              >
-                Continuer vers le paiement <ChevronRight size={20} />
-              </button>
-            </div>
-          )}
-
-          {/* Step 2: Payment */}
-          {step === 2 && (
             <div className="bg-card border border-border rounded-lg p-8 space-y-6 mb-8">
               <h2 className="text-xl font-bold text-foreground">
                 Mode de paiement
@@ -169,7 +76,7 @@ export default function CheckoutPage() {
                     onChange={handleChange}
                   />
                   <span className="font-semibold text-foreground">
-                    Paiement à la livraison
+                    Paiement au retrait
                   </span>
                 </label>
                 <label className="flex items-center gap-3 p-4 border border-border rounded-lg cursor-pointer hover:bg-secondary">
@@ -223,35 +130,41 @@ export default function CheckoutPage() {
                 </div>
               )}
 
-              <div className="flex gap-4">
-                <button
-                  onClick={() => setStep(1)}
-                  className="flex-1 border border-border text-foreground py-3 rounded-lg font-semibold hover:bg-secondary transition"
-                >
-                  Retour
-                </button>
-                <button
-                  onClick={() => setStep(3)}
-                  className="flex-1 bg-primary text-primary-foreground py-3 rounded-lg font-semibold hover:bg-primary/90 transition flex items-center justify-center gap-2"
-                >
-                  Confirmer <ChevronRight size={20} />
-                </button>
+              <div className="bg-muted/50 border border-border rounded-lg p-4 flex items-start gap-3">
+                <span className="text-lg">🏪</span>
+                <div>
+                  <p className="text-sm font-semibold text-foreground">
+                    Retrait en pharmacie
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Votre commande sera prête en 1-2 heures. Munissez-vous de
+                    votre ordonnance si applicable.
+                  </p>
+                </div>
               </div>
+
+              <button
+                onClick={() => setStep(2)}
+                className="w-full bg-primary text-primary-foreground py-3 rounded-lg font-semibold hover:bg-primary/90 transition flex items-center justify-center gap-2"
+              >
+                Confirmer <ChevronRight size={20} />
+              </button>
             </div>
           )}
 
-          {/* Step 3: Confirmation */}
-          {step === 3 && (
+          {/* Step 2: Confirmation */}
+          {step === 2 && (
             <div className="bg-card border border-border rounded-lg p-8 space-y-6 mb-8 text-center">
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
                 <Check size={32} className="text-green-600" />
               </div>
               <div>
                 <h2 className="text-2xl font-bold text-foreground">
-                  Commande confirmée!
+                  Commande confirmée !
                 </h2>
                 <p className="text-muted-foreground mt-2">
-                  Vous recevrez vos médicaments dans 2-4 heures
+                  Votre commande sera prête dans 1-2 heures. Présentez-vous à la
+                  pharmacie pour la retirer.
                 </p>
               </div>
 

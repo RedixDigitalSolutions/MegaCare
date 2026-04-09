@@ -1,164 +1,246 @@
+import { useState } from "react";
+import { MedicalServiceDashboardSidebar } from "@/components/MedicalServiceDashboardSidebar";
+import { Plus, X, CheckCircle2, Clock, AlertCircle, CreditCard, TrendingUp, FileText, Banknote } from "lucide-react";
 
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { ArrowLeft, Plus } from 'lucide-react';
+type InvStatus = "Payée" | "En attente" | "En retard";
+type PayMethod = "Virement" | "Espèces" | "Carte" | "Assurance";
+
+interface Invoice {
+  id: number;
+  ref: string;
+  patient: string;
+  amount: number;
+  date: string;
+  dueDate: string;
+  status: InvStatus;
+  services: string;
+}
+
+interface Payment {
+  id: number;
+  ref: string;
+  patient: string;
+  amount: number;
+  date: string;
+  method: PayMethod;
+  invoice: string;
+}
+
+const initialInvoices: Invoice[] = [
+  { id: 1, ref: "FAC-2026-001", patient: "Fatima Ben Ali", amount: 450, date: "2026-04-01", dueDate: "2026-04-15", status: "Payée", services: "Soins infirmiers x3, Fournitures" },
+  { id: 2, ref: "FAC-2026-002", patient: "Mohammed Gharbi", amount: 780, date: "2026-04-02", dueDate: "2026-04-16", status: "En attente", services: "Kinésithérapie x5, Consultation" },
+  { id: 3, ref: "FAC-2026-003", patient: "Sonia Trabelsi", amount: 320, date: "2026-03-20", dueDate: "2026-04-03", status: "En retard", services: "Pansements x4, Médicaments" },
+  { id: 4, ref: "FAC-2026-004", patient: "Leila Mansouri", amount: 600, date: "2026-04-03", dueDate: "2026-04-17", status: "En attente", services: "Soins palliatifs, Consultation" },
+  { id: 5, ref: "FAC-2026-005", patient: "Ahmed Nasser", amount: 250, date: "2026-04-04", dueDate: "2026-04-18", status: "Payée", services: "Soins infirmiers x2" },
+];
+
+const initialPayments: Payment[] = [
+  { id: 1, ref: "PAY-2026-001", patient: "Fatima Ben Ali", amount: 450, date: "2026-04-08", method: "Virement", invoice: "FAC-2026-001" },
+  { id: 2, ref: "PAY-2026-002", patient: "Ahmed Nasser", amount: 250, date: "2026-04-09", method: "Espèces", invoice: "FAC-2026-005" },
+  { id: 3, ref: "PAY-2026-003", patient: "Sonia Trabelsi", amount: 150, date: "2026-04-02", method: "Carte", invoice: "FAC-2026-003" },
+];
+
+const invStatusConfig: Record<InvStatus, { color: string; bg: string; icon: typeof CheckCircle2 }> = {
+  Payée: { color: "text-green-600", bg: "bg-green-100", icon: CheckCircle2 },
+  "En attente": { color: "text-amber-600", bg: "bg-amber-100", icon: Clock },
+  "En retard": { color: "text-red-600", bg: "bg-red-100", icon: AlertCircle },
+};
+
+const emptyForm = { patient: "", amount: "", date: "", dueDate: "", services: "", status: "En attente" as InvStatus };
 
 export default function BillingPage() {
-  const [activeTab, setActiveTab] = useState<'invoices' | 'payments'>('invoices');
+  const [activeTab, setActiveTab] = useState<"invoices" | "payments">("invoices");
+  const [invoices, setInvoices] = useState<Invoice[]>(initialInvoices);
+  const [showModal, setShowModal] = useState(false);
+  const [form, setForm] = useState(emptyForm);
+  const [deleteTarget, setDeleteTarget] = useState<Invoice | null>(null);
 
-  const invoices = [
-    {
-      id: 'INV-001',
-      patient: 'Fatima Béchir',
-      amount: 2500,
-      date: '2026-03-01',
-      status: 'paid',
-      dueDate: '2026-03-15',
-    },
-    {
-      id: 'INV-002',
-      patient: 'Mohamed Ali',
-      amount: 3200,
-      date: '2026-03-05',
-      status: 'pending',
-      dueDate: '2026-03-20',
-    },
-    {
-      id: 'INV-003',
-      patient: 'Aïcha Karray',
-      amount: 1800,
-      date: '2026-02-28',
-      status: 'overdue',
-      dueDate: '2026-03-15',
-    },
+  const totalRevenue = invoices.filter((i) => i.status === "Payée").reduce((s, i) => s + i.amount, 0);
+  const pending = invoices.filter((i) => i.status === "En attente").reduce((s, i) => s + i.amount, 0);
+  const overdue = invoices.filter((i) => i.status === "En retard").reduce((s, i) => s + i.amount, 0);
+
+  const kpis = [
+    { label: "Revenus encaissés", value: `${totalRevenue} DT`, icon: Banknote, color: "text-green-500", bg: "bg-green-50" },
+    { label: "En attente", value: `${pending} DT`, icon: Clock, color: "text-amber-500", bg: "bg-amber-50" },
+    { label: "En retard", value: `${overdue} DT`, icon: AlertCircle, color: "text-red-500", bg: "bg-red-50" },
+    { label: "Total factures", value: invoices.length, icon: FileText, color: "text-indigo-500", bg: "bg-indigo-50" },
   ];
 
-  const payments = [
-    {
-      id: 'PAY-001',
-      patient: 'Fatima Béchir',
-      amount: 2500,
-      date: '2026-03-09',
-      method: 'Virement bancaire',
-    },
-    {
-      id: 'PAY-002',
-      patient: 'Lamine Triki',
-      amount: 1500,
-      date: '2026-03-07',
-      method: 'Carte bancaire',
-    },
-  ];
+  function saveInvoice() {
+    if (!form.patient.trim() || !form.amount) return;
+    const newRef = `FAC-2026-00${invoices.length + 1}`;
+    setInvoices((prev) => [...prev, { id: Date.now(), ref: newRef, patient: form.patient, amount: Number(form.amount), date: form.date, dueDate: form.dueDate, status: form.status, services: form.services }]);
+    setShowModal(false);
+    setForm(emptyForm);
+  }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="bg-card border-b border-border sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link to="/medical-service-dashboard" className="text-primary hover:text-primary/80">
-              <ArrowLeft size={24} />
-            </Link>
-            <h1 className="text-2xl font-bold text-foreground">Facturation</h1>
+    <div className="flex min-h-screen bg-background">
+      <MedicalServiceDashboardSidebar />
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <header className="bg-card border-b border-border px-6 py-4 shrink-0 flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-bold text-foreground">Facturation</h1>
+            <p className="text-xs text-muted-foreground">Gestion des factures et paiements</p>
           </div>
-          <button className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90">
-            <Plus size={20} />
-            Nouvelle Facture
+          <button onClick={() => setShowModal(true)} className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition text-sm font-medium">
+            <Plus size={16} /> Créer une facture
           </button>
-        </div>
-      </header>
+        </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Tabs */}
-        <div className="flex gap-4 mb-8 border-b border-border">
-          <button
-            onClick={() => setActiveTab('invoices')}
-            className={`pb-4 px-2 font-semibold transition ${
-              activeTab === 'invoices' ? 'text-primary border-b-2 border-primary' : 'text-muted-foreground'
-            }`}
-          >
-            Factures
-          </button>
-          <button
-            onClick={() => setActiveTab('payments')}
-            className={`pb-4 px-2 font-semibold transition ${
-              activeTab === 'payments' ? 'text-primary border-b-2 border-primary' : 'text-muted-foreground'
-            }`}
-          >
-            Paiements
-          </button>
-        </div>
-
-        {/* Invoices */}
-        {activeTab === 'invoices' && (
-          <div className="space-y-4">
-            {invoices.map((invoice) => (
-              <div key={invoice.id} className="bg-card rounded-xl border border-border p-6 flex items-center justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-4">
-                    <div>
-                      <h3 className="font-semibold text-foreground">{invoice.patient}</h3>
-                      <p className="text-sm text-muted-foreground">{invoice.id} • {invoice.date}</p>
-                    </div>
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                      invoice.status === 'paid'
-                        ? 'bg-green-100 text-green-800'
-                        : invoice.status === 'pending'
-                        ? 'bg-yellow-100 text-yellow-800'
-                        : 'bg-red-100 text-red-800'
-                    }`}>
-                      {invoice.status === 'paid' ? 'Payée' : invoice.status === 'pending' ? 'En attente' : 'Retard'}
-                    </span>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-lg font-bold text-foreground">{invoice.amount.toLocaleString()} DT</p>
-                  <p className="text-sm text-muted-foreground">Échéance: {invoice.dueDate}</p>
-                </div>
+        <main className="flex-1 overflow-y-auto p-6 space-y-6">
+          {/* KPIs */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {kpis.map((k) => { const Icon = k.icon; return (
+              <div key={k.label} className="bg-card rounded-xl border border-border p-4 flex items-center gap-4">
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${k.bg}`}><Icon size={20} className={k.color} /></div>
+                <div><p className="text-2xl font-bold text-foreground">{k.value}</p><p className="text-xs text-muted-foreground">{k.label}</p></div>
               </div>
-            ))}
+            ); })}
           </div>
-        )}
 
-        {/* Payments */}
-        {activeTab === 'payments' && (
-          <div className="space-y-4">
-            {payments.map((payment) => (
-              <div key={payment.id} className="bg-card rounded-xl border border-border p-6 flex items-center justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-4">
-                    <div>
-                      <h3 className="font-semibold text-foreground">{payment.patient}</h3>
-                      <p className="text-sm text-muted-foreground">{payment.id} • {payment.date} • {payment.method}</p>
-                    </div>
-                  </div>
-                </div>
-                <p className="text-lg font-bold text-green-600">+ {payment.amount.toLocaleString()} DT</p>
+          {/* Tabs */}
+          <div className="flex gap-1 bg-muted/40 p-1 rounded-xl w-fit">
+            {[{ key: "invoices" as const, label: "Factures", icon: FileText }, { key: "payments" as const, label: "Paiements", icon: CreditCard }].map((t) => {
+              const Icon = t.icon;
+              return (
+                <button key={t.key} onClick={() => setActiveTab(t.key)}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${activeTab === t.key ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"}`}>
+                  <Icon size={15} />{t.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Invoices table */}
+          {activeTab === "invoices" && (
+            <div className="bg-card rounded-xl border border-border overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border">
+                      {["Réf.", "Patient", "Montant", "Date", "Échéance", "Services", "Statut", "Actions"].map((h) => (
+                        <th key={h} className="px-4 py-3 text-left text-muted-foreground font-medium whitespace-nowrap">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {invoices.map((inv) => {
+                      const cfg = invStatusConfig[inv.status]; const StatusIcon = cfg.icon;
+                      return (
+                        <tr key={inv.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition">
+                          <td className="px-4 py-3 font-mono text-xs text-foreground">{inv.ref}</td>
+                          <td className="px-4 py-3 font-medium text-foreground">{inv.patient}</td>
+                          <td className="px-4 py-3 font-semibold text-foreground">{inv.amount} DT</td>
+                          <td className="px-4 py-3 text-muted-foreground">{inv.date}</td>
+                          <td className="px-4 py-3 text-muted-foreground">{inv.dueDate}</td>
+                          <td className="px-4 py-3 text-muted-foreground max-w-[180px] truncate">{inv.services}</td>
+                          <td className="px-4 py-3">
+                            <span className={`flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full w-fit ${cfg.bg} ${cfg.color}`}>
+                              <StatusIcon size={11} />{inv.status}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <button onClick={() => setDeleteTarget(inv)} className="p-1.5 rounded-lg hover:bg-red-50 transition text-muted-foreground hover:text-red-500">
+                              <X size={14} />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
-            ))}
-          </div>
-        )}
+            </div>
+          )}
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-12">
-          <div className="bg-card rounded-xl border border-border p-6">
-            <p className="text-sm text-muted-foreground mb-2">Revenus du Mois</p>
-            <p className="text-3xl font-bold text-foreground">48,500 DT</p>
-          </div>
-          <div className="bg-card rounded-xl border border-border p-6">
-            <p className="text-sm text-muted-foreground mb-2">En Attente</p>
-            <p className="text-3xl font-bold text-yellow-600">3,200 DT</p>
-          </div>
-          <div className="bg-card rounded-xl border border-border p-6">
-            <p className="text-sm text-muted-foreground mb-2">Retards</p>
-            <p className="text-3xl font-bold text-red-600">1,800 DT</p>
-          </div>
-          <div className="bg-card rounded-xl border border-border p-6">
-            <p className="text-sm text-muted-foreground mb-2">Total Facturé</p>
-            <p className="text-3xl font-bold text-foreground">53,500 DT</p>
+          {/* Payments table */}
+          {activeTab === "payments" && (
+            <div className="bg-card rounded-xl border border-border overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-border">
+                      {["Réf.", "Patient", "Montant", "Date", "Mode de paiement", "Facture liée"].map((h) => (
+                        <th key={h} className="px-4 py-3 text-left text-muted-foreground font-medium whitespace-nowrap">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {initialPayments.map((p) => (
+                      <tr key={p.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition">
+                        <td className="px-4 py-3 font-mono text-xs text-foreground">{p.ref}</td>
+                        <td className="px-4 py-3 font-medium text-foreground">{p.patient}</td>
+                        <td className="px-4 py-3 font-semibold text-foreground">{p.amount} DT</td>
+                        <td className="px-4 py-3 text-muted-foreground">{p.date}</td>
+                        <td className="px-4 py-3">
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">{p.method}</span>
+                        </td>
+                        <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{p.invoice}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </main>
+      </div>
+
+      {/* Create invoice modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-card rounded-2xl border border-border w-full max-w-md shadow-2xl">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+              <h2 className="font-semibold text-foreground">Nouvelle facture</h2>
+              <button onClick={() => setShowModal(false)} className="p-1.5 rounded-lg hover:bg-muted transition"><X size={16} /></button>
+            </div>
+            <div className="p-6 space-y-4">
+              {[
+                { label: "Patient", key: "patient", type: "text", placeholder: "Nom du patient" },
+                { label: "Montant (DT)", key: "amount", type: "number", placeholder: "Ex: 450" },
+                { label: "Date de facturation", key: "date", type: "date", placeholder: "" },
+                { label: "Date d'échéance", key: "dueDate", type: "date", placeholder: "" },
+                { label: "Services rendus", key: "services", type: "text", placeholder: "Ex: Soins infirmiers x3" },
+              ].map((f) => (
+                <div key={f.key}>
+                  <label className="text-xs font-medium text-muted-foreground block mb-1">{f.label}</label>
+                  <input type={f.type} placeholder={f.placeholder} value={(form as Record<string, string>)[f.key]}
+                    onChange={(e) => setForm((prev) => ({ ...prev, [f.key]: e.target.value }))}
+                    className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary" />
+                </div>
+              ))}
+              <div>
+                <label className="text-xs font-medium text-muted-foreground block mb-1">Statut</label>
+                <select value={form.status} onChange={(e) => setForm((prev) => ({ ...prev, status: e.target.value as InvStatus }))}
+                  className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary">
+                  {["Payée", "En attente", "En retard"].map((s) => <option key={s}>{s}</option>)}
+                </select>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button onClick={() => setShowModal(false)} className="flex-1 px-4 py-2 border border-border rounded-lg text-sm hover:bg-muted transition">Annuler</button>
+                <button onClick={saveInvoice} className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm hover:bg-primary/90 transition font-medium">Créer</button>
+              </div>
+            </div>
           </div>
         </div>
-      </main>
+      )}
+
+      {/* Delete confirm */}
+      {deleteTarget && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-card rounded-2xl border border-border w-full max-w-sm shadow-2xl p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center"><AlertCircle size={20} className="text-red-500" /></div>
+              <div><p className="font-semibold text-foreground">Supprimer la facture</p><p className="text-xs text-muted-foreground">{deleteTarget.ref}</p></div>
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => setDeleteTarget(null)} className="flex-1 px-4 py-2 border border-border rounded-lg text-sm hover:bg-muted transition">Annuler</button>
+              <button onClick={() => { setInvoices((p) => p.filter((i) => i.id !== deleteTarget.id)); setDeleteTarget(null); }} className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600 transition font-medium">Supprimer</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

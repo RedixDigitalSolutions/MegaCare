@@ -12,122 +12,36 @@ import {
   Download,
   Eye,
   User,
-  AlertCircle,
 } from "lucide-react";
 
-type ConsultStatus = "Complétée" | "En attente" | "Annulée";
-type ConsultType = "Vidéo" | "Cabinet";
+type ConsultStatus = "En attente" | "Confirmée" | "Annulée" | "Terminée";
 
-interface Consultation {
-  id: number;
-  patient: string;
-  age: number;
+interface Appointment {
+  id: string;
+  patientId: string;
+  patientName: string;
   date: string;
   time: string;
-  duration: string;
-  status: ConsultStatus;
-  type: ConsultType;
-  diagnosis: string;
-  notes: string;
+  reason: string;
+  status: string; // pending | confirmed | cancelled | rejected
 }
-
-const consultations: Consultation[] = [
-  {
-    id: 1,
-    patient: "Fatima Benali",
-    age: 34,
-    date: "2026-04-03",
-    time: "14:00",
-    duration: "30 min",
-    status: "Complétée",
-    type: "Vidéo",
-    diagnosis: "Hypertension artérielle légère",
-    notes: "Renouvellement ordonnance Amlodipine 5mg, contrôle dans 3 mois.",
-  },
-  {
-    id: 2,
-    patient: "Mohamed Karoui",
-    age: 52,
-    date: "2026-04-02",
-    time: "10:30",
-    duration: "45 min",
-    status: "Complétée",
-    type: "Cabinet",
-    diagnosis: "Douleurs thoraciques atypiques",
-    notes: "ECG normal. Stress professionnel probable. Repos conseillé.",
-  },
-  {
-    id: 3,
-    patient: "Aisha Hamdi",
-    age: 28,
-    date: "2026-04-05",
-    time: "17:00",
-    duration: "30 min",
-    status: "En attente",
-    type: "Vidéo",
-    diagnosis: "—",
-    notes: "—",
-  },
-  {
-    id: 4,
-    patient: "Salim Drissi",
-    age: 61,
-    date: "2026-03-28",
-    time: "09:00",
-    duration: "30 min",
-    status: "Annulée",
-    type: "Cabinet",
-    diagnosis: "—",
-    notes: "Annulé par le patient (déplacement).",
-  },
-  {
-    id: 5,
-    patient: "Layla Meddeb",
-    age: 41,
-    date: "2026-04-05",
-    time: "15:30",
-    duration: "30 min",
-    status: "En attente",
-    type: "Cabinet",
-    diagnosis: "—",
-    notes: "—",
-  },
-  {
-    id: 6,
-    patient: "Youssef Tlili",
-    age: 47,
-    date: "2026-04-01",
-    time: "11:00",
-    duration: "45 min",
-    status: "Complétée",
-    type: "Cabinet",
-    diagnosis: "Insuffisance cardiaque compensée",
-    notes: "Ajustement Furosémide. Bilan sanguin demandé.",
-  },
-  {
-    id: 7,
-    patient: "Nadia Boughanmi",
-    age: 36,
-    date: "2026-03-30",
-    time: "09:30",
-    duration: "30 min",
-    status: "Complétée",
-    type: "Vidéo",
-    diagnosis: "Palpitations bénignes",
-    notes: "Holter prescrit. Éviter café et tabac.",
-  },
-];
 
 type TabFilter = "Toutes" | ConsultStatus;
 
-const TABS: TabFilter[] = ["Toutes", "Complétée", "En attente", "Annulée"];
+const TABS: TabFilter[] = [
+  "Toutes",
+  "Confirmée",
+  "En attente",
+  "Terminée",
+  "Annulée",
+];
 
 const STATUS_CONFIG: Record<
   ConsultStatus,
   { label: string; icon: React.ReactNode; badgeCls: string; ringCls: string }
 > = {
-  Complétée: {
-    label: "Complétée",
+  Confirmée: {
+    label: "Confirmée",
     icon: <CheckCircle size={16} className="text-green-600" />,
     badgeCls: "bg-green-100 text-green-700",
     ringCls: "border-l-green-400",
@@ -144,13 +58,34 @@ const STATUS_CONFIG: Record<
     badgeCls: "bg-red-100 text-red-600",
     ringCls: "border-l-red-400",
   },
+  Terminée: {
+    label: "Terminée",
+    icon: <CheckCircle size={16} className="text-blue-500" />,
+    badgeCls: "bg-blue-100 text-blue-700",
+    ringCls: "border-l-blue-400",
+  },
 };
+
+function mapStatus(raw: string): ConsultStatus {
+  switch (raw) {
+    case "confirmed":
+      return "Confirmée";
+    case "completed":
+      return "Terminée";
+    case "cancelled":
+    case "rejected":
+      return "Annulée";
+    default:
+      return "En attente";
+  }
+}
 
 export default function DoctorConsultationsPage() {
   const { user, isLoading, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<TabFilter>("Toutes");
-  const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
 
   useEffect(() => {
     if (!isLoading && (!isAuthenticated || !user || user.role !== "doctor")) {
@@ -158,18 +93,36 @@ export default function DoctorConsultationsPage() {
     }
   }, [isLoading, isAuthenticated, user, navigate]);
 
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const token = localStorage.getItem("megacare_token");
+    fetch("/api/appointments", {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        if (Array.isArray(data)) setAppointments(data);
+      })
+      .catch(() => {});
+  }, [isAuthenticated]);
+
   if (isLoading || !isAuthenticated || !user || user.role !== "doctor")
     return null;
 
+  const items = appointments.map((a) => ({
+    ...a,
+    displayStatus: mapStatus(a.status),
+  }));
+
   const filtered =
     activeTab === "Toutes"
-      ? consultations
-      : consultations.filter((c) => c.status === activeTab);
+      ? items
+      : items.filter((c) => c.displayStatus === activeTab);
 
   const countOf = (s: TabFilter) =>
     s === "Toutes"
-      ? consultations.length
-      : consultations.filter((c) => c.status === s).length;
+      ? items.length
+      : items.filter((c) => c.displayStatus === s).length;
 
   return (
     <div className="min-h-screen bg-background">
@@ -251,7 +204,7 @@ export default function DoctorConsultationsPage() {
                 </div>
               )}
               {filtered.map((cons) => {
-                const cfg = STATUS_CONFIG[cons.status];
+                const cfg = STATUS_CONFIG[cons.displayStatus];
                 const isExpanded = expandedId === cons.id;
 
                 return (
@@ -270,11 +223,8 @@ export default function DoctorConsultationsPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex flex-wrap items-center gap-2 mb-1">
                           <h3 className="font-semibold text-foreground">
-                            {cons.patient}
+                            {cons.patientName}
                           </h3>
-                          <span className="text-xs text-muted-foreground">
-                            {cons.age} ans
-                          </span>
                           <span
                             className={`flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium ${cfg.badgeCls}`}
                           >
@@ -285,20 +235,16 @@ export default function DoctorConsultationsPage() {
                         <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
                           <span className="flex items-center gap-1">
                             <Clock size={13} />
-                            {cons.date} à {cons.time} — {cons.duration}
+                            {cons.date} à {cons.time} — 30 min
                           </span>
                           <span className="flex items-center gap-1">
-                            {cons.type === "Vidéo" ? (
-                              <Video size={13} />
-                            ) : (
-                              <MapPin size={13} />
-                            )}
-                            {cons.type}
+                            <Video size={13} />
+                            Vidéo
                           </span>
-                          {cons.diagnosis !== "—" && (
+                          {cons.reason && (
                             <span className="flex items-center gap-1">
                               <FileText size={13} />
-                              {cons.diagnosis}
+                              {cons.reason}
                             </span>
                           )}
                         </div>
@@ -306,26 +252,23 @@ export default function DoctorConsultationsPage() {
 
                       {/* Actions */}
                       <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
-                        {cons.status === "Complétée" && (
+                        {cons.displayStatus === "En attente" && (
                           <>
                             <button
-                              onClick={() =>
-                                setExpandedId(isExpanded ? null : cons.id)
-                              }
-                              className="flex items-center gap-1.5 px-3 py-1.5 border border-border rounded-lg hover:bg-muted transition text-sm"
+                              onClick={() => {
+                                sessionStorage.setItem(
+                                  "live_consultation",
+                                  JSON.stringify({
+                                    patientName: cons.patientName,
+                                    patientId: cons.patientId,
+                                    appointmentId: cons.id,
+                                    type: "Vidéo",
+                                  }),
+                                );
+                                navigate("/doctor-dashboard/live-consultation");
+                              }}
+                              className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition text-sm font-medium"
                             >
-                              <Eye size={14} />
-                              {isExpanded ? "Masquer" : "Notes"}
-                            </button>
-                            <button className="flex items-center gap-1.5 px-3 py-1.5 border border-border rounded-lg hover:bg-muted transition text-sm">
-                              <Download size={14} />
-                              Rapport
-                            </button>
-                          </>
-                        )}
-                        {cons.status === "En attente" && (
-                          <>
-                            <button className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition text-sm font-medium">
                               <Video size={14} />
                               Rejoindre
                             </button>
@@ -334,20 +277,28 @@ export default function DoctorConsultationsPage() {
                             </button>
                           </>
                         )}
+                        {cons.displayStatus === "Confirmée" && (
+                          <button
+                            onClick={() => {
+                              sessionStorage.setItem(
+                                "live_consultation",
+                                JSON.stringify({
+                                  patientName: cons.patientName,
+                                  patientId: cons.patientId,
+                                  appointmentId: cons.id,
+                                  type: "Vidéo",
+                                }),
+                              );
+                              navigate("/doctor-dashboard/live-consultation");
+                            }}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition text-sm font-medium"
+                          >
+                            <Video size={14} />
+                            Rejoindre
+                          </button>
+                        )}
                       </div>
                     </div>
-
-                    {/* Expandable Notes (Complétée only) */}
-                    {isExpanded && cons.status === "Complétée" && (
-                      <div className="px-5 pb-5 border-t border-border pt-4 space-y-2">
-                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                          Notes du médecin
-                        </p>
-                        <p className="text-sm text-foreground bg-muted/40 rounded-lg px-4 py-3">
-                          {cons.notes}
-                        </p>
-                      </div>
-                    )}
                   </div>
                 );
               })}

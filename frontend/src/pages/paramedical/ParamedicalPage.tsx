@@ -549,17 +549,17 @@ function CartToast({
       />
       <div className="flex-1 min-w-0">
         <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 mb-0.5">
-          Ajouté au panier ✓
+          Réservé ✓
         </p>
         <p className="text-sm font-semibold text-foreground line-clamp-1">
           {product.name}
         </p>
         <Link
-          to="/pharmacy/cart"
+          to="/pharmacy"
           className="text-xs text-primary hover:underline mt-1 block"
           onClick={onClose}
         >
-          Voir le panier →
+          Voir la pharmacie →
         </Link>
       </div>
       <button
@@ -828,7 +828,7 @@ export default function ParamedicalPage() {
             </p>
             <div className="flex items-center gap-3">
               <Link
-                to="/pharmacy/cart"
+                to="/pharmacy"
                 className="relative flex items-center gap-1.5 px-4 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-semibold hover:bg-primary/90 transition"
               >
                 <ShoppingCart size={15} />
@@ -837,7 +837,7 @@ export default function ParamedicalPage() {
                     {cartCount}
                   </span>
                 )}
-                Panier
+                Réservations
               </Link>
               <button
                 onClick={() => setShowMobileFilters(!showMobileFilters)}
@@ -862,11 +862,11 @@ export default function ParamedicalPage() {
                 <div className="flex items-center justify-between">
                   <h3 className="font-bold text-foreground">Filtres</h3>
                   <Link
-                    to="/pharmacy/cart"
+                    to="/pharmacy"
                     className="relative flex items-center gap-1.5 px-3 py-2 bg-primary text-primary-foreground rounded-xl text-xs font-semibold hover:bg-primary/90 transition"
                   >
                     <ShoppingCart size={13} />
-                    Panier
+                    Réservations
                     {cartCount > 0 && (
                       <span className="absolute -top-1.5 -right-1.5 w-4.5 h-4.5 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center px-1">
                         {cartCount}

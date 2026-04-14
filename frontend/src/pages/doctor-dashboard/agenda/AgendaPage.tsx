@@ -2,7 +2,15 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { DoctorDashboardSidebar } from "@/components/DoctorDashboardSidebar";
-import { ChevronLeft, ChevronRight, Plus, X, Clock } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  X,
+  Clock,
+  Check,
+  Ban,
+} from "lucide-react";
 
 const TIME_SLOTS = [
   "08:00",
@@ -69,13 +77,37 @@ function buildInitialAgenda(): AgendaMap {
   return map;
 }
 
+const AGENDA_STORAGE_KEY = "megacare_doctor_agenda";
+
+function loadAgenda(): AgendaMap {
+  try {
+    const stored = localStorage.getItem(AGENDA_STORAGE_KEY);
+    if (stored) return JSON.parse(stored);
+  } catch {
+    /* ignore */
+  }
+  return buildInitialAgenda();
+}
+
+function saveAgenda(agenda: AgendaMap) {
+  localStorage.setItem(AGENDA_STORAGE_KEY, JSON.stringify(agenda));
+}
+
 export default function DoctorAgendaPage() {
   const { user, isLoading, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [weekOffset, setWeekOffset] = useState(0);
-  const [agenda, setAgenda] = useState<AgendaMap>(buildInitialAgenda);
+  const [agenda, setAgenda] = useState<AgendaMap>(loadAgenda);
   const [showModal, setShowModal] = useState(false);
   const [newSlot, setNewSlot] = useState({ date: "", time: "", patient: "" });
+  const [detailSlot, setDetailSlot] = useState<{
+    dk: string;
+    time: string;
+  } | null>(null);
+
+  useEffect(() => {
+    saveAgenda(agenda);
+  }, [agenda]);
 
   useEffect(() => {
     if (!isLoading && (!isAuthenticated || !user || user.role !== "doctor")) {
@@ -132,7 +164,28 @@ export default function DoctorAgendaPage() {
       if (Object.keys(updated[dk]).length === 0) delete updated[dk];
       return updated;
     });
+    setDetailSlot(null);
   };
+
+  const confirmSlot = (dk: string, time: string) => {
+    setAgenda((prev) => ({
+      ...prev,
+      [dk]: {
+        ...prev[dk],
+        [time]: { ...prev[dk][time], status: "confirmed" },
+      },
+    }));
+    setDetailSlot(null);
+  };
+
+  const rejectSlot = (dk: string, time: string) => {
+    removeSlot(dk, time);
+  };
+
+  const detailData =
+    detailSlot && agenda[detailSlot.dk]?.[detailSlot.time]
+      ? agenda[detailSlot.dk][detailSlot.time]
+      : null;
 
   return (
     <div className="min-h-screen bg-background">
@@ -297,7 +350,8 @@ export default function DoctorAgendaPage() {
                         return (
                           <div
                             key={di}
-                            className={`h-11 border-r border-border last:border-r-0 px-1.5 flex items-center gap-1 ${
+                            onClick={() => setDetailSlot({ dk, time })}
+                            className={`h-11 border-r border-border last:border-r-0 px-1.5 flex items-center gap-1 cursor-pointer hover:brightness-95 transition ${
                               slot.status === "confirmed"
                                 ? "bg-blue-50 border-l-2 border-l-blue-400"
                                 : "bg-orange-50 border-l-2 border-l-orange-400"
@@ -440,6 +494,94 @@ export default function DoctorAgendaPage() {
               >
                 Ajouter
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Slot Detail Modal */}
+      {detailSlot && detailData && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setDetailSlot(null)}
+          />
+          <div className="relative bg-card border border-border rounded-2xl p-6 w-full max-w-sm mx-4 shadow-2xl space-y-5">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold text-foreground">
+                Détails du rendez-vous
+              </h2>
+              <button
+                onClick={() => setDetailSlot(null)}
+                className="p-1.5 hover:bg-muted rounded-lg transition"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
+                  {detailData.patient
+                    .split(" ")
+                    .map((w) => w[0])
+                    .join("")
+                    .slice(0, 2)
+                    .toUpperCase()}
+                </div>
+                <div>
+                  <p className="font-semibold text-foreground">
+                    {detailData.patient}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {detailSlot.dk} à {detailSlot.time}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Statut :</span>
+                <span
+                  className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
+                    detailData.status === "confirmed"
+                      ? "bg-blue-100 text-blue-700"
+                      : "bg-orange-100 text-orange-700"
+                  }`}
+                >
+                  {detailData.status === "confirmed"
+                    ? "Confirmé"
+                    : "En attente"}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-1">
+              {detailData.status === "pending" ? (
+                <>
+                  <button
+                    onClick={() => rejectSlot(detailSlot.dk, detailSlot.time)}
+                    className="flex-1 px-4 py-2.5 border border-red-200 text-red-600 rounded-lg hover:bg-red-50 transition font-medium flex items-center justify-center gap-2"
+                  >
+                    <Ban size={16} />
+                    Rejeter
+                  </button>
+                  <button
+                    onClick={() => confirmSlot(detailSlot.dk, detailSlot.time)}
+                    className="flex-1 px-4 py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition font-medium flex items-center justify-center gap-2"
+                  >
+                    <Check size={16} />
+                    Confirmer
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => removeSlot(detailSlot.dk, detailSlot.time)}
+                  className="flex-1 px-4 py-2.5 border border-red-200 text-red-600 rounded-lg hover:bg-red-50 transition font-medium flex items-center justify-center gap-2"
+                >
+                  <X size={16} />
+                  Supprimer le créneau
+                </button>
+              )}
             </div>
           </div>
         </div>

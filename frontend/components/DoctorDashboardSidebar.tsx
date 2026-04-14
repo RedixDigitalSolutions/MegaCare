@@ -14,6 +14,7 @@ import {
   Stethoscope,
   Menu,
   X,
+  MessageSquare,
 } from "lucide-react";
 
 const menuItems = [
@@ -36,20 +37,33 @@ const menuItems = [
   },
   { href: "/doctor-dashboard/revenue", label: "Mes revenus", icon: TrendingUp },
   { href: "/doctor-dashboard/reviews", label: "Avis patients", icon: Star },
+  {
+    href: "/doctor-dashboard/messaging",
+    label: "Messages",
+    icon: MessageSquare,
+  },
   { href: "/doctor-dashboard/settings", label: "Paramètres", icon: Settings },
 ];
 
 interface DoctorDashboardSidebarProps {
   doctorName?: string;
+  livePatientName?: string;
 }
 
 export function DoctorDashboardSidebar({
-  doctorName = "Amira Mansouri",
+  doctorName,
+  livePatientName,
 }: DoctorDashboardSidebarProps) {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const { logout, user } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const displayName = user
+    ? `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() ||
+      doctorName ||
+      "Médecin"
+    : doctorName || "Médecin";
 
   const handleLogout = () => {
     logout();
@@ -58,8 +72,8 @@ export function DoctorDashboardSidebar({
 
   const initials = user
     ? `${user.firstName?.[0] ?? ""}${user.lastName?.[0] ?? ""}`.toUpperCase() ||
-      doctorName[0].toUpperCase()
-    : doctorName[0].toUpperCase();
+      displayName[0].toUpperCase()
+    : displayName[0].toUpperCase();
 
   const NavContent = () => (
     <>
@@ -84,7 +98,7 @@ export function DoctorDashboardSidebar({
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-semibold text-sm text-sidebar-foreground truncate">
-              Dr. {doctorName}
+              Dr. {displayName}
             </p>
             <p className="text-xs text-sidebar-foreground/50">Médecin</p>
           </div>
@@ -93,6 +107,23 @@ export function DoctorDashboardSidebar({
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-0.5">
+        {livePatientName && (
+          <Link
+            to="/doctor-dashboard/live-consultation"
+            onClick={() => setMobileOpen(false)}
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-sm ${
+              pathname === "/doctor-dashboard/live-consultation"
+                ? "bg-red-500/10 text-red-600 font-semibold"
+                : "text-red-500 hover:bg-red-500/10 font-medium"
+            }`}
+          >
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500" />
+            </span>
+            <span className="flex-1 truncate">Live — {livePatientName}</span>
+          </Link>
+        )}
         {menuItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href;

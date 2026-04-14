@@ -7,7 +7,6 @@ import {
   Video,
   FileText,
   Pill,
-  ShoppingBag,
   Bell,
   Settings,
   LogOut,
@@ -16,6 +15,7 @@ import {
   Menu,
   X,
   Heart,
+  MessageSquare,
 } from "lucide-react";
 
 const menuItems = [
@@ -28,6 +28,7 @@ const menuItems = [
     label: "Mon dossier médical",
     icon: FileText,
   },
+  { href: "/dashboard/messages", label: "Messages", icon: MessageSquare },
   { href: "/dashboard/prescriptions", label: "Mes ordonnances", icon: Pill },
   {
     href: "/pharmacy/prescription-scanner",
@@ -35,7 +36,6 @@ const menuItems = [
     icon: Camera,
     badge: "NEW" as const,
   },
-  { href: "/dashboard/orders", label: "Mes commandes", icon: ShoppingBag },
   {
     href: "/dashboard/notifications",
     label: "Notifications",
@@ -47,15 +47,21 @@ const menuItems = [
 
 interface DashboardSidebarProps {
   userName?: string;
+  liveDoctorName?: string;
 }
 
 export function DashboardSidebar({
   userName = "Patient",
+  liveDoctorName,
 }: DashboardSidebarProps) {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const { logout, user } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const displayName = user
+    ? `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() || userName
+    : userName;
 
   const handleLogout = () => {
     logout();
@@ -64,8 +70,8 @@ export function DashboardSidebar({
 
   const initials = user
     ? `${user.firstName?.[0] ?? ""}${user.lastName?.[0] ?? ""}`.toUpperCase() ||
-      userName[0].toUpperCase()
-    : userName[0].toUpperCase();
+      displayName[0].toUpperCase()
+    : displayName[0].toUpperCase();
 
   const NavContent = () => (
     <>
@@ -90,7 +96,7 @@ export function DashboardSidebar({
           </div>
           <div className="flex-1 min-w-0">
             <p className="font-semibold text-sm text-sidebar-foreground truncate">
-              {userName}
+              {displayName}
             </p>
             <p className="text-xs text-sidebar-foreground/50">Patient</p>
           </div>
@@ -99,6 +105,23 @@ export function DashboardSidebar({
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-0.5">
+        {liveDoctorName && (
+          <Link
+            to="/dashboard/live-consultation"
+            onClick={() => setMobileOpen(false)}
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-sm ${
+              pathname === "/dashboard/live-consultation"
+                ? "bg-red-500/10 text-red-600 font-semibold"
+                : "text-red-500 hover:bg-red-500/10 font-medium"
+            }`}
+          >
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500" />
+            </span>
+            <span className="flex-1 truncate">Live — Dr. {liveDoctorName}</span>
+          </Link>
+        )}
         {menuItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href;

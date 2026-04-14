@@ -14,97 +14,16 @@ import {
   Calendar,
   User,
   FileText,
+  Loader2,
 } from "lucide-react";
 
-const prescriptions = [
-  {
-    id: 1,
-    doctor: "Dr. Amira Mansouri",
-    specialty: "Cardiologie",
-    date: "25 Février 2026",
-    expiryDate: "25 Mai 2026",
-    status: "active",
-    medicines: [
-      {
-        name: "Amoxicilline 500mg",
-        dosage: "1 comprimé - 3x/jour",
-        duration: "7 jours",
-      },
-      {
-        name: "Paracétamol 1g",
-        dosage: "1 comprimé - si douleur (max 3/jour)",
-        duration: "7 jours",
-      },
-    ],
-    notes:
-      "Prendre les médicaments pendant les repas. Revenir en consultation si les symptômes persistent.",
-  },
-  {
-    id: 2,
-    doctor: "Dr. Fatima Zahra",
-    specialty: "Dermatologie",
-    date: "20 Février 2026",
-    expiryDate: "20 Avril 2026",
-    status: "active",
-    medicines: [
-      {
-        name: "Diprosone crème 0.05%",
-        dosage: "Application locale matin et soir",
-        duration: "2 semaines",
-      },
-      {
-        name: "Cétirizine 10mg",
-        dosage: "1 comprimé - le soir",
-        duration: "1 mois",
-      },
-    ],
-    notes:
-      "Éviter l'exposition au soleil. Appliquer la crème sur les zones affectées uniquement.",
-  },
-  {
-    id: 3,
-    doctor: "Dr. Riadh Gharbi",
-    specialty: "Orthopédie",
-    date: "15 Février 2026",
-    expiryDate: "15 Mars 2026",
-    status: "expired",
-    medicines: [
-      {
-        name: "Voltarène 75mg",
-        dosage: "1 comprimé - 2x/jour",
-        duration: "10 jours",
-      },
-      {
-        name: "Magnésium B6",
-        dosage: "2 comprimés - le soir",
-        duration: "1 mois",
-      },
-      {
-        name: "Gel Kétum 2.5%",
-        dosage: "Application locale 3x/jour",
-        duration: "10 jours",
-      },
-    ],
-    notes: "Éviter les efforts physiques intenses pendant 3 semaines.",
-  },
-  {
-    id: 4,
-    doctor: "Dr. Leïla Khaled",
-    specialty: "Psychologie",
-    date: "10 Janvier 2026",
-    expiryDate: "10 Avril 2026",
-    status: "expired",
-    medicines: [
-      {
-        name: "Hydroxyzine 25mg",
-        dosage: "1 comprimé - le soir",
-        duration: "3 mois",
-      },
-    ],
-    notes:
-      "Ne pas conduire après la prise. Renouvellement possible sur prescription.",
-  },
-];
+interface PrescriptionData {
+  id: string;
+  doctorId: string;
+  patientId: string;
+  medicines: { name: string; dosage?: string; duration?: string }[];
+  createdAt: string;
+}
 
 const statusConfig = {
   active: {
@@ -122,13 +41,68 @@ const statusConfig = {
 export default function PrescriptionsPage() {
   const { user, isLoading, isAuthenticated } = useAuth();
   const navigate = useNavigate();
-  const [expandedId, setExpandedId] = useState<number | null>(1);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [prescriptions, setPrescriptions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!isLoading && (!isAuthenticated || !user || user.role !== "patient")) {
       navigate("/login");
     }
   }, [isLoading, isAuthenticated, user, navigate]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !user) return;
+    const token = localStorage.getItem("megacare_token");
+    if (!token) return;
+    const headers = { Authorization: `Bearer ${token}` };
+
+    fetch("/api/prescriptions", { headers })
+      .then((r) => (r.ok ? r.json() : []))
+      .then(async (rxs: PrescriptionData[]) => {
+        // Resolve doctor names
+        const doctorIds = [...new Set(rxs.map((r) => r.doctorId))];
+        const names: Record<string, string> = {};
+        await Promise.all(
+          doctorIds.map((id) =>
+            fetch(`/api/users/${id}`, { headers })
+              .then((r) => (r.ok ? r.json() : null))
+              .then((u) => {
+                if (u) names[id] = `Dr. ${u.firstName} ${u.lastName}`;
+              })
+              .catch(() => {}),
+          ),
+        );
+
+        const now = new Date();
+        setPrescriptions(
+          rxs.map((rx) => {
+            const created = new Date(rx.createdAt);
+            const expiry = new Date(created.getTime() + 90 * 24 * 3600000); // 90 days validity
+            const isExpired = expiry < now;
+            return {
+              id: rx.id,
+              doctor: names[rx.doctorId] || "Médecin",
+              date: created.toLocaleDateString("fr-FR", {
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+              }),
+              expiryDate: expiry.toLocaleDateString("fr-FR", {
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+              }),
+              status: isExpired ? "expired" : "active",
+              medicines: rx.medicines || [],
+            };
+          }),
+        );
+        if (rxs.length > 0) setExpandedId(rxs[0].id);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [isAuthenticated, user]);
 
   if (isLoading || !isAuthenticated || !user || user.role !== "patient")
     return null;
@@ -218,9 +192,6 @@ export default function PrescriptionsPage() {
                             <h3 className="font-semibold text-foreground">
                               {rx.doctor}
                             </h3>
-                            <span className="text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded-full">
-                              {rx.specialty}
-                            </span>
                           </div>
                           <div className="flex items-center gap-3 mt-1 flex-wrap">
                             <span className="text-xs text-muted-foreground flex items-center gap-1">

@@ -1,36 +1,34 @@
 const express = require("express");
 const router = express.Router();
 const authMiddleware = require("../middleware/auth");
+const User = require("../models/User");
 
-if (!global._mcUsers) global._mcUsers = [];
-const users = global._mcUsers;
-
-// GET /api/users  (admin only in production; open for now)
-router.get("/", authMiddleware, (req, res) => {
-  const safeUsers = users.map(({ password, ...u }) => u);
-  res.json(safeUsers);
+// GET /api/users
+router.get("/", authMiddleware, async (req, res) => {
+  const users = await User.find().select("-password").lean();
+  res.json(users.map((u) => ({ ...u, id: u._id })));
 });
 
 // GET /api/users/:id
-router.get("/:id", authMiddleware, (req, res) => {
-  const user = users.find((u) => u.id === req.params.id);
+router.get("/:id", authMiddleware, async (req, res) => {
+  const user = await User.findById(req.params.id).select("-password").lean();
   if (!user) return res.status(404).json({ message: "Utilisateur non trouvé" });
-  const { password, ...safeUser } = user;
-  res.json(safeUser);
+  res.json({ ...user, id: user._id });
 });
 
 // PUT /api/users/:id
-router.put("/:id", authMiddleware, (req, res) => {
+router.put("/:id", authMiddleware, async (req, res) => {
   if (req.user.id !== req.params.id) {
     return res.status(403).json({ message: "Accès refusé" });
   }
-  const idx = users.findIndex((u) => u.id === req.params.id);
-  if (idx === -1)
-    return res.status(404).json({ message: "Utilisateur non trouvé" });
   const { password, id, email, ...updates } = req.body;
-  users[idx] = { ...users[idx], ...updates };
-  const { password: _pw, ...safeUser } = users[idx];
-  res.json(safeUser);
+  const user = await User.findByIdAndUpdate(req.params.id, updates, {
+    new: true,
+  })
+    .select("-password")
+    .lean();
+  if (!user) return res.status(404).json({ message: "Utilisateur non trouvé" });
+  res.json({ ...user, id: user._id });
 });
 
 module.exports = router;

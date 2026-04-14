@@ -18,20 +18,68 @@ import {
 const TEST_ACCOUNTS = [
   {
     key: "patient",
-    label: "Patient",
-    desc: "Consultations, ordonnances, dossier médical",
+    label: "Fatima Benali",
+    desc: "Hypertension · 34 ans",
     email: "patient@megacare.tn",
     password: "Patient@2024",
     dashboard: "/dashboard",
     Icon: FaUserAlt,
     color: "from-blue-500 to-cyan-500",
-    badge: "Accès gratuit",
+    badge: "Patient",
+    badgeColor: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
+  },
+  {
+    key: "patient2",
+    label: "Mohamed Karoui",
+    desc: "Insuf. cardiaque · 52 ans",
+    email: "patient2@megacare.tn",
+    password: "Patient@2024",
+    dashboard: "/dashboard",
+    Icon: FaUserAlt,
+    color: "from-blue-400 to-sky-500",
+    badge: "Patient",
+    badgeColor: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
+  },
+  {
+    key: "patient3",
+    label: "Aisha Hamdi",
+    desc: "Palpitations · 28 ans",
+    email: "patient3@megacare.tn",
+    password: "Patient@2024",
+    dashboard: "/dashboard",
+    Icon: FaUserAlt,
+    color: "from-indigo-400 to-blue-500",
+    badge: "Patient",
+    badgeColor: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
+  },
+  {
+    key: "patient4",
+    label: "Salim Drissi",
+    desc: "Cholestérol · 61 ans",
+    email: "patient4@megacare.tn",
+    password: "Patient@2024",
+    dashboard: "/dashboard",
+    Icon: FaUserAlt,
+    color: "from-cyan-400 to-teal-500",
+    badge: "Patient",
+    badgeColor: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
+  },
+  {
+    key: "patient5",
+    label: "Layla Meddeb",
+    desc: "Arythmie · 41 ans",
+    email: "patient5@megacare.tn",
+    password: "Patient@2024",
+    dashboard: "/dashboard",
+    Icon: FaUserAlt,
+    color: "from-violet-400 to-purple-500",
+    badge: "Patient",
     badgeColor: "bg-blue-500/10 text-blue-600 dark:text-blue-400",
   },
   {
     key: "doctor",
-    label: "Médecin",
-    desc: "Agenda, patients & prescriptions",
+    label: "Dr. Amira Mansouri",
+    desc: "Cardiologie · Agenda & patients",
     email: "medecin@megacare.tn",
     password: "Medecin@2024",
     dashboard: "/doctor-dashboard",
@@ -42,8 +90,8 @@ const TEST_ACCOUNTS = [
   },
   {
     key: "pharmacy",
-    label: "Pharmacien",
-    desc: "Stock, commandes & ordonnances",
+    label: "Hichem Trabelsi",
+    desc: "Pharmacie Centrale · Stock & commandes",
     email: "pharmacien@megacare.tn",
     password: "Pharmacien@2024",
     dashboard: "/pharmacy-dashboard",
@@ -54,8 +102,8 @@ const TEST_ACCOUNTS = [
   },
   {
     key: "lab_radiology",
-    label: "Labos & Radiologie",
-    desc: "Examens, résultats & rendez-vous",
+    label: "Yassine Bouzid",
+    desc: "Labo El Amal · Examens & résultats",
     email: "labo@megacare.tn",
     password: "Labo@2024",
     dashboard: "/lab-dashboard",
@@ -66,8 +114,8 @@ const TEST_ACCOUNTS = [
   },
   {
     key: "paramedical",
-    label: "Paramédicaux",
-    desc: "Planning, soins & téléconsultation",
+    label: "Sana Khelifi",
+    desc: "Kinésithérapie · Planning & soins",
     email: "paramedical@megacare.tn",
     password: "Paramedical@2024",
     dashboard: "/paramedical-dashboard",
@@ -78,8 +126,8 @@ const TEST_ACCOUNTS = [
   },
   {
     key: "medical_service",
-    label: "Services Médicaux",
-    desc: "HAD, équipe & vitaux patients",
+    label: "Rania Cherif",
+    desc: "HAD Santé à Domicile · Équipe & vitaux",
     email: "service@megacare.tn",
     password: "Service@2024",
     dashboard: "/medical-service-dashboard",
@@ -90,8 +138,8 @@ const TEST_ACCOUNTS = [
   },
   {
     key: "admin",
-    label: "Administrateur",
-    desc: "Gestion complète de la plateforme",
+    label: "Nabil Gharbi",
+    desc: "Administrateur · Gestion plateforme",
     email: "admin@megacare.tn",
     password: "Admin@megacare2024",
     dashboard: "/admin",
@@ -146,8 +194,10 @@ export default function LoginTestDataPage() {
     }
   };
 
-  const patientAccount = TEST_ACCOUNTS[0];
-  const proAccounts = TEST_ACCOUNTS.slice(1);
+  const patientAccounts = TEST_ACCOUNTS.filter((a) => a.badge === "Patient");
+  const proAccounts = TEST_ACCOUNTS.filter(
+    (a) => a.badge === "Pro" || a.badge === "Admin",
+  );
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -266,46 +316,47 @@ export default function LoginTestDataPage() {
             </div>
           )}
 
-          {/* Patient — featured */}
-          <button
-            onClick={() => handleQuickLogin(patientAccount)}
-            disabled={loadingKey !== null}
-            className="group w-full mb-4 relative p-5 bg-card rounded-2xl border-2 border-border hover:border-blue-400/50 hover:shadow-xl transition-all duration-300 overflow-hidden text-left disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-cyan-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 shrink-0 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
-                {loadingKey === "patient" ? (
-                  <div className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
-                ) : (
-                  <patientAccount.Icon className="text-white" size={22} />
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="font-bold text-foreground text-base">
-                    Patient
-                  </span>
-                  <span
-                    className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${patientAccount.badgeColor}`}
-                  >
-                    {patientAccount.badge}
-                  </span>
+          {/* Patient accounts */}
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3 px-0.5">
+            Patients
+          </p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
+            {patientAccounts.map((account) => (
+              <button
+                key={account.key}
+                onClick={() => handleQuickLogin(account)}
+                disabled={loadingKey !== null}
+                className="group relative p-4 bg-card rounded-2xl border-2 border-border hover:border-transparent hover:shadow-xl transition-all duration-300 text-left overflow-hidden disabled:opacity-60 disabled:cursor-not-allowed"
+              >
+                <div
+                  className={`absolute inset-0 bg-gradient-to-br ${account.color} opacity-0 group-hover:opacity-[0.07] transition-opacity duration-300`}
+                />
+                <div
+                  className={`w-10 h-10 mb-3 rounded-xl bg-gradient-to-br ${account.color} flex items-center justify-center shadow-md`}
+                >
+                  {loadingKey === account.key ? (
+                    <div className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <account.Icon className="text-white" size={17} />
+                  )}
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  {patientAccount.desc}
+                <p className="font-semibold text-foreground text-sm leading-tight mb-0.5">
+                  {account.label}
                 </p>
-                <p className="text-xs text-muted-foreground/60 mt-1 font-mono">
-                  {patientAccount.email}
+                <p className="text-xs text-muted-foreground leading-tight mb-1.5">
+                  {account.desc}
                 </p>
-              </div>
-              <div className="text-xs text-right shrink-0 space-y-1">
-                <div className="px-3 py-1.5 bg-blue-500/10 text-blue-600 dark:text-blue-400 rounded-lg font-semibold text-xs group-hover:bg-blue-500 group-hover:text-white transition-colors">
-                  {loadingKey === "patient" ? "Connexion..." : "Se connecter →"}
+                <p className="text-[10px] text-muted-foreground/50 font-mono truncate">
+                  {account.email}
+                </p>
+                <div
+                  className={`mt-2 text-[10px] font-semibold px-2 py-0.5 rounded-md inline-block ${account.badgeColor}`}
+                >
+                  {loadingKey === account.key ? "Connexion..." : "Connexion →"}
                 </div>
-              </div>
-            </div>
-          </button>
+              </button>
+            ))}
+          </div>
 
           {/* Pro roles grid */}
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3 px-0.5">

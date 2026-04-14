@@ -60,21 +60,51 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     setIsLoading(false);
   }, []);
 
+  // Strip large data-URL avatars before persisting to localStorage
+  const safeForStorage = (u: User): User => {
+    if (u.avatar && u.avatar.length > 2048) {
+      const { avatar: _, ...rest } = u;
+      return rest as User;
+    }
+    return u;
+  };
+
   const login = (newUser: User) => {
     setUser(newUser);
-    localStorage.setItem("megacare_user", JSON.stringify(newUser));
+    try {
+      localStorage.setItem(
+        "megacare_user",
+        JSON.stringify(safeForStorage(newUser)),
+      );
+    } catch {
+      /* quota */
+    }
   };
 
   const register = (newUser: User) => {
     setUser(newUser);
-    localStorage.setItem("megacare_user", JSON.stringify(newUser));
+    try {
+      localStorage.setItem(
+        "megacare_user",
+        JSON.stringify(safeForStorage(newUser)),
+      );
+    } catch {
+      /* quota */
+    }
   };
 
   const updateUser = (updates: Partial<User>) => {
     setUser((prev) => {
       if (!prev) return prev;
       const updated = { ...prev, ...updates };
-      localStorage.setItem("megacare_user", JSON.stringify(updated));
+      try {
+        localStorage.setItem(
+          "megacare_user",
+          JSON.stringify(safeForStorage(updated)),
+        );
+      } catch {
+        /* quota */
+      }
       return updated;
     });
   };

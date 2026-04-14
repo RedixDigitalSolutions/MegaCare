@@ -964,10 +964,10 @@ export default function ParamedicalProductPage() {
                 )}
               </button>
               <Link
-                to="/pharmacy/cart"
+                to="/pharmacy"
                 className="px-5 py-4 border border-border rounded-2xl font-semibold text-sm hover:bg-secondary/50 transition flex items-center gap-2 text-foreground"
               >
-                <ShoppingCart size={16} /> Panier
+                <ShoppingCart size={16} /> Pharmacie
               </Link>
             </div>
 

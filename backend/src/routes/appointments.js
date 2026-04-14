@@ -2,72 +2,86 @@ const express = require("express");
 const router = express.Router();
 const authMiddleware = require("../middleware/auth");
 const { randomUUID } = require("crypto");
+const Appointment = require("../models/Appointment");
 
-if (!global._mcAppointments) global._mcAppointments = [];
-const appointments = global._mcAppointments;
-
-// GET /api/appointments  — returns appointments for authenticated user
-router.get("/", authMiddleware, (req, res) => {
-  const result = appointments.filter(
-    (a) => a.patientId === req.user.id || a.doctorId === req.user.id,
-  );
-  res.json(result);
+// GET /api/appointments
+router.get("/", authMiddleware, async (req, res) => {
+  const result = await Appointment.find({
+    $or: [{ patientId: req.user.id }, { doctorId: req.user.id }],
+  }).lean();
+  res.json(result.map((a) => ({ ...a, id: a._id })));
 });
 
 // GET /api/appointments/:id
-router.get("/:id", authMiddleware, (req, res) => {
-  const appt = appointments.find((a) => a.id === req.params.id);
+router.get("/:id", authMiddleware, async (req, res) => {
+  const appt = await Appointment.findById(req.params.id).lean();
   if (!appt) return res.status(404).json({ message: "Rendez-vous non trouvé" });
   if (appt.patientId !== req.user.id && appt.doctorId !== req.user.id) {
     return res.status(403).json({ message: "Accès refusé" });
   }
-  res.json(appt);
+  res.json({ ...appt, id: appt._id });
 });
 
 // POST /api/appointments
-router.post("/", authMiddleware, (req, res) => {
+router.post("/", authMiddleware, async (req, res) => {
   const { doctorId, date, time, reason } = req.body;
   if (!doctorId || !date || !time) {
     return res.status(400).json({ message: "doctorId, date et time requis" });
   }
-  const appt = {
-    id: randomUUID(),
+  const appt = await Appointment.create({
+    _id: randomUUID(),
     patientId: req.user.id,
     doctorId,
     date,
     time,
     reason: reason || "",
     status: "pending",
-    createdAt: new Date().toISOString(),
-  };
-  appointments.push(appt);
-  res.status(201).json(appt);
+  });
+  res.status(201).json({ ...appt.toObject(), id: appt._id });
 });
 
 // PUT /api/appointments/:id
-router.put("/:id", authMiddleware, (req, res) => {
-  const idx = appointments.findIndex((a) => a.id === req.params.id);
-  if (idx === -1)
-    return res.status(404).json({ message: "Rendez-vous non trouvé" });
-  const appt = appointments[idx];
+router.put("/:id", authMiddleware, async (req, res) => {
+  const appt = await Appointment.findById(req.params.id);
+  if (!appt) return res.status(404).json({ message: "Rendez-vous non trouvé" });
   if (appt.patientId !== req.user.id && appt.doctorId !== req.user.id) {
     return res.status(403).json({ message: "Accès refusé" });
   }
   const { id, patientId, ...updates } = req.body;
-  appointments[idx] = { ...appt, ...updates };
-  res.json(appointments[idx]);
+  Object.assign(appt, updates);
+  await appt.save();
+  res.json({ ...appt.toObject(), id: appt._id });
 });
 
 // DELETE /api/appointments/:id
-router.delete("/:id", authMiddleware, (req, res) => {
-  const idx = appointments.findIndex((a) => a.id === req.params.id);
-  if (idx === -1)
-    return res.status(404).json({ message: "Rendez-vous non trouvé" });
-  if (appointments[idx].patientId !== req.user.id) {
+router.delete("/:id", authMiddleware, async (req, res) => {
+  const appt = await Appointment.findById(req.params.id);
+  if (!appt) return res.status(404).json({ message: "Rendez-vous non trouvé" });
+  if (appt.patientId !== req.user.id) {
     return res.status(403).json({ message: "Accès refusé" });
   }
-  appointments.splice(idx, 1);
+  await appt.deleteOne();
   res.status(204).end();
+});
+
+// PATCH /api/appointments/:id/status
+router.patch("/:id/status", authMiddleware, async (req, res) => {
+  const { status } = req.body;
+  if (!["confirmed", "rejected", "cancelled", "completed"].includes(status)) {
+    return res.status(400).json({ message: "Statut invalide" });
+  }
+  const appt = await Appointment.findById(req.params.id);
+  if (!appt) return res.status(404).json({ message: "Rendez-vous non trouvé" });
+  if (appt.doctorId !== req.user.id) {
+    return res.status(403).json({ message: "Accès refusé" });
+  }
+  if (status === "rejected") {
+    await appt.deleteOne();
+    return res.json({ message: "Rendez-vous refusé et supprimé" });
+  }
+  appt.status = status;
+  await appt.save();
+  res.json({ ...appt.toObject(), id: appt._id });
 });
 
 module.exports = router;

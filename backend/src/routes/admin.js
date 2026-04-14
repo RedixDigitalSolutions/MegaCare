@@ -1,10 +1,10 @@
 const express = require("express");
 const router = express.Router();
 const jwt = require("jsonwebtoken");
+const User = require("../models/User");
 
 const JWT_SECRET = process.env.JWT_SECRET || "megacare_secret_key";
 
-// Admin-only middleware
 const adminAuth = (req, res, next) => {
   const token = req.headers.authorization?.split(" ")[1];
   if (!token) return res.status(401).json({ message: "Non autorisé" });
@@ -22,30 +22,38 @@ const adminAuth = (req, res, next) => {
   }
 };
 
-// GET /api/admin/users — list all non-admin users
-router.get("/users", adminAuth, (req, res) => {
-  const users = (global._mcUsers || [])
-    .filter((u) => u.role !== "admin")
-    .map(({ password, ...u }) => u);
-  res.json(users);
+// GET /api/admin/users
+router.get("/users", adminAuth, async (req, res) => {
+  const users = await User.find({ role: { $ne: "admin" } })
+    .select("-password")
+    .lean();
+  res.json(users.map((u) => ({ ...u, id: u._id })));
 });
 
 // PATCH /api/admin/users/:id/approve
-router.patch("/users/:id/approve", adminAuth, (req, res) => {
-  const user = (global._mcUsers || []).find((u) => u.id === req.params.id);
+router.patch("/users/:id/approve", adminAuth, async (req, res) => {
+  const user = await User.findByIdAndUpdate(
+    req.params.id,
+    { status: "approved" },
+    { new: true },
+  )
+    .select("-password")
+    .lean();
   if (!user) return res.status(404).json({ message: "Utilisateur non trouvé" });
-  user.status = "approved";
-  const { password, ...safeUser } = user;
-  res.json({ message: "Compte approuvé", user: safeUser });
+  res.json({ message: "Compte approuvé", user: { ...user, id: user._id } });
 });
 
 // PATCH /api/admin/users/:id/reject
-router.patch("/users/:id/reject", adminAuth, (req, res) => {
-  const user = (global._mcUsers || []).find((u) => u.id === req.params.id);
+router.patch("/users/:id/reject", adminAuth, async (req, res) => {
+  const user = await User.findByIdAndUpdate(
+    req.params.id,
+    { status: "rejected" },
+    { new: true },
+  )
+    .select("-password")
+    .lean();
   if (!user) return res.status(404).json({ message: "Utilisateur non trouvé" });
-  user.status = "rejected";
-  const { password, ...safeUser } = user;
-  res.json({ message: "Compte rejeté", user: safeUser });
+  res.json({ message: "Compte rejeté", user: { ...user, id: user._id } });
 });
 
 module.exports = router;

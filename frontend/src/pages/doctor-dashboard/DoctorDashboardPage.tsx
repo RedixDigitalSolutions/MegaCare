@@ -3,11 +3,45 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
 import { Video, TrendingUp, Star, Clock, Settings } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
+
+interface Appointment {
+  id: string;
+  patientId: string;
+  patientName: string;
+  doctorId: string;
+  date: string;
+  time: string;
+  reason: string;
+  status: string;
+  createdAt: string;
+}
 
 export default function DoctorDashboardPage() {
   const { user, isLoading, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+
+  const [allAppointments, setAllAppointments] = useState<Appointment[]>([]);
+  const [fetchLoading, setFetchLoading] = useState(true);
+  const [countdown, setCountdown] = useState(0);
+
+  const fetchAppointments = useCallback(async () => {
+    const token = localStorage.getItem("megacare_token");
+    if (!token) return;
+    try {
+      const res = await fetch("/api/appointments", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data: Appointment[] = await res.json();
+        setAllAppointments(data);
+      }
+    } catch {
+      /* server unreachable */
+    } finally {
+      setFetchLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -20,7 +54,6 @@ export default function DoctorDashboardPage() {
       };
       navigate(dashboards[user.role as keyof typeof dashboards]);
     }
-    // Block access if account not yet approved
     if (
       !isLoading &&
       user &&
@@ -31,7 +64,21 @@ export default function DoctorDashboardPage() {
     }
   }, [isLoading, isAuthenticated, user, navigate]);
 
-  if (isLoading) {
+  useEffect(() => {
+    if (isAuthenticated && user?.role === "doctor") {
+      fetchAppointments();
+    }
+  }, [isAuthenticated, user, fetchAppointments]);
+
+  useEffect(() => {
+    const timer = setInterval(
+      () => setCountdown((s) => Math.max(0, s - 1)),
+      1000,
+    );
+    return () => clearInterval(timer);
+  }, []);
+
+  if (isLoading || fetchLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="space-y-4 text-center">
@@ -50,7 +97,6 @@ export default function DoctorDashboardPage() {
     user.firstName && user.lastName
       ? `${user.firstName} ${user.lastName}`
       : user.name || `${user.email.split("@")[0]}`;
-  const licenseId = user.doctorId || "MD-001-2024";
   const specialty = user.specialization || "Cardiologie";
 
   const todayDate = new Date().toLocaleDateString("fr-FR", {
@@ -60,101 +106,153 @@ export default function DoctorDashboardPage() {
     year: "numeric",
   });
 
+  const todayKey = new Date().toISOString().split("T")[0];
+
+  // Derive data from fetched appointments
+  const todayAppointments = allAppointments.filter(
+    (a) => a.date === todayKey && a.status !== "rejected",
+  );
+  const pendingAppointments = allAppointments.filter(
+    (a) => a.status === "pending",
+  );
+  const confirmedToday = todayAppointments.filter(
+    (a) => a.status === "confirmed",
+  );
+
+  // Build time slots for today's agenda view
+  const SLOT_TIMES = [
+    "08:00",
+    "08:30",
+    "09:00",
+    "09:30",
+    "10:00",
+    "10:30",
+    "11:00",
+    "11:30",
+    "12:00",
+    "12:30",
+    "14:00",
+    "14:30",
+    "15:00",
+    "15:30",
+    "16:00",
+    "16:30",
+    "17:00",
+    "17:30",
+  ];
+  const timeSlots = SLOT_TIMES.map((time) => {
+    const appt = todayAppointments.find((a) => a.time === time);
+    if (appt) {
+      return {
+        time,
+        status: appt.status,
+        patient: appt.patientName,
+        reason: appt.reason,
+      };
+    }
+    return {
+      time,
+      status: "free" as const,
+      patient: undefined,
+      reason: undefined,
+    };
+  });
+
+  // Next consultation: first confirmed appointment after now
+  const now = new Date();
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
+  const upcomingConfirmed = confirmedToday
+    .filter((a) => {
+      const [h, m] = a.time.split(":").map(Number);
+      return h * 60 + m > nowMinutes;
+    })
+    .sort((a, b) => a.time.localeCompare(b.time));
+
+  const nextConsultation = upcomingConfirmed[0] || null;
+
+  // Countdown to next consultation
+  if (nextConsultation && countdown === 0) {
+    const [h, m] = nextConsultation.time.split(":").map(Number);
+    const diff = h * 60 + m - nowMinutes;
+    if (diff > 0) {
+      setCountdown(diff * 60);
+    }
+  }
+
+  const confirmAppointment = async (id: string) => {
+    const token = localStorage.getItem("megacare_token");
+    try {
+      const res = await fetch(`/api/appointments/${id}/status`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ status: "confirmed" }),
+      });
+      if (res.ok) {
+        setAllAppointments((prev) =>
+          prev.map((a) => (a.id === id ? { ...a, status: "confirmed" } : a)),
+        );
+      }
+    } catch {
+      /* ignore */
+    }
+  };
+
+  const rejectAppointment = async (id: string) => {
+    const token = localStorage.getItem("megacare_token");
+    try {
+      const res = await fetch(`/api/appointments/${id}/status`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ status: "rejected" }),
+      });
+      if (res.ok) {
+        setAllAppointments((prev) => prev.filter((a) => a.id !== id));
+      }
+    } catch {
+      /* ignore */
+    }
+  };
+
   const kpiCards = [
     {
       icon: Video,
       title: "Consultations",
-      value: "8",
-      subtitle: "+2 vs hier",
+      value: String(confirmedToday.length),
+      subtitle: "Aujourd'hui",
       color: "text-blue-500",
       bgColor: "bg-blue-50",
     },
     {
       icon: TrendingUp,
-      title: "Revenus",
-      value: "360 DT",
-      subtitle: "Mois: 4200 DT",
+      title: "Total RDV",
+      value: String(allAppointments.length),
+      subtitle: "Tous les rendez-vous",
       color: "text-green-500",
       bgColor: "bg-green-50",
     },
     {
       icon: Star,
-      title: "Note",
-      value: "4.8",
-      subtitle: "312 avis",
+      title: "Aujourd'hui",
+      value: String(todayAppointments.length),
+      subtitle: "Créneaux occupés",
       color: "text-yellow-500",
       bgColor: "bg-yellow-50",
     },
     {
       icon: Clock,
       title: "RDV en attente",
-      value: "3",
+      value: String(pendingAppointments.length),
       subtitle: "Confirmation requise",
       color: "text-orange-500",
       bgColor: "bg-orange-50",
     },
   ];
-
-  const pendingAppointments = [
-    {
-      id: 1,
-      patientName: "Fatima B.",
-      specialty: "Cardiologie",
-      time: "14:00",
-      status: "En attente",
-    },
-    {
-      id: 2,
-      patientName: "Mohamed K.",
-      specialty: "Cardiologie",
-      time: "15:30",
-      status: "En attente",
-    },
-    {
-      id: 3,
-      patientName: "Aisha H.",
-      specialty: "Cardiologie",
-      time: "17:00",
-      status: "En attente",
-    },
-  ];
-
-  const timeSlots = [
-    { time: "08:00", status: "free" },
-    { time: "08:30", status: "free" },
-    { time: "09:00", status: "confirmed", patient: "Patient 1" },
-    { time: "09:30", status: "confirmed", patient: "Patient 2" },
-    { time: "10:00", status: "pending", patient: "Patient 3" },
-    { time: "10:30", status: "free" },
-    { time: "11:00", status: "free" },
-    { time: "11:30", status: "confirmed", patient: "Patient 4" },
-    { time: "12:00", status: "free" },
-    { time: "12:30", status: "free" },
-    { time: "14:00", status: "confirmed", patient: "Patient 5" },
-    { time: "14:30", status: "free" },
-  ];
-
-  const nextConsultation = {
-    patientName: "Fatima B.",
-    patientAge: 52,
-    reason: "Suivi cardiaque régulier",
-  };
-
-  // Live countdown — 45 min from page load for demo purposes
-  const [countdown, setCountdown] = useState(45 * 60);
-  useEffect(() => {
-    const timer = setInterval(
-      () => setCountdown((s) => Math.max(0, s - 1)),
-      1000,
-    );
-    return () => clearInterval(timer);
-  }, []);
-  const countdownMin = Math.floor(countdown / 60);
-  const countdownSec = countdown % 60;
-  const countdownDisplay =
-    countdown > 0
-      ? `${countdownMin}m ${String(countdownSec).padStart(2, "0")}s`
-      : "Maintenant";
 
   return (
     <div className="min-h-screen bg-background">
@@ -234,14 +332,20 @@ export default function DoctorDashboardPage() {
                           {apt.patientName}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {apt.time} • {apt.specialty}
+                          {apt.time} • {apt.date} • {apt.reason}
                         </p>
                       </div>
                       <div className="flex gap-2">
-                        <button className="px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 transition font-medium">
+                        <button
+                          onClick={() => confirmAppointment(apt.id)}
+                          className="px-3 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700 transition font-medium"
+                        >
                           ✓ Confirmer
                         </button>
-                        <button className="px-3 py-1 border border-red-300 text-red-700 rounded text-xs hover:bg-red-50 transition font-medium">
+                        <button
+                          onClick={() => rejectAppointment(apt.id)}
+                          className="px-3 py-1 border border-red-300 text-red-700 rounded text-xs hover:bg-red-50 transition font-medium"
+                        >
                           ✗ Refuser
                         </button>
                       </div>
@@ -314,82 +418,133 @@ export default function DoctorDashboardPage() {
                 <h3 className="font-bold text-foreground">
                   Prochaine consultation
                 </h3>
-                <div className="space-y-3">
-                  <div className="bg-white/60 rounded-lg p-4 space-y-2">
-                    <p className="text-sm text-muted-foreground">Dans</p>
-                    <p
-                      className={`text-3xl font-bold ${countdown === 0 ? "text-destructive animate-pulse" : "text-primary"}`}
-                    >
-                      {countdownDisplay}
+                {nextConsultation ? (
+                  <div className="space-y-3">
+                    <div className="bg-white/60 rounded-lg p-4 space-y-2">
+                      <p className="text-sm text-muted-foreground">Dans</p>
+                      <p
+                        className={`text-3xl font-bold ${countdown === 0 ? "text-destructive animate-pulse" : "text-primary"}`}
+                      >
+                        {countdown > 0
+                          ? `${Math.floor(countdown / 60)}m ${String(countdown % 60).padStart(2, "0")}s`
+                          : "Maintenant"}
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-sm font-semibold text-foreground">
+                        👤 {nextConsultation.patientName}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Heure: {nextConsultation.time}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Motif: {nextConsultation.reason || "—"}
+                      </p>
+                    </div>
+                    <div className="flex gap-2 pt-2">
+                      <button className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition font-medium text-sm">
+                        Voir dossier
+                      </button>
+                      <button className="flex-1 px-4 py-2 border-2 border-primary text-primary rounded-lg hover:bg-primary/5 transition font-medium text-sm">
+                        Ouvrir salle
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-white/60 rounded-lg p-4 text-center">
+                    <p className="text-muted-foreground text-sm">
+                      Aucune consultation confirmée à venir aujourd'hui
                     </p>
                   </div>
-                  <div className="space-y-2">
-                    <p className="text-sm font-semibold text-foreground">
-                      👤 {nextConsultation.patientName}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Âge: {nextConsultation.patientAge}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Motif: {nextConsultation.reason}
-                    </p>
-                  </div>
-                  <div className="flex gap-2 pt-2">
-                    <button className="flex-1 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition font-medium text-sm">
-                      Voir dossier
-                    </button>
-                    <button className="flex-1 px-4 py-2 border-2 border-primary text-primary rounded-lg hover:bg-primary/5 transition font-medium text-sm">
-                      Ouvrir salle
-                    </button>
-                  </div>
-                </div>
+                )}
               </div>
             </div>
 
             {/* Statistics */}
             <div className="grid md:grid-cols-2 gap-6">
-              {/* Consultation Chart */}
+              {/* Appointments by status */}
               <div className="bg-card rounded-xl border border-border p-6 space-y-4">
                 <h3 className="font-bold text-foreground">
-                  Consultations (7 derniers jours)
+                  Répartition par statut
                 </h3>
-                <div className="flex items-end justify-between gap-2 h-32">
-                  {[3, 5, 4, 6, 7, 8, 6].map((value, idx) => (
-                    <div
-                      key={idx}
-                      className="flex-1 flex flex-col items-center gap-2"
-                    >
-                      <div
-                        className="w-full bg-primary rounded-t"
-                        style={{ height: `${(value / 8) * 100}%` }}
-                      ></div>
-                      <p className="text-xs text-muted-foreground">
-                        {["L", "M", "M", "J", "V", "S", "D"][idx]}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Top Specialties */}
-              <div className="bg-card rounded-xl border border-border p-6 space-y-4">
-                <h3 className="font-bold text-foreground">Top 5 spécialités</h3>
                 <div className="space-y-3">
                   {[
-                    { name: "Cardiologie", count: 342 },
-                    { name: "Hypertension", count: 156 },
-                    { name: "Cholestérol", count: 98 },
-                    { name: "Arythmie", count: 67 },
-                    { name: "Insuffisance", count: 45 },
+                    {
+                      name: "Confirmés",
+                      count: allAppointments.filter(
+                        (a) => a.status === "confirmed",
+                      ).length,
+                      color: "bg-blue-500",
+                    },
+                    {
+                      name: "En attente",
+                      count: allAppointments.filter(
+                        (a) => a.status === "pending",
+                      ).length,
+                      color: "bg-orange-500",
+                    },
                   ].map((item, idx) => (
                     <div
                       key={idx}
                       className="flex items-center justify-between"
                     >
-                      <p className="text-sm text-foreground">{item.name}</p>
+                      <div className="flex items-center gap-2">
+                        <div className={`w-3 h-3 rounded-full ${item.color}`} />
+                        <p className="text-sm text-foreground">{item.name}</p>
+                      </div>
                       <p className="font-semibold text-primary">{item.count}</p>
                     </div>
                   ))}
+                </div>
+              </div>
+
+              {/* Upcoming appointments */}
+              <div className="bg-card rounded-xl border border-border p-6 space-y-4">
+                <h3 className="font-bold text-foreground">
+                  Prochains rendez-vous
+                </h3>
+                <div className="space-y-3">
+                  {allAppointments
+                    .filter(
+                      (a) => a.date >= todayKey && a.status !== "rejected",
+                    )
+                    .sort(
+                      (a, b) =>
+                        a.date.localeCompare(b.date) ||
+                        a.time.localeCompare(b.time),
+                    )
+                    .slice(0, 5)
+                    .map((a) => (
+                      <div
+                        key={a.id}
+                        className="flex items-center justify-between"
+                      >
+                        <div>
+                          <p className="text-sm text-foreground">
+                            {a.patientName}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {a.date} à {a.time}
+                          </p>
+                        </div>
+                        <span
+                          className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                            a.status === "confirmed"
+                              ? "bg-blue-100 text-blue-700"
+                              : "bg-orange-100 text-orange-700"
+                          }`}
+                        >
+                          {a.status === "confirmed" ? "Confirmé" : "En attente"}
+                        </span>
+                      </div>
+                    ))}
+                  {allAppointments.filter(
+                    (a) => a.date >= todayKey && a.status !== "rejected",
+                  ).length === 0 && (
+                    <p className="text-sm text-muted-foreground">
+                      Aucun rendez-vous à venir
+                    </p>
+                  )}
                 </div>
               </div>
             </div>

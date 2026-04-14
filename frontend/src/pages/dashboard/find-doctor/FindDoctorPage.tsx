@@ -1,199 +1,132 @@
-
-import { useState, useEffect, useMemo } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import { DashboardSidebar } from '@/components/DashboardSidebar';
-import { DoctorCard } from '@/components/DoctorCard';
-import { Link } from 'react-router-dom';
-import { Search, ChevronDown, ArrowLeft } from 'lucide-react';
-import { specialtiesMap } from '@/lib/specialties';
+import { useState, useEffect, useMemo } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
+import { DashboardSidebar } from "@/components/DashboardSidebar";
+import { DoctorCard } from "@/components/DoctorCard";
+import { Link } from "react-router-dom";
+import { Search, ChevronDown, ArrowLeft, Loader2 } from "lucide-react";
+import { specialtiesMap } from "@/lib/specialties";
 
 const tunisianGovernorates = [
-  'Ariana',
-  'Ben Arous',
-  'Manouba',
-  'Tunis',
-  'Béja',
-  'Jendouba',
-  'Le Kef',
-  'Siliana',
-  'Kasserine',
-  'Sidi Bouzid',
-  'Sfax',
-  'Gabès',
-  'Médenine',
-  'Tataouine',
-  'Gafsa',
-  'Tozeur',
-  'Kébili',
-  'Mahdia',
-  'Monastir',
-  'Sousse',
-  'Nabeul',
-  'Zaghouan',
-  'Hammamet',
-  'Bizerte',
+  "Ariana",
+  "Ben Arous",
+  "Manouba",
+  "Tunis",
+  "Béja",
+  "Jendouba",
+  "Le Kef",
+  "Siliana",
+  "Kasserine",
+  "Sidi Bouzid",
+  "Sfax",
+  "Gabès",
+  "Médenine",
+  "Tataouine",
+  "Gafsa",
+  "Tozeur",
+  "Kébili",
+  "Mahdia",
+  "Monastir",
+  "Sousse",
+  "Nabeul",
+  "Zaghouan",
+  "Hammamet",
+  "Bizerte",
 ];
 
-const mockDoctors = [
-  {
-    id: '1',
-    name: 'Amira Mansouri',
-    specialty: 'Cardiologie',
-    rating: 4.8,
-    reviews: 132,
-    location: 'La Marsa',
-    governorate: 'Tunis',
-    distance: 1.2,
-    price: 55,
-    availability: 'Demain 14h',
-    certified: true,
-    videoConsultation: true,
-  },
-  {
-    id: '2',
-    name: 'Karim Ben Ali',
-    specialty: 'Cardiologie',
-    rating: 4.7,
-    reviews: 98,
-    location: 'Sfax',
-    governorate: 'Sfax',
-    distance: 8.5,
-    price: 50,
-    availability: 'Aujourd\'hui 16h',
-    certified: true,
-    videoConsultation: true,
-  },
-  {
-    id: '3',
-    name: 'Fatima Zahra',
-    specialty: 'Dermatologie',
-    rating: 4.9,
-    reviews: 156,
-    location: 'Tunis Centre',
-    governorate: 'Tunis',
-    distance: 2.1,
-    price: 45,
-    availability: 'Demain 11h',
-    certified: true,
-    videoConsultation: true,
-  },
-  {
-    id: '4',
-    name: 'Mohamed Nasser',
-    specialty: 'Pédiatrie',
-    rating: 4.6,
-    reviews: 87,
-    location: 'Ariana',
-    governorate: 'Ariana',
-    distance: 5.3,
-    price: 40,
-    availability: 'Demain 10h',
-    certified: false,
-    videoConsultation: true,
-  },
-  {
-    id: '5',
-    name: 'Hana Dhawi',
-    specialty: 'Gynécologie',
-    rating: 4.8,
-    reviews: 145,
-    location: 'Menzah',
-    governorate: 'Tunis',
-    distance: 3.2,
-    price: 50,
-    availability: 'Aujourd\'hui 15h',
-    certified: true,
-    videoConsultation: true,
-  },
-  {
-    id: '6',
-    name: 'Riadh Gharbi',
-    specialty: 'Orthopédie',
-    rating: 4.7,
-    reviews: 112,
-    location: 'Carthage',
-    governorate: 'Tunis',
-    distance: 4.1,
-    price: 55,
-    availability: 'Demain 09h',
-    certified: true,
-    videoConsultation: false,
-  },
-  {
-    id: '7',
-    name: 'Leïla Khaled',
-    specialty: 'Psychologie',
-    rating: 4.9,
-    reviews: 178,
-    location: 'Tunis Centre',
-    governorate: 'Tunis',
-    distance: 2.5,
-    price: 45,
-    availability: 'Aujourd\'hui 17h',
-    certified: true,
-    videoConsultation: true,
-  },
-  {
-    id: '8',
-    name: 'Ahmed Saidi',
-    specialty: 'Psychiatrie',
-    rating: 4.7,
-    reviews: 95,
-    location: 'Bardo',
-    governorate: 'Ben Arous',
-    distance: 6.2,
-    price: 60,
-    availability: 'Demain 13h',
-    certified: true,
-    videoConsultation: true,
-  },
-];
+interface DoctorData {
+  id: string;
+  name: string;
+  specialty: string;
+  rating: number;
+  reviews: number;
+  location: string;
+  governorate: string;
+  distance: number;
+  price: number;
+  availability: string;
+  certified: boolean;
+  videoConsultation: boolean;
+}
 
 const specialties = [
-  'Cardiologie',
-  'Dermatologie',
-  'Pédiatrie',
-  'Psychiatrie',
-  'Psychologie',
-  'Orthopédie',
-  'Gynécologie',
-  'ORL',
-  'Ophtalmologie',
+  "Cardiologie",
+  "Dermatologie",
+  "Pédiatrie",
+  "Psychiatrie",
+  "Psychologie",
+  "Orthopédie",
+  "Gynécologie",
+  "ORL",
+  "Ophtalmologie",
+  "Médecine générale",
 ];
 
 export default function FindDoctorPage() {
   const { user, isLoading, isAuthenticated } = useAuth();
   const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedSpecialties, setSelectedSpecialties] = useState<Set<string>>(new Set());
-  const [selectedGovernorate, setSelectedGovernorate] = useState('');
-  const [sortBy, setSortBy] = useState<'rating' | 'price' | 'distance'>('rating');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedSpecialties, setSelectedSpecialties] = useState<Set<string>>(
+    new Set(),
+  );
+  const [selectedGovernorate, setSelectedGovernorate] = useState("");
+  const [sortBy, setSortBy] = useState<"rating" | "price" | "distance">(
+    "rating",
+  );
   const [priceFilter, setPriceFilter] = useState(100);
   const [showVideoOnly, setShowVideoOnly] = useState(false);
+  const [doctors, setDoctors] = useState<DoctorData[]>([]);
+  const [doctorsLoading, setDoctorsLoading] = useState(true);
+
+  useEffect(() => {
+    const token = localStorage.getItem("megacare_token");
+    if (!token) return;
+    fetch("/api/doctors", { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data: DoctorData[]) => setDoctors(data))
+      .catch(() => {})
+      .finally(() => setDoctorsLoading(false));
+  }, []);
 
   const filteredDoctors = useMemo(() => {
-    let results = mockDoctors.filter((doctor) => {
+    let results = doctors.filter((doctor) => {
       const matchesSearch =
         doctor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         doctor.specialty.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesSpecialty = selectedSpecialties.size === 0 || selectedSpecialties.has(doctor.specialty);
-      const matchesGovernorate = !selectedGovernorate || doctor.governorate === selectedGovernorate;
+      const matchesSpecialty =
+        selectedSpecialties.size === 0 ||
+        selectedSpecialties.has(doctor.specialty);
+      const matchesGovernorate =
+        !selectedGovernorate || doctor.governorate === selectedGovernorate;
       const matchesPrice = doctor.price <= priceFilter;
       const matchesVideo = !showVideoOnly || doctor.videoConsultation;
 
-      return matchesSearch && matchesSpecialty && matchesGovernorate && matchesPrice && matchesVideo;
+      return (
+        matchesSearch &&
+        matchesSpecialty &&
+        matchesGovernorate &&
+        matchesPrice &&
+        matchesVideo
+      );
     });
 
     results.sort((a, b) => {
-      if (sortBy === 'rating') return b.rating - a.rating;
-      if (sortBy === 'price') return a.price - b.price;
-      if (sortBy === 'distance') return a.distance - b.distance;
+      if (sortBy === "rating") return b.rating - a.rating;
+      if (sortBy === "price") return a.price - b.price;
+      if (sortBy === "distance") return a.distance - b.distance;
       return 0;
     });
 
     return results;
-  }, [searchQuery, selectedSpecialties, selectedGovernorate, sortBy, priceFilter, showVideoOnly]);
+  }, [
+    doctors,
+    searchQuery,
+    selectedSpecialties,
+    selectedGovernorate,
+    sortBy,
+    priceFilter,
+    showVideoOnly,
+  ]);
 
   if (isLoading) {
     return (
@@ -207,7 +140,7 @@ export default function FindDoctorPage() {
   }
 
   if (!isAuthenticated || !user) {
-    navigate('/login');
+    navigate("/login");
     return null;
   }
 
@@ -222,12 +155,19 @@ export default function FindDoctorPage() {
           {/* Header */}
           <div className="bg-card border-b border-border p-6 sticky top-0 z-10">
             <div className="flex items-center gap-4">
-              <Link to="/dashboard" className="p-2 hover:bg-secondary rounded-lg transition">
+              <Link
+                to="/dashboard"
+                className="p-2 hover:bg-secondary rounded-lg transition"
+              >
                 <ArrowLeft size={20} className="text-primary" />
               </Link>
               <div>
-                <h1 className="text-3xl font-bold text-foreground">Trouver un médecin</h1>
-                <p className="text-muted-foreground mt-1">{filteredDoctors.length} médecin(s) disponible(s)</p>
+                <h1 className="text-3xl font-bold text-foreground">
+                  Trouver un médecin
+                </h1>
+                <p className="text-muted-foreground mt-1">
+                  {filteredDoctors.length} médecin(s) disponible(s)
+                </p>
               </div>
             </div>
           </div>
@@ -240,7 +180,10 @@ export default function FindDoctorPage() {
 
               {/* Search Bar */}
               <div className="relative">
-                <Search size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <Search
+                  size={20}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground"
+                />
                 <input
                   type="text"
                   placeholder="Chercher un médecin ou une spécialité..."
@@ -253,18 +196,25 @@ export default function FindDoctorPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {/* Specialty Filter */}
                 <div className="space-y-3">
-                  <label className="text-sm font-semibold text-foreground">Spécialités</label>
+                  <label className="text-sm font-semibold text-foreground">
+                    Spécialités
+                  </label>
                   <div className="bg-secondary/30 rounded-lg p-3 max-h-64 overflow-y-auto space-y-2">
                     {specialties.map((spec) => {
                       const specialtyInfo = specialtiesMap[spec];
                       const Icon = specialtyInfo?.icon;
                       return (
-                        <label key={spec} className="flex items-center gap-3 cursor-pointer hover:bg-secondary/50 p-2 rounded transition">
+                        <label
+                          key={spec}
+                          className="flex items-center gap-3 cursor-pointer hover:bg-secondary/50 p-2 rounded transition"
+                        >
                           <input
                             type="checkbox"
                             checked={selectedSpecialties.has(spec)}
                             onChange={(e) => {
-                              const newSpecialties = new Set(selectedSpecialties);
+                              const newSpecialties = new Set(
+                                selectedSpecialties,
+                              );
                               if (e.target.checked) {
                                 newSpecialties.add(spec);
                               } else {
@@ -274,10 +224,16 @@ export default function FindDoctorPage() {
                             }}
                             className="w-4 h-4 bg-input border border-border rounded cursor-pointer accent-primary"
                           />
-                          {Icon && <Icon className="w-5 h-5 text-primary flex-shrink-0" />}
+                          {Icon && (
+                            <Icon className="w-5 h-5 text-primary flex-shrink-0" />
+                          )}
                           <div className="flex flex-col">
-                            <span className="text-sm font-medium text-foreground">{spec}</span>
-                            <span className="text-xs text-muted-foreground">{specialtyInfo?.description}</span>
+                            <span className="text-sm font-medium text-foreground">
+                              {spec}
+                            </span>
+                            <span className="text-xs text-muted-foreground">
+                              {specialtyInfo?.description}
+                            </span>
                           </div>
                         </label>
                       );
@@ -287,7 +243,9 @@ export default function FindDoctorPage() {
 
                 {/* Governorate Filter */}
                 <div className="space-y-2">
-                  <label className="text-sm font-semibold text-foreground">Gouvernorat</label>
+                  <label className="text-sm font-semibold text-foreground">
+                    Gouvernorat
+                  </label>
                   <select
                     value={selectedGovernorate}
                     onChange={(e) => setSelectedGovernorate(e.target.value)}
@@ -319,10 +277,16 @@ export default function FindDoctorPage() {
 
                 {/* Sort By */}
                 <div className="space-y-2">
-                  <label className="text-sm font-semibold text-foreground">Trier par</label>
+                  <label className="text-sm font-semibold text-foreground">
+                    Trier par
+                  </label>
                   <select
                     value={sortBy}
-                    onChange={(e) => setSortBy(e.target.value as 'rating' | 'price' | 'distance')}
+                    onChange={(e) =>
+                      setSortBy(
+                        e.target.value as "rating" | "price" | "distance",
+                      )
+                    }
                     className="w-full px-4 py-2 bg-input border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
                   >
                     <option value="rating">Meilleure note</option>
@@ -333,16 +297,18 @@ export default function FindDoctorPage() {
 
                 {/* Video Consultation Filter */}
                 <div className="space-y-2">
-                  <label className="text-sm font-semibold text-foreground">Consultation</label>
+                  <label className="text-sm font-semibold text-foreground">
+                    Consultation
+                  </label>
                   <button
                     onClick={() => setShowVideoOnly(!showVideoOnly)}
                     className={`w-full px-4 py-2 rounded-lg font-medium transition ${
                       showVideoOnly
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-secondary border border-border hover:bg-secondary/80'
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-secondary border border-border hover:bg-secondary/80"
                     }`}
                   >
-                    {showVideoOnly ? 'Vidéo uniquement' : 'Tous les types'}
+                    {showVideoOnly ? "Vidéo uniquement" : "Tous les types"}
                   </button>
                 </div>
               </div>
@@ -371,7 +337,9 @@ export default function FindDoctorPage() {
             ) : (
               <div className="bg-card rounded-xl border border-border p-12 text-center space-y-4">
                 <div className="text-5xl">🔍</div>
-                <h3 className="text-xl font-semibold text-foreground">Aucun médecin trouvé</h3>
+                <h3 className="text-xl font-semibold text-foreground">
+                  Aucun médecin trouvé
+                </h3>
                 <p className="text-muted-foreground">
                   Essayez de modifier vos critères de recherche
                 </p>

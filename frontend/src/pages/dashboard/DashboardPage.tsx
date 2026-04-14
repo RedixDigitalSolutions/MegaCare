@@ -18,7 +18,32 @@ import {
   CheckCircle2,
   Activity,
 } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+
+interface AppointmentData {
+  id: string;
+  doctorId: string;
+  doctorName?: string;
+  date: string;
+  time: string;
+  reason: string;
+  status: string;
+}
+
+interface PrescriptionData {
+  id: string;
+  doctorId: string;
+  medicines: any[];
+  createdAt: string;
+}
+
+export default function DashboardPage() {
+  const { user, isLoading, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  const [appointments, setAppointments] = useState<AppointmentData[]>([]);
+  const [prescriptions, setPrescriptions] = useState<PrescriptionData[]>([]);
+  const [doctorNames, setDoctorNames] = useState<Record<string, string>>({});
+  const [dataLoading, setDataLoading] = useState(true);
 
 export default function DashboardPage() {
   const { user, isLoading, isAuthenticated } = useAuth();
@@ -39,7 +64,37 @@ export default function DashboardPage() {
     }
   }, [isLoading, isAuthenticated, user, navigate]);
 
-  if (isLoading) {
+  useEffect(() => {
+    if (!isAuthenticated || !user) return;
+    const token = localStorage.getItem("megacare_token");
+    if (!token) return;
+    const headers = { Authorization: `Bearer ${token}` };
+
+    Promise.all([
+      fetch("/api/appointments", { headers }).then((r) => r.ok ? r.json() : []),
+      fetch("/api/prescriptions", { headers }).then((r) => r.ok ? r.json() : []),
+    ])
+      .then(async ([appts, rxs]) => {
+        setAppointments(appts);
+        setPrescriptions(rxs);
+        // Resolve doctor names for appointments
+        const doctorIds = [...new Set(appts.map((a: AppointmentData) => a.doctorId))] as string[];
+        const names: Record<string, string> = {};
+        await Promise.all(
+          doctorIds.map((id) =>
+            fetch(`/api/users/${id}`, { headers })
+              .then((r) => r.ok ? r.json() : null)
+              .then((u) => { if (u) names[id] = `${u.firstName} ${u.lastName}`; })
+              .catch(() => {})
+          )
+        );
+        setDoctorNames(names);
+      })
+      .catch(() => {})
+      .finally(() => setDataLoading(false));
+  }, [isAuthenticated, user]);
+
+  if (isLoading || dataLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
         <div className="space-y-4 text-center">
@@ -61,87 +116,69 @@ export default function DashboardPage() {
   const greeting =
     hour < 12 ? "Bonjour" : hour < 18 ? "Bon après-midi" : "Bonsoir";
 
-  const upcomingAppointments = [
-    {
-      id: 1,
-      doctor: "Amira Mansouri",
-      specialty: "Cardiologie",
-      date: "Demain",
-      time: "14:00",
-      type: "Vidéo",
-      hoursUntil: 18,
-    },
-    {
-      id: 2,
-      doctor: "Fatima Zahra",
-      specialty: "Dermatologie",
-      date: "Jeu. 30 Jan",
-      time: "11:00",
-      type: "Vidéo",
-      hoursUntil: 72,
-    },
-    {
-      id: 3,
-      doctor: "Leïla Khaled",
-      specialty: "Psychologie",
-      date: "Ven. 31 Jan",
-      time: "17:00",
-      type: "Vidéo",
-      hoursUntil: 96,
-    },
-  ];
+  // Compute upcoming appointments from real data
+  const now = new Date();
+  const upcomingAppointments = appointments
+    .filter((a) => {
+      const apptDate = new Date(`${a.date}T${a.time}`);
+      return apptDate >= now && a.status !== "cancelled" && a.status !== "rejected";
+    })
+    .sort((a, b) => new Date(`${a.date}T${a.time}`).getTime() - new Date(`${b.date}T${b.time}`).getTime())
+    .slice(0, 3)
+    .map((a) => {
+      const apptDate = new Date(`${a.date}T${a.time}`);
+      const hoursUntil = Math.max(0, Math.round((apptDate.getTime() - now.getTime()) / 3600000));
+      const isToday = a.date === now.toISOString().split("T")[0];
+      const isTomorrow = a.date === new Date(now.getTime() + 86400000).toISOString().split("T")[0];
+      const dateLabel = isToday ? "Aujourd'hui" : isTomorrow ? "Demain" : new Date(a.date).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" });
+      return {
+        id: a.id,
+        doctor: doctorNames[a.doctorId] || "Médecin",
+        specialty: a.reason || "Consultation",
+        date: dateLabel,
+        time: a.time,
+        type: "Vidéo",
+        hoursUntil,
+      };
+    });
+
+  const upcomingCount = upcomingAppointments.length;
+  const nextApptLabel = upcomingAppointments.length > 0
+    ? `Prochain: ${upcomingAppointments[0].date} ${upcomingAppointments[0].time}`
+    : "Aucun RDV";
 
   const kpiCards = [
     {
       icon: Calendar,
       title: "RDV à venir",
-      value: "2",
-      subtitle: "Prochain: Demain 14h",
+      value: String(upcomingCount),
+      subtitle: nextApptLabel,
       iconClass: "text-primary",
       bgClass: "bg-primary/10",
     },
     {
       icon: Pill,
       title: "Ordonnances",
-      value: "3",
-      subtitle: "Expire dans 12 jours",
+      value: String(prescriptions.length),
+      subtitle: prescriptions.length > 0 ? `${prescriptions.length} ordonnance(s)` : "Aucune ordonnance",
       iconClass: "text-accent",
       bgClass: "bg-accent/10",
     },
     {
-      icon: Package,
-      title: "Commandes",
-      value: "1",
-      subtitle: "Prête pour retrait",
-      iconClass: "text-amber-500",
-      bgClass: "bg-amber-500/10",
-    },
-    {
       icon: FileText,
-      title: "Dossier médical",
-      value: "65%",
-      subtitle: "Mis à jour il y a 3j",
+      title: "Consultations",
+      value: String(appointments.filter((a) => a.status === "completed").length),
+      subtitle: "Consultations passées",
       iconClass: "text-violet-500",
       bgClass: "bg-violet-500/10",
     },
-  ];
-
-  const recentOrders = [
     {
-      id: "CMD-001",
-      pharmacy: "Pharmacie El Amal",
-      items: 3,
-      total: 125,
-      status: "En attente",
-      date: "Aujourd'hui",
-    },
-    {
-      id: "CMD-002",
-      pharmacy: "Pharmacie Centrale",
-      items: 2,
-      total: 89,
-      status: "Retirée",
-      date: "Hier",
+      icon: CheckCircle2,
+      title: "Total RDV",
+      value: String(appointments.length),
+      subtitle: "Tous les rendez-vous",
+      iconClass: "text-amber-500",
+      bgClass: "bg-amber-500/10",
     },
   ];
 
@@ -266,10 +303,13 @@ export default function DashboardPage() {
                   <Calendar size={14} />
                   Prochain rendez-vous
                 </p>
-                <span className="text-xs text-white/80 bg-white/20 px-2.5 py-1 rounded-full">
-                  Dans {upcomingAppointments[0].hoursUntil}h
-                </span>
+                {upcomingAppointments.length > 0 && (
+                  <span className="text-xs text-white/80 bg-white/20 px-2.5 py-1 rounded-full">
+                    Dans {upcomingAppointments[0].hoursUntil}h
+                  </span>
+                )}
               </div>
+              {upcomingAppointments.length > 0 ? (
               <div className="p-6 space-y-5">
                 <div className="flex items-start gap-4">
                   <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
@@ -308,6 +348,14 @@ export default function DashboardPage() {
                   Salle active 10 min avant le rendez-vous
                 </p>
               </div>
+              ) : (
+              <div className="p-6 text-center text-muted-foreground">
+                <p className="text-sm">Aucun rendez-vous à venir</p>
+                <Link to="/dashboard/find-doctor" className="text-primary text-sm font-medium hover:underline mt-2 inline-block">
+                  Prendre un rendez-vous
+                </Link>
+              </div>
+              )}
             </div>
 
             {/* Pharmacy Quick Access — 2 cols */}
@@ -406,7 +454,7 @@ export default function DashboardPage() {
                 </Link>
               </div>
               <div className="p-4 space-y-2">
-                {upcomingAppointments.map((apt, index) => (
+                {upcomingAppointments.length > 0 ? upcomingAppointments.map((apt, index) => (
                   <div
                     key={apt.id}
                     className={`flex items-center gap-3 p-3.5 rounded-xl border transition ${
@@ -448,63 +496,50 @@ export default function DashboardPage() {
                       </p>
                     </div>
                   </div>
-                ))}
+                )) : (
+                  <p className="text-sm text-muted-foreground text-center py-4">Aucun rendez-vous à venir</p>
+                )}
               </div>
             </div>
 
-            {/* Orders list */}
+            {/* Prescriptions list */}
             <div className="bg-card rounded-xl border border-border overflow-hidden">
               <div className="flex items-center justify-between px-6 py-4 border-b border-border">
                 <h3 className="font-semibold text-foreground text-sm flex items-center gap-2">
-                  <Package size={15} className="text-amber-500" />
-                  Commandes récentes
+                  <Pill size={15} className="text-accent" />
+                  Ordonnances récentes
                 </h3>
                 <Link
-                  to="/dashboard/orders"
+                  to="/dashboard/prescriptions"
                   className="text-xs text-primary hover:underline font-medium flex items-center gap-1"
                 >
                   Voir toutes <ArrowRight size={12} />
                 </Link>
               </div>
               <div className="p-4 space-y-2">
-                {recentOrders.map((order) => (
+                {prescriptions.length > 0 ? prescriptions.slice(0, 3).map((rx) => (
                   <div
-                    key={order.id}
-                    className="p-4 rounded-xl border border-border hover:bg-secondary/30 transition space-y-3"
+                    key={rx.id}
+                    className="p-4 rounded-xl border border-border hover:bg-secondary/30 transition space-y-2"
                   >
                     <div className="flex items-start justify-between">
                       <div>
                         <p className="font-semibold text-foreground text-sm">
-                          {order.pharmacy}
+                          {doctorNames[rx.doctorId] ? `Dr. ${doctorNames[rx.doctorId]}` : "Ordonnance"}
                         </p>
                         <p className="text-xs text-muted-foreground mt-0.5">
-                          {order.id} · {order.date}
+                          {new Date(rx.createdAt).toLocaleDateString("fr-FR")}
                         </p>
                       </div>
-                      <p className="font-bold text-foreground">
-                        {order.total}{" "}
-                        <span className="text-xs text-muted-foreground font-normal">
-                          DT
-                        </span>
-                      </p>
-                    </div>
-                    <div className="flex items-center justify-between pt-2.5 border-t border-border">
-                      <p className="text-xs text-muted-foreground">
-                        {order.items} article{order.items > 1 ? "s" : ""}
-                      </p>
-                      <span
-                        className={`text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1.5 ${
-                          order.status === "En attente"
-                            ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
-                            : "bg-accent/10 text-accent"
-                        }`}
-                      >
-                        <CheckCircle2 size={10} />
-                        {order.status}
+                      <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-accent/10 text-accent flex items-center gap-1.5">
+                        <Pill size={10} />
+                        {rx.medicines?.length || 0} médicament(s)
                       </span>
                     </div>
                   </div>
-                ))}
+                )) : (
+                  <p className="text-sm text-muted-foreground text-center py-4">Aucune ordonnance</p>
+                )}
               </div>
             </div>
           </div>

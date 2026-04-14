@@ -1,9 +1,8 @@
-
 import { useState } from "react";
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import { Link } from 'react-router-dom';
+import { Link } from "react-router-dom";
 import { Search, Star, ShoppingCart, Pill, MapPin, Zap } from "lucide-react";
 import { MedicineModal, type Medicine } from "@/components/MedicineModal";
 import { useAuth } from "@/contexts/AuthContext";
@@ -1079,12 +1078,6 @@ export default function PharmacyPage() {
                 Mes ordonnances
               </Link>
               <Link
-                to="/pharmacy/orders"
-                className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg transition"
-              >
-                Mes commandes
-              </Link>
-              <Link
                 to="/pharmacy/chat"
                 className="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-lg transition"
               >
@@ -1342,4 +1335,3 @@ export default function PharmacyPage() {
     </>
   );
 }
-

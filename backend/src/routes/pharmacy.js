@@ -2,107 +2,59 @@ const express = require("express");
 const router = express.Router();
 const authMiddleware = require("../middleware/auth");
 const { randomUUID } = require("crypto");
-
-if (!global._mcProducts) {
-  global._mcProducts = [
-    {
-      id: "1",
-      name: "Paracétamol 500mg",
-      category: "Analgésique",
-      price: 2.5,
-      stock: 100,
-      requiresPrescription: false,
-    },
-    {
-      id: "2",
-      name: "Amoxicilline 500mg",
-      category: "Antibiotique",
-      price: 8.0,
-      stock: 50,
-      requiresPrescription: true,
-    },
-    {
-      id: "3",
-      name: "Ibuprofène 400mg",
-      category: "Anti-inflammatoire",
-      price: 3.5,
-      stock: 75,
-      requiresPrescription: false,
-    },
-    {
-      id: "4",
-      name: "Oméprazole 20mg",
-      category: "Gastro-entérologie",
-      price: 5.0,
-      stock: 60,
-      requiresPrescription: true,
-    },
-    {
-      id: "5",
-      name: "Metformine 500mg",
-      category: "Diabétologie",
-      price: 4.0,
-      stock: 80,
-      requiresPrescription: true,
-    },
-  ];
-}
-if (!global._mcOrders) global._mcOrders = [];
-const products = global._mcProducts;
-const orders = global._mcOrders;
+const Product = require("../models/Product");
+const Order = require("../models/Order");
 
 // GET /api/pharmacy/products
-router.get("/products", (req, res) => {
-  let result = products;
+router.get("/products", async (req, res) => {
+  let filter = {};
   if (req.query.search) {
-    result = result.filter((p) =>
-      p.name.toLowerCase().includes(req.query.search.toLowerCase()),
-    );
+    filter.name = { $regex: req.query.search, $options: "i" };
   }
   if (req.query.category) {
-    result = result.filter((p) =>
-      p.category?.toLowerCase().includes(req.query.category.toLowerCase()),
-    );
+    filter.category = { $regex: req.query.category, $options: "i" };
   }
-  res.json(result);
+  const result = await Product.find(filter).lean();
+  res.json(result.map((p) => ({ ...p, id: p._id })));
 });
 
 // GET /api/pharmacy/products/:id
-router.get("/products/:id", (req, res) => {
-  const product = products.find((p) => p.id === req.params.id);
+router.get("/products/:id", async (req, res) => {
+  const product = await Product.findById(req.params.id).lean();
   if (!product) return res.status(404).json({ message: "Produit non trouvé" });
-  res.json(product);
+  res.json({ ...product, id: product._id });
 });
 
-// POST /api/pharmacy/orders  (requires auth)
-router.post("/orders", authMiddleware, (req, res) => {
+// POST /api/pharmacy/orders
+router.post("/orders", authMiddleware, async (req, res) => {
   const { items } = req.body;
   if (!items || !Array.isArray(items) || items.length === 0) {
     return res.status(400).json({ message: "Au moins un article requis" });
   }
+  const products = await Product.find({
+    _id: { $in: items.map((i) => i.productId) },
+  }).lean();
   const total = items.reduce((sum, item) => {
-    const product = products.find((p) => p.id === item.productId);
+    const product = products.find((p) => p._id === item.productId);
     return sum + (product ? product.price * (item.quantity || 1) : 0);
   }, 0);
-  const order = {
-    id: randomUUID(),
+  const order = await Order.create({
+    _id: randomUUID(),
     userId: req.user.id,
     items,
     total: Math.round(total * 100) / 100,
     status: "pending",
-    createdAt: new Date().toISOString(),
-  };
-  orders.push(order);
-  res.status(201).json(order);
+  });
+  res.status(201).json({ ...order.toObject(), id: order._id });
 });
 
 // GET /api/pharmacy/orders/:id
-router.get("/orders/:id", authMiddleware, (req, res) => {
-  const order = orders.find((o) => o.id === req.params.id);
+router.get("/orders/:id", authMiddleware, async (req, res) => {
+  const order = await Order.findById(req.params.id).lean();
   if (!order) return res.status(404).json({ message: "Commande non trouvée" });
   if (order.userId !== req.user.id)
     return res.status(403).json({ message: "Accès refusé" });
-  res.json(order);
+  res.json({ ...order, id: order._id });
 });
 
 module.exports = router;

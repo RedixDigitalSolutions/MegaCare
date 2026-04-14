@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { DoctorDashboardSidebar } from "@/components/DoctorDashboardSidebar";
@@ -14,12 +14,13 @@ import {
   Heart,
   AlertCircle,
   CheckCircle,
+  Loader2,
 } from "lucide-react";
 
 type PatientStatus = "Actif" | "Inactif" | "Urgent";
 
 interface Patient {
-  id: number;
+  id: string;
   firstName: string;
   lastName: string;
   age: number;
@@ -35,120 +36,59 @@ interface Patient {
   recentNotes: string;
 }
 
-const PATIENTS: Patient[] = [
+// Enrichment data keyed by patient email — provides medical context for the drawer
+const PATIENT_EXTRA: Record<
+  string,
   {
-    id: 1,
-    firstName: "Fatima",
-    lastName: "Benali",
-    age: 34,
-    phone: "+216 98 123 456",
-    email: "fatima.benali@email.com",
-    lastVisit: "2026-04-03",
-    nextVisit: "2026-05-03",
+    status: PatientStatus;
+    condition: string;
+    consultations: number;
+    lastVisit: string;
+    nextVisit: string | null;
+    recentNotes: string;
+  }
+> = {
+  "patient@megacare.tn": {
     status: "Actif",
     condition: "Hypertension artérielle",
     consultations: 12,
-    bloodType: "A+",
-    allergies: ["Pénicilline"],
+    lastVisit: "2026-04-03",
+    nextVisit: "2026-05-03",
     recentNotes: "TA stable sous traitement. Renouvellement Amlodipine 5mg.",
   },
-  {
-    id: 2,
-    firstName: "Mohamed",
-    lastName: "Karoui",
-    age: 52,
-    phone: "+216 98 234 567",
-    email: "m.karoui@email.com",
-    lastVisit: "2026-04-02",
-    nextVisit: "2026-04-16",
+  "patient2@megacare.tn": {
     status: "Urgent",
     condition: "Insuffisance cardiaque",
     consultations: 24,
-    bloodType: "O+",
-    allergies: ["Aspirine", "Iode"],
+    lastVisit: "2026-04-02",
+    nextVisit: "2026-04-16",
     recentNotes: "Œdèmes aux membres inférieurs. Ajustement Furosémide.",
   },
-  {
-    id: 3,
-    firstName: "Aisha",
-    lastName: "Hamdi",
-    age: 28,
-    phone: "+216 98 345 678",
-    email: "aisha.hamdi@email.com",
-    lastVisit: "2026-03-28",
-    nextVisit: "2026-04-05",
+  "patient3@megacare.tn": {
     status: "Actif",
     condition: "Palpitations bénignes",
     consultations: 4,
-    bloodType: "B+",
-    allergies: [],
+    lastVisit: "2026-03-28",
+    nextVisit: "2026-04-05",
     recentNotes: "Holter prescrit. Éviter excitants.",
   },
-  {
-    id: 4,
-    firstName: "Salim",
-    lastName: "Drissi",
-    age: 61,
-    phone: "+216 98 456 789",
-    email: "s.drissi@email.com",
-    lastVisit: "2026-02-15",
-    nextVisit: null,
+  "patient4@megacare.tn": {
     status: "Inactif",
     condition: "Cholestérolémie",
     consultations: 7,
-    bloodType: "AB-",
-    allergies: ["Statines (myopathie)"],
+    lastVisit: "2026-02-15",
+    nextVisit: null,
     recentNotes: "Perdu de vue depuis 6 semaines. Rappel recommandé.",
   },
-  {
-    id: 5,
-    firstName: "Layla",
-    lastName: "Meddeb",
-    age: 41,
-    phone: "+216 98 567 890",
-    email: "layla.meddeb@email.com",
-    lastVisit: "2026-04-01",
-    nextVisit: "2026-04-15",
+  "patient5@megacare.tn": {
     status: "Actif",
     condition: "Arythmie sinusale",
     consultations: 9,
-    bloodType: "A-",
-    allergies: [],
+    lastVisit: "2026-04-01",
+    nextVisit: "2026-04-15",
     recentNotes: "ECG de contrôle normal. Surveillance continue.",
   },
-  {
-    id: 6,
-    firstName: "Youssef",
-    lastName: "Tlili",
-    age: 47,
-    phone: "+216 98 678 901",
-    email: "y.tlili@email.com",
-    lastVisit: "2026-04-01",
-    nextVisit: "2026-04-22",
-    status: "Actif",
-    condition: "Angine de poitrine stable",
-    consultations: 18,
-    bloodType: "O-",
-    allergies: ["Bêtabloquants"],
-    recentNotes: "Stabilisé sous nitrates longue durée.",
-  },
-  {
-    id: 7,
-    firstName: "Nadia",
-    lastName: "Boughanmi",
-    age: 36,
-    phone: "+216 98 789 012",
-    email: "n.boughanmi@email.com",
-    lastVisit: "2026-03-30",
-    nextVisit: "2026-05-10",
-    status: "Actif",
-    condition: "Anxiété cardiovasculaire",
-    consultations: 5,
-    bloodType: "B-",
-    allergies: [],
-    recentNotes: "Bilan complet normal. Suivi trimestriel.",
-  },
-];
+};
 
 const STATUS_CFG: Record<
   PatientStatus,
@@ -178,14 +118,96 @@ function getInitials(p: Patient) {
   return `${p.firstName[0]}${p.lastName[0]}`.toUpperCase();
 }
 
+function getAgeFromEmail(email: string): number {
+  const ages: Record<string, number> = {
+    "patient@megacare.tn": 34,
+    "patient2@megacare.tn": 52,
+    "patient3@megacare.tn": 28,
+    "patient4@megacare.tn": 61,
+    "patient5@megacare.tn": 41,
+  };
+  return ages[email] || 30;
+}
+
 export default function DoctorPatientsPage() {
   const { user, isLoading, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const [patients, setPatients] = useState<Patient[]>([]);
+  const [loadingPatients, setLoadingPatients] = useState(true);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<PatientStatus | "Tous">(
     "Tous",
   );
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
+
+  const token = localStorage.getItem("megacare_token");
+
+  const fetchPatients = useCallback(async () => {
+    try {
+      const res = await fetch("/api/users", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) return;
+      const allUsers = await res.json();
+      const patientUsers = allUsers.filter((u: any) => u.role === "patient");
+
+      // Also fetch dossiers to get allergy/bloodType data
+      const enriched: Patient[] = await Promise.all(
+        patientUsers.map(async (u: any) => {
+          const extra = PATIENT_EXTRA[u.email] || {
+            status: "Actif" as PatientStatus,
+            condition: "—",
+            consultations: 0,
+            lastVisit: "—",
+            nextVisit: null,
+            recentNotes: "",
+          };
+
+          let bloodType = "—";
+          let allergies: string[] = [];
+          try {
+            const dRes = await fetch(`/api/dossier/${u.id}`, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            if (dRes.ok) {
+              const dossier = await dRes.json();
+              bloodType = dossier.personal?.bloodType || "—";
+              allergies = (dossier.allergies || []).map((a: any) => a.name);
+            }
+          } catch {
+            // ignore
+          }
+
+          return {
+            id: u.id,
+            firstName: u.firstName,
+            lastName: u.lastName,
+            age: extra.status
+              ? PATIENT_EXTRA[u.email]
+                ? getAgeFromEmail(u.email)
+                : 30
+              : 30,
+            phone: u.phone || "—",
+            email: u.email,
+            lastVisit: extra.lastVisit,
+            nextVisit: extra.nextVisit,
+            status: extra.status,
+            condition: extra.condition,
+            consultations: extra.consultations,
+            bloodType,
+            allergies,
+            recentNotes: extra.recentNotes,
+          };
+        }),
+      );
+
+      setPatients(enriched);
+    } catch {
+      // leave empty
+    } finally {
+      setLoadingPatients(false);
+    }
+  }, [token]);
 
   useEffect(() => {
     if (!isLoading && (!isAuthenticated || !user || user.role !== "doctor")) {
@@ -193,10 +215,16 @@ export default function DoctorPatientsPage() {
     }
   }, [isLoading, isAuthenticated, user, navigate]);
 
+  useEffect(() => {
+    if (isAuthenticated && user?.role === "doctor") {
+      fetchPatients();
+    }
+  }, [isAuthenticated, user, fetchPatients]);
+
   if (isLoading || !isAuthenticated || !user || user.role !== "doctor")
     return null;
 
-  const filtered = PATIENTS.filter((p) => {
+  const filtered = patients.filter((p) => {
     const fullName = `${p.firstName} ${p.lastName}`.toLowerCase();
     const matchQuery =
       !query ||
@@ -209,8 +237,8 @@ export default function DoctorPatientsPage() {
 
   const countOf = (s: PatientStatus | "Tous") =>
     s === "Tous"
-      ? PATIENTS.length
-      : PATIENTS.filter((p) => p.status === s).length;
+      ? patients.length
+      : patients.filter((p) => p.status === s).length;
 
   return (
     <div className="min-h-screen bg-background">
@@ -224,7 +252,7 @@ export default function DoctorPatientsPage() {
           <div className="bg-card border-b border-border p-6 sticky top-0 z-10">
             <h1 className="text-3xl font-bold text-foreground">Mes Patients</h1>
             <p className="text-muted-foreground mt-1">
-              {PATIENTS.length} patients enregistrés
+              {patients.length} patients enregistrés
             </p>
           </div>
 
@@ -284,104 +312,109 @@ export default function DoctorPatientsPage() {
             </div>
 
             {/* Patient Cards */}
-            {filtered.length === 0 && (
+            {loadingPatients ? (
+              <div className="flex items-center justify-center py-16">
+                <Loader2 className="w-7 h-7 animate-spin text-primary" />
+              </div>
+            ) : filtered.length === 0 ? (
               <div className="text-center py-16 text-muted-foreground">
                 Aucun patient ne correspond à votre recherche.
               </div>
-            )}
-            <div className="space-y-3">
-              {filtered.map((patient) => {
-                const cfg = STATUS_CFG[patient.status];
-                return (
-                  <div
-                    key={patient.id}
-                    className="bg-card border border-border rounded-xl p-5 hover:shadow-md transition flex items-start gap-4"
-                  >
-                    {/* Avatar */}
-                    <div className="relative shrink-0">
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center font-bold text-primary text-sm">
-                        {getInitials(patient)}
-                      </div>
-                      <span
-                        className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-card ${cfg.dot}`}
-                      />
-                    </div>
-
-                    {/* Main Info */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex flex-wrap items-center gap-2 mb-1">
-                        <h3 className="font-semibold text-foreground">
-                          {patient.firstName} {patient.lastName}
-                        </h3>
-                        <span className="text-xs text-muted-foreground">
-                          {patient.age} ans · {patient.bloodType}
-                        </span>
-                        <span
-                          className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${cfg.badgeCls}`}
-                        >
-                          {cfg.icon}
-                          {cfg.label}
-                        </span>
-                      </div>
-
-                      <p className="text-sm text-muted-foreground mb-2 flex items-center gap-1">
-                        <Heart size={12} className="text-primary/60" />
-                        {patient.condition}
-                      </p>
-
-                      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                        <span className="flex items-center gap-1">
-                          <Calendar size={11} />
-                          Dernière visite: {patient.lastVisit}
-                        </span>
-                        {patient.nextVisit && (
-                          <span className="flex items-center gap-1 text-primary">
-                            <Calendar size={11} />
-                            Prochaine: {patient.nextVisit}
-                          </span>
-                        )}
-                        <span className="flex items-center gap-1">
-                          <Phone size={11} />
-                          {patient.phone}
-                        </span>
-                        <span>{patient.consultations} consultations</span>
-                      </div>
-
-                      {patient.allergies.length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-2">
-                          {patient.allergies.map((a) => (
-                            <span
-                              key={a}
-                              className="text-xs bg-red-50 text-red-600 border border-red-100 px-2 py-0.5 rounded-full"
-                            >
-                              ⚠ {a}
-                            </span>
-                          ))}
+            ) : (
+              <div className="space-y-3">
+                {filtered.map((patient) => {
+                  const cfg = STATUS_CFG[patient.status];
+                  return (
+                    <div
+                      key={patient.id}
+                      className="bg-card border border-border rounded-xl p-5 hover:shadow-md transition flex items-start gap-4"
+                    >
+                      {/* Avatar */}
+                      <div className="relative shrink-0">
+                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center font-bold text-primary text-sm">
+                          {getInitials(patient)}
                         </div>
-                      )}
-                    </div>
+                        <span
+                          className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-card ${cfg.dot}`}
+                        />
+                      </div>
 
-                    {/* Actions */}
-                    <div className="flex flex-col gap-2 shrink-0 items-end">
-                      <button
-                        onClick={() => setSelectedPatient(patient)}
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition text-sm font-medium"
-                      >
-                        <FileText size={14} />
-                        Dossier
-                      </button>
-                      <a
-                        href={`tel:${patient.phone}`}
-                        className="flex items-center gap-1.5 px-3 py-1.5 border border-border rounded-lg hover:bg-muted transition text-sm"
-                      >
-                        <Phone size={14} />
-                        Appeler
-                      </a>
+                      {/* Main Info */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex flex-wrap items-center gap-2 mb-1">
+                          <h3 className="font-semibold text-foreground">
+                            {patient.firstName} {patient.lastName}
+                          </h3>
+                          <span className="text-xs text-muted-foreground">
+                            {patient.age} ans · {patient.bloodType}
+                          </span>
+                          <span
+                            className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${cfg.badgeCls}`}
+                          >
+                            {cfg.icon}
+                            {cfg.label}
+                          </span>
+                        </div>
+
+                        <p className="text-sm text-muted-foreground mb-2 flex items-center gap-1">
+                          <Heart size={12} className="text-primary/60" />
+                          {patient.condition}
+                        </p>
+
+                        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1">
+                            <Calendar size={11} />
+                            Dernière visite: {patient.lastVisit}
+                          </span>
+                          {patient.nextVisit && (
+                            <span className="flex items-center gap-1 text-primary">
+                              <Calendar size={11} />
+                              Prochaine: {patient.nextVisit}
+                            </span>
+                          )}
+                          <span className="flex items-center gap-1">
+                            <Phone size={11} />
+                            {patient.phone}
+                          </span>
+                          <span>{patient.consultations} consultations</span>
+                        </div>
+
+                        {patient.allergies.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {patient.allergies.map((a) => (
+                              <span
+                                key={a}
+                                className="text-xs bg-red-50 text-red-600 border border-red-100 px-2 py-0.5 rounded-full"
+                              >
+                                ⚠ {a}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex flex-col gap-2 shrink-0 items-end">
+                        <button
+                          onClick={() => setSelectedPatient(patient)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition text-sm font-medium"
+                        >
+                          <FileText size={14} />
+                          Dossier
+                        </button>
+                        <a
+                          href={`tel:${patient.phone}`}
+                          className="flex items-center gap-1.5 px-3 py-1.5 border border-border rounded-lg hover:bg-muted transition text-sm"
+                        >
+                          <Phone size={14} />
+                          Appeler
+                        </a>
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </main>
       </div>
@@ -527,7 +560,14 @@ export default function DoctorPatientsPage() {
                 <Phone size={15} />
                 Appeler
               </a>
-              <button className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition text-sm font-medium">
+              <button
+                onClick={() =>
+                  navigate(
+                    `/doctor-dashboard/patient-dossier/${selectedPatient.id}`,
+                  )
+                }
+                className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition text-sm font-medium"
+              >
                 <ChevronRight size={15} />
                 Voir dossier complet
               </button>

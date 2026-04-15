@@ -54,6 +54,37 @@ export default function PrescriptionScannerPage() {
     }
   }, []);
 
+  const enrichMedicinesFromDB = async (medicines: ExtractedMedicine[]): Promise<ExtractedMedicine[]> => {
+    return Promise.all(
+      medicines.map(async (med) => {
+        try {
+          const res = await fetch(`/api/pharmacy/products?search=${encodeURIComponent(med.name)}`);
+          if (res.ok) {
+            const json = await res.json();
+            const results: any[] = Array.isArray(json) ? json : (json.data ?? []);
+            if (results.length > 0) {
+              const p = results[0];
+              return {
+                ...med,
+                foundMedicine: {
+                  id: String(p._id ?? p.id),
+                  name: p.name,
+                  dosage: p.form || "",
+                  category: p.category || "",
+                  price: p.price,
+                  inStock: (p.stock ?? 0) > 0,
+                  quantity: p.stock ?? 0,
+                  description: p.description || "",
+                },
+              };
+            }
+          }
+        } catch { /* ignore */ }
+        return med;
+      }),
+    );
+  };
+
   const handleFileSelected = async (file: File) => {
     setSelectedFile(file);
     setError(null);
@@ -75,7 +106,8 @@ export default function PrescriptionScannerPage() {
 
           // Extract medicine names from OCR text
           const prescriptionInfo = extractPrescriptionInfo(extractedText);
-          setExtractedMedicines(prescriptionInfo.medicines);
+          const enriched = await enrichMedicinesFromDB(prescriptionInfo.medicines);
+          setExtractedMedicines(enriched);
 
           await worker.terminate();
           setStep("results");
@@ -140,18 +172,16 @@ export default function PrescriptionScannerPage() {
             <div className="flex items-center justify-between">
               <div className="flex-1">
                 <div
-                  className={`flex items-center gap-3 p-4 rounded-lg transition ${
-                    step === "pharmacy"
-                      ? "bg-primary/10 border-2 border-primary"
-                      : "bg-secondary/30 border-2 border-border"
-                  }`}
+                  className={`flex items-center gap-3 p-4 rounded-lg transition ${step === "pharmacy"
+                    ? "bg-primary/10 border-2 border-primary"
+                    : "bg-secondary/30 border-2 border-border"
+                    }`}
                 >
                   <div
-                    className={`flex items-center justify-center w-10 h-10 rounded-full font-bold ${
-                      step === "pharmacy"
-                        ? "bg-primary text-white"
-                        : "bg-secondary text-foreground"
-                    }`}
+                    className={`flex items-center justify-center w-10 h-10 rounded-full font-bold ${step === "pharmacy"
+                      ? "bg-primary text-white"
+                      : "bg-secondary text-foreground"
+                      }`}
                   >
                     1
                   </div>
@@ -180,18 +210,16 @@ export default function PrescriptionScannerPage() {
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
                     <div
-                      className={`flex items-center gap-3 p-4 rounded-lg transition ${
-                        step === "prescription"
-                          ? "bg-primary/10 border-2 border-primary"
-                          : "bg-secondary/30 border-2 border-border"
-                      }`}
+                      className={`flex items-center gap-3 p-4 rounded-lg transition ${step === "prescription"
+                        ? "bg-primary/10 border-2 border-primary"
+                        : "bg-secondary/30 border-2 border-border"
+                        }`}
                     >
                       <div
-                        className={`flex items-center justify-center w-10 h-10 rounded-full font-bold ${
-                          step === "prescription"
-                            ? "bg-primary text-white"
-                            : "bg-secondary text-foreground"
-                        }`}
+                        className={`flex items-center justify-center w-10 h-10 rounded-full font-bold ${step === "prescription"
+                          ? "bg-primary text-white"
+                          : "bg-secondary text-foreground"
+                          }`}
                       >
                         2
                       </div>

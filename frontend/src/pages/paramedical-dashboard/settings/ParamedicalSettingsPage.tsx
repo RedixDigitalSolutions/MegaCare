@@ -11,28 +11,30 @@ import {
   Lock,
 } from "lucide-react";
 
+const tok = () => localStorage.getItem("megacare_token") ?? "";
+
 export default function ParamedicalSettingsPage() {
   const { user } = useAuth();
 
   const [profile, setProfile] = useState({
-    firstName:      user?.firstName      ?? "",
-    lastName:       user?.lastName       ?? "",
-    phone:          user?.phone          ?? "",
+    firstName: user?.firstName ?? "",
+    lastName: user?.lastName ?? "",
+    phone: user?.phone ?? "",
     specialization: user?.specialization ?? "",
   });
 
   const [passwords, setPasswords] = useState({
     current: "",
-    next:    "",
+    next: "",
     confirm: "",
   });
 
   const [showPwd, setShowPwd] = useState(false);
 
   const [notifs, setNotifs] = useState({
-    email:       true,
-    sms:         true,
-    push:        true,
+    email: true,
+    sms: true,
+    push: true,
     dailyReport: true,
   });
 
@@ -44,19 +46,34 @@ export default function ParamedicalSettingsPage() {
     setTimeout(() => setToast(""), 3200);
   };
 
-  const handleProfileSave = (e: React.FormEvent) => {
+  const handleProfileSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    showToast("Profil mis à jour avec succès");
+    const r = await fetch("/api/auth/profile", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok()}` },
+      body: JSON.stringify(profile),
+    }).catch(() => null);
+    if (r && r.ok) showToast("Profil mis a jour avec succes");
+    else showToast("Erreur lors de la mise a jour du profil");
   };
 
-  const handlePasswordSave = (e: React.FormEvent) => {
+  const handlePasswordSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setPwdError("");
     if (!passwords.current) { setPwdError("Mot de passe actuel requis."); return; }
     if (passwords.next.length < 8) { setPwdError("Le nouveau mot de passe doit contenir au moins 8 caractères."); return; }
     if (passwords.next !== passwords.confirm) { setPwdError("Les mots de passe ne correspondent pas."); return; }
-    setPasswords({ current: "", next: "", confirm: "" });
-    showToast("Mot de passe mis à jour");
+    const r = await fetch("/api/auth/change-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok()}` },
+      body: JSON.stringify({ currentPassword: passwords.current, newPassword: passwords.next }),
+    }).catch(() => null);
+    if (r && r.ok) {
+      setPasswords({ current: "", next: "", confirm: "" });
+      showToast("Mot de passe mis a jour");
+    } else {
+      setPwdError("Impossible de mettre a jour le mot de passe.");
+    }
   };
 
   const toggleNotif = (key: keyof typeof notifs) =>
@@ -146,8 +163,8 @@ export default function ParamedicalSettingsPage() {
                       "Psychomotricien(ne)",
                       "Diététicien(ne)",
                       "Autre paramédical"].map((s) => (
-                      <option key={s} value={s}>{s}</option>
-                    ))}
+                        <option key={s} value={s}>{s}</option>
+                      ))}
                   </select>
                 </div>
               </div>
@@ -211,10 +228,10 @@ export default function ParamedicalSettingsPage() {
             </div>
             <div className="p-5 space-y-0 divide-y divide-border">
               {[
-                { key: "email",       label: "Alertes email",          description: "Recevoir les notifications par e-mail" },
-                { key: "sms",         label: "Alertes SMS",            description: "Recevoir les alertes urgentes par SMS" },
-                { key: "push",        label: "Notifications push",     description: "Notifications en temps réel dans l'application" },
-                { key: "dailyReport", label: "Rapport journalier",     description: "Recevoir un résumé quotidien de vos soins" },
+                { key: "email", label: "Alertes email", description: "Recevoir les notifications par e-mail" },
+                { key: "sms", label: "Alertes SMS", description: "Recevoir les alertes urgentes par SMS" },
+                { key: "push", label: "Notifications push", description: "Notifications en temps réel dans l'application" },
+                { key: "dailyReport", label: "Rapport journalier", description: "Recevoir un résumé quotidien de vos soins" },
               ].map(({ key, label, description }) => {
                 const on = notifs[key as keyof typeof notifs];
                 return (

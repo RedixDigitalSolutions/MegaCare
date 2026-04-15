@@ -4,8 +4,10 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { randomUUID } = require("crypto");
 const User = require("../models/User");
+const { addToBlacklist } = require("../middleware/tokenBlacklist");
 
-const JWT_SECRET = process.env.JWT_SECRET || "megacare_secret_key";
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) throw new Error("JWT_SECRET environment variable is not set");
 
 // POST /api/auth/register
 router.post("/register", async (req, res) => {
@@ -31,6 +33,12 @@ router.post("/register", async (req, res) => {
       .status(400)
       .json({ message: "Nom, email et mot de passe requis" });
   }
+  // #6 — Password policy on registration
+  if (password.length < 8) {
+    return res
+      .status(400)
+      .json({ message: "Le mot de passe doit contenir au moins 8 caractères" });
+  }
   const existing = await User.findOne({ email });
   if (existing) {
     return res
@@ -39,7 +47,11 @@ router.post("/register", async (req, res) => {
   }
 
   const hashedPassword = await bcrypt.hash(password, 10);
-  const userRole = role || "patient";
+  // #8 — Whitelist allowed self-registration roles; block admin/lab_radiology
+  const ALLOWED_REGISTRATION_ROLES = [
+    "patient", "doctor", "pharmacist", "medical_service", "paramedical",
+  ];
+  const userRole = ALLOWED_REGISTRATION_ROLES.includes(role) ? role : "patient";
   const parts = name.trim().split(" ");
 
   const user = await User.create({
@@ -98,6 +110,16 @@ router.post("/login", async (req, res) => {
 
 // POST /api/auth/logout
 router.post("/logout", (req, res) => {
+  const token = req.headers.authorization?.split(" ")[1];
+  if (token) {
+    try {
+      const decoded = jwt.decode(token);
+      const expiresAt = decoded?.exp ? decoded.exp * 1000 : Date.now() + 7 * 24 * 60 * 60 * 1000;
+      addToBlacklist(token, expiresAt);
+    } catch {
+      // ignore malformed tokens
+    }
+  }
   res.json({ message: "Logged out" });
 });
 

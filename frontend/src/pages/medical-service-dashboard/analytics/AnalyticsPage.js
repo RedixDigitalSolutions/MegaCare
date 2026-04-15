@@ -1,0 +1,37 @@
+import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
+import { useState, useEffect } from "react";
+import { MedicalServiceDashboardSidebar } from "@/components/MedicalServiceDashboardSidebar";
+import { Users, ClipboardList, TrendingUp, Banknote } from "lucide-react";
+const tok = () => localStorage.getItem("megacare_token") ?? "";
+export default function AnalyticsPage() {
+    const [kpis, setKpis] = useState([]);
+    const [teamPerf, setTeamPerf] = useState([]);
+    const [pathologies, setPathologies] = useState([]);
+    const [monthly, setMonthly] = useState([]);
+    useEffect(() => {
+        fetch("/api/medical-service/analytics", { headers: { Authorization: `Bearer ${tok()}` } })
+            .then(r => r.json())
+            .then(d => {
+            if (d.kpis)
+                setKpis([
+                    { label: "Patients pris en charge", value: String(d.kpis.totalPatients ?? "—"), sub: "", icon: Users, color: "text-blue-500", bg: "bg-blue-50" },
+                    { label: "Visites effectuées", value: String(d.kpis.totalVisits ?? "—"), sub: "", icon: ClipboardList, color: "text-purple-500", bg: "bg-purple-50" },
+                    { label: "Taux de satisfaction", value: `${d.kpis.successRate ?? "—"}%`, sub: "", icon: TrendingUp, color: "text-green-500", bg: "bg-green-50" },
+                    { label: "Revenus du mois", value: `${d.kpis.revenue ?? "—"} DT`, sub: "", icon: Banknote, color: "text-amber-500", bg: "bg-amber-50" },
+                ]);
+            if (d.teamPerf)
+                setTeamPerf(d.teamPerf);
+            if (d.pathologies)
+                setPathologies(d.pathologies);
+            if (d.monthly)
+                setMonthly(d.monthly);
+        })
+            .catch(() => { });
+    }, []);
+    const maxPath = pathologies.length ? Math.max(...pathologies.map(p => p.count)) : 1;
+    const maxVisits = monthly.length ? Math.max(...monthly.map(m => m.visits)) : 1;
+    return (_jsxs("div", { className: "flex min-h-screen bg-background", children: [_jsx(MedicalServiceDashboardSidebar, {}), _jsxs("div", { className: "flex-1 flex flex-col overflow-hidden", children: [_jsxs("header", { className: "bg-card border-b border-border px-6 py-4 shrink-0", children: [_jsx("h1", { className: "text-xl font-bold text-foreground", children: "Statistiques" }), _jsx("p", { className: "text-xs text-muted-foreground", children: "Analyse des performances et de l'activit\u00E9 du service" })] }), _jsxs("main", { className: "flex-1 overflow-y-auto p-6 space-y-6", children: [_jsx("div", { className: "grid grid-cols-2 lg:grid-cols-4 gap-4", children: kpis.map((k) => {
+                                    const Icon = k.icon;
+                                    return (_jsxs("div", { className: "bg-card rounded-xl border border-border p-4 space-y-2", children: [_jsx("div", { className: "flex items-center justify-between", children: _jsx("div", { className: `w-9 h-9 rounded-lg flex items-center justify-center ${k.bg}`, children: _jsx(Icon, { size: 18, className: k.color }) }) }), _jsx("p", { className: "text-2xl font-bold text-foreground", children: k.value }), _jsx("p", { className: "text-xs text-muted-foreground", children: k.label }), _jsx("p", { className: "text-xs text-green-500 font-medium", children: k.sub })] }, k.label));
+                                }) }), _jsxs("div", { className: "grid grid-cols-1 lg:grid-cols-2 gap-6", children: [_jsxs("div", { className: "bg-card rounded-xl border border-border overflow-hidden", children: [_jsx("div", { className: "px-5 py-4 border-b border-border", children: _jsx("h2", { className: "font-semibold text-foreground text-sm", children: "Performance de l'\u00E9quipe" }) }), _jsx("div", { className: "p-4 space-y-3", children: teamPerf.map((m) => (_jsxs("div", { className: "space-y-1", children: [_jsxs("div", { className: "flex items-center justify-between text-sm", children: [_jsxs("div", { children: [_jsx("span", { className: "font-medium text-foreground", children: m.name }), _jsx("span", { className: "text-xs text-muted-foreground ml-2", children: m.role })] }), _jsxs("div", { className: "flex items-center gap-3", children: [_jsxs("span", { className: "text-xs text-muted-foreground", children: [m.visits, " visites"] }), _jsxs("span", { className: "text-sm font-bold text-foreground", children: [m.score, "%"] })] })] }), _jsx("div", { className: "w-full h-2 bg-muted rounded-full overflow-hidden", children: _jsx("div", { className: "h-2 bg-primary rounded-full transition-all", style: { width: `${m.score}%` } }) })] }, m.name))) })] }), _jsxs("div", { className: "bg-card rounded-xl border border-border overflow-hidden", children: [_jsx("div", { className: "px-5 py-4 border-b border-border", children: _jsx("h2", { className: "font-semibold text-foreground text-sm", children: "Principales pathologies" }) }), _jsx("div", { className: "p-4 space-y-3", children: pathologies.map((p) => (_jsxs("div", { className: "space-y-1", children: [_jsxs("div", { className: "flex items-center justify-between text-sm", children: [_jsx("span", { className: "text-foreground font-medium", children: p.label }), _jsxs("span", { className: "text-muted-foreground text-xs", children: [p.count, " patients"] })] }), _jsx("div", { className: "w-full h-2.5 bg-muted rounded-full overflow-hidden", children: _jsx("div", { className: "h-2.5 rounded-full transition-all", style: { width: `${Math.round((p.count / maxPath) * 100)}%`, backgroundColor: p.color } }) })] }, p.label))) })] })] }), _jsxs("div", { className: "bg-card rounded-xl border border-border overflow-hidden", children: [_jsx("div", { className: "px-5 py-4 border-b border-border", children: _jsx("h2", { className: "font-semibold text-foreground text-sm", children: "Activit\u00E9 mensuelle \u2014 Visites" }) }), _jsx("div", { className: "p-5", children: _jsx("div", { className: "flex items-end gap-3 h-36", children: monthly.map((m) => (_jsxs("div", { className: "flex-1 flex flex-col items-center gap-1", children: [_jsx("span", { className: "text-xs font-medium text-foreground", children: m.visits }), _jsx("div", { className: "w-full rounded-t-md bg-primary/80", style: { height: `${Math.round((m.visits / maxVisits) * 100)}px` } }), _jsx("span", { className: "text-[10px] text-muted-foreground text-center leading-tight", children: m.month.slice(0, 3) })] }, m.month))) }) })] }), _jsxs("div", { className: "bg-card rounded-xl border border-border overflow-hidden", children: [_jsx("div", { className: "px-5 py-4 border-b border-border", children: _jsx("h2", { className: "font-semibold text-foreground text-sm", children: "Tableau de bord mensuel" }) }), _jsx("div", { className: "overflow-x-auto", children: _jsxs("table", { className: "w-full text-sm", children: [_jsx("thead", { children: _jsx("tr", { className: "border-b border-border", children: ["Mois", "Visites", "Patients", "Revenus"].map((h) => (_jsx("th", { className: "px-5 py-3 text-left text-muted-foreground font-medium", children: h }, h))) }) }), _jsx("tbody", { children: monthly.map((m) => (_jsxs("tr", { className: "border-b border-border last:border-0 hover:bg-muted/30 transition", children: [_jsx("td", { className: "px-5 py-3 font-medium text-foreground", children: m.month }), _jsx("td", { className: "px-5 py-3 text-foreground", children: m.visits }), _jsx("td", { className: "px-5 py-3 text-foreground", children: m.patients }), _jsxs("td", { className: "px-5 py-3 font-semibold text-foreground", children: [m.revenue, " DT"] })] }, m.month))) })] }) })] })] })] })] }));
+}

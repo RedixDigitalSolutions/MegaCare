@@ -10,14 +10,14 @@ import {
 } from "lucide-react";
 
 interface Message {
-  id: number;
+  id: string;
   from: "me" | "other";
   text: string;
   time: string;
 }
 
 interface Conversation {
-  id: number;
+  id: string;
   name: string;
   type: "doctor" | "admin";
   specialty?: string;
@@ -27,64 +27,78 @@ interface Conversation {
 }
 
 const t = () => new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+const tok = () => localStorage.getItem("megacare_token") ?? "";
 
-const INITIAL_CONVOS: Conversation[] = [
-  {
-    id: 1,
-    name: "Dr. Amira Mansouri",
-    type: "doctor",
-    specialty: "Cardiologie",
-    initials: "AM",
-    unread: 3,
-    messages: [
-      { id: 1, from: "other", text: "Bonjour, veuillez m'envoyer le dernier bilan de votre patient.", time: "09:15" },
-      { id: 2, from: "me",    text: "Bien reçu, je prépare ça.", time: "09:17" },
-      { id: 3, from: "other", text: "Merci. Signes vitaux stables ?", time: "09:20" },
-    ],
-  },
-  {
-    id: 2,
-    name: "Dr. Karim Ben Ali",
-    type: "doctor",
-    specialty: "Médecine générale",
-    initials: "KB",
-    unread: 1,
-    messages: [
-      { id: 1, from: "other", text: "Pouvez-vous confirmer la prise de médicaments du matin ?", time: "10:00" },
-    ],
-  },
-  {
-    id: 3,
-    name: "Administration",
-    type: "admin",
-    initials: "AD",
-    unread: 0,
-    messages: [
-      { id: 1, from: "other", text: "Rappel : réunion d'équipe vendredi à 14h.", time: "08:30" },
-      { id: 2, from: "me",    text: "Noté, merci.", time: "08:45" },
-    ],
-  },
-  {
-    id: 4,
-    name: "Dr. Sonia Troudi",
-    type: "doctor",
-    specialty: "Dermatologie",
-    initials: "ST",
-    unread: 0,
-    messages: [
-      { id: 1, from: "other", text: "Le patient du lit 7 a une réaction cutanée, photos reçues.", time: "11:00" },
-    ],
-  },
-];
+const INITIAL_CONVOS: Conversation[] = [];
+
+const initials = (name: string) =>
+  name
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2);
+
+const myIdFromToken = () => {
+  try {
+    const payload = tok().split(".")[1] || "";
+    const json = atob(payload.replace(/-/g, "+").replace(/_/g, "/"));
+    return JSON.parse(json).id || "";
+  } catch {
+    return "";
+  }
+};
 
 export default function ParamedicalMessagingPage() {
   const [convos, setConvos] = useState<Conversation[]>(INITIAL_CONVOS);
-  const [selectedId, setSelectedId] = useState<number>(1);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [input, setInput] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  const selected = convos.find((c) => c.id === selectedId)!;
+  const selected = convos.find((c) => c.id === selectedId) || null;
+
+  useEffect(() => {
+    fetch("/api/messages/conversations", { headers: { Authorization: `Bearer ${tok()}` } })
+      .then((r) => r.json())
+      .then((d) => {
+        const list: Conversation[] = Array.isArray(d)
+          ? d.map((c) => ({
+            id: c.partnerId,
+            name: c.partnerName,
+            type: (c.partnerRole === "admin" ? "admin" : "doctor") as "admin" | "doctor",
+            specialty: c.partnerRole,
+            initials: initials(c.partnerName),
+            unread: c.unread || 0,
+            messages: c.lastMessage
+              ? [{ id: c.lastMessage.id || c.lastMessage._id, from: (c.lastMessage.senderId === myIdFromToken() ? "me" : "other") as "me" | "other", text: c.lastMessage.content, time: new Date(c.lastMessage.createdAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) }]
+              : [],
+          }))
+          : [];
+        setConvos(list);
+        if (list.length) setSelectedId(list[0].id);
+      })
+      .catch(() => { });
+  }, []);
+
+  useEffect(() => {
+    if (!selectedId) return;
+    fetch(`/api/messages/thread/${selectedId}`, { headers: { Authorization: `Bearer ${tok()}` } })
+      .then((r) => r.json())
+      .then((d) => {
+        const myId = myIdFromToken();
+        const msgs: Message[] = Array.isArray(d)
+          ? d.map((m) => ({
+            id: m.id || m._id,
+            from: (m.senderId === myId ? "me" : "other") as "me" | "other",
+            text: m.content,
+            time: new Date(m.createdAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
+          }))
+          : [];
+        setConvos((prev) => prev.map((c) => (c.id === selectedId ? { ...c, unread: 0, messages: msgs } : c)));
+      })
+      .catch(() => { });
+  }, [selectedId]);
 
   const filteredConvos = convos.filter((c) =>
     c.name.toLowerCase().includes(search.toLowerCase())
@@ -95,42 +109,32 @@ export default function ParamedicalMessagingPage() {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [selected?.messages.length, selectedId]);
 
-  const selectConvo = (id: number) => {
+  const selectConvo = (id: string) => {
     setSelectedId(id);
     setConvos((prev) =>
       prev.map((c) => (c.id === id ? { ...c, unread: 0 } : c))
     );
   };
 
-  const sendMessage = () => {
-    if (!input.trim()) return;
-    const now = t();
-    const msg: Message = {
-      id: Date.now(),
-      from: "me",
-      text: input.trim(),
-      time: now,
-    };
-    setConvos((prev) =>
-      prev.map((c) =>
-        c.id === selectedId ? { ...c, messages: [...c.messages, msg] } : c
-      )
-    );
-    setInput("");
-    // Simulated reply after 1.2s
-    setTimeout(() => {
-      const reply: Message = {
-        id: Date.now() + 1,
-        from: "other",
-        text: "Message bien reçu, je vous réponds rapidement.",
+  const sendMessage = async () => {
+    if (!input.trim() || !selectedId) return;
+    const payload = input.trim();
+    const r = await fetch("/api/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok()}` },
+      body: JSON.stringify({ receiverId: selectedId, content: payload }),
+    }).catch(() => null);
+    if (r && r.ok) {
+      const data = await r.json();
+      const msg: Message = {
+        id: data.id || String(Date.now()),
+        from: "me",
+        text: payload,
         time: t(),
       };
-      setConvos((prev) =>
-        prev.map((c) =>
-          c.id === selectedId ? { ...c, messages: [...c.messages, reply] } : c
-        )
-      );
-    }, 1200);
+      setConvos((prev) => prev.map((c) => (c.id === selectedId ? { ...c, messages: [...c.messages, msg] } : c)));
+    }
+    setInput("");
   };
 
   const totalUnread = convos.reduce((sum, c) => sum + c.unread, 0);
@@ -177,14 +181,12 @@ export default function ParamedicalMessagingPage() {
                   <button
                     key={c.id}
                     onClick={() => selectConvo(c.id)}
-                    className={`w-full text-left px-4 py-3 flex items-start gap-3 border-b border-border/60 transition ${
-                      isActive ? "bg-primary/10" : "hover:bg-muted/50"
-                    }`}
+                    className={`w-full text-left px-4 py-3 flex items-start gap-3 border-b border-border/60 transition ${isActive ? "bg-primary/10" : "hover:bg-muted/50"
+                      }`}
                   >
                     {/* Avatar */}
-                    <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-                      c.type === "admin" ? "bg-slate-200 text-slate-700" : "bg-primary/20 text-primary"
-                    }`}>
+                    <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${c.type === "admin" ? "bg-slate-200 text-slate-700" : "bg-primary/20 text-primary"
+                      }`}>
                       {c.initials}
                     </div>
 
@@ -218,16 +220,15 @@ export default function ParamedicalMessagingPage() {
           <div className="flex-1 flex flex-col min-w-0">
             {/* Thread header */}
             <div className="px-5 py-3 border-b border-border bg-card/60 shrink-0 flex items-center gap-3">
-              <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold ${
-                selected.type === "admin" ? "bg-slate-200 text-slate-700" : "bg-primary/20 text-primary"
-              }`}>
-                {selected.initials}
+              <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold ${selected?.type === "admin" ? "bg-slate-200 text-slate-700" : "bg-primary/20 text-primary"
+                }`}>
+                {selected?.initials ?? ""}
               </div>
               <div>
-                <p className="text-sm font-semibold text-foreground">{selected.name}</p>
+                <p className="text-sm font-semibold text-foreground">{selected?.name ?? ""}</p>
                 <p className="text-xs text-muted-foreground flex items-center gap-1">
-                  {selected.type === "doctor" ? (
-                    <><Stethoscope size={10} />{selected.specialty}</>
+                  {selected?.type === "doctor" ? (
+                    <><Stethoscope size={10} />{selected?.specialty}</>
                   ) : (
                     <><Shield size={10} />Administration</>
                   )}
@@ -241,13 +242,12 @@ export default function ParamedicalMessagingPage() {
 
             {/* Messages */}
             <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3 bg-muted/20">
-              {selected.messages.map((msg) => (
+              {(selected?.messages ?? []).map((msg) => (
                 <div key={msg.id} className={`flex ${msg.from === "me" ? "justify-end" : "justify-start"}`}>
-                  <div className={`max-w-xs lg:max-w-md rounded-xl px-4 py-2.5 text-sm ${
-                    msg.from === "me"
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-card border border-border text-foreground"
-                  }`}>
+                  <div className={`max-w-xs lg:max-w-md rounded-xl px-4 py-2.5 text-sm ${msg.from === "me"
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-card border border-border text-foreground"
+                    }`}>
                     <p className="leading-snug">{msg.text}</p>
                     <p className={`text-xs mt-1 ${msg.from === "me" ? "text-primary-foreground/60" : "text-muted-foreground"}`}>
                       {msg.time}
@@ -275,7 +275,7 @@ export default function ParamedicalMessagingPage() {
               />
               <button
                 onClick={sendMessage}
-                disabled={!input.trim()}
+                disabled={!input.trim() || !selectedId}
                 className="p-2.5 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition"
               >
                 <Send size={16} />

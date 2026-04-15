@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MedicalServiceDashboardSidebar } from "@/components/MedicalServiceDashboardSidebar";
 import { Activity, Heart, Thermometer, Droplets, AlertCircle, CheckCircle2, AlertTriangle } from "lucide-react";
 
@@ -20,59 +20,50 @@ interface PatientVitals {
   history: { date: string; bp: string; pulse: number; temp: number; spo2: number; glucose: number }[];
 }
 
-const patientsData: Record<string, PatientVitals> = {
-  "P-001": {
-    name: "Fatima Ben Ali",
-    vitals: [
-      { label: "Tension Artérielle", value: "120/80", unit: "mmHg", status: "Normal", reference: "< 130/80", icon: Activity },
-      { label: "Pouls", value: "72", unit: "bpm", status: "Normal", reference: "60–100", icon: Heart },
-      { label: "Température", value: "37.2", unit: "°C", status: "Normal", reference: "36.1–37.2", icon: Thermometer },
-      { label: "SpO₂", value: "98", unit: "%", status: "Normal", reference: "> 95", icon: Droplets },
-      { label: "Glycémie", value: "5.4", unit: "mmol/L", status: "Normal", reference: "3.9–7.8", icon: Activity },
-    ],
-    history: [
-      { date: "2026-04-04", bp: "122/82", pulse: 74, temp: 37.1, spo2: 98, glucose: 5.5 },
-      { date: "2026-04-03", bp: "118/78", pulse: 70, temp: 37.0, spo2: 99, glucose: 5.2 },
-      { date: "2026-04-02", bp: "125/85", pulse: 78, temp: 37.3, spo2: 97, glucose: 5.8 },
-    ],
-  },
-  "P-002": {
-    name: "Mohammed Gharbi",
-    vitals: [
-      { label: "Tension Artérielle", value: "145/95", unit: "mmHg", status: "Attention", reference: "< 130/80", icon: Activity },
-      { label: "Pouls", value: "88", unit: "bpm", status: "Normal", reference: "60–100", icon: Heart },
-      { label: "Température", value: "38.5", unit: "°C", status: "Attention", reference: "36.1–37.2", icon: Thermometer },
-      { label: "SpO₂", value: "94", unit: "%", status: "Attention", reference: "> 95", icon: Droplets },
-      { label: "Glycémie", value: "12.8", unit: "mmol/L", status: "Critique", reference: "3.9–7.8", icon: Activity },
-    ],
-    history: [
-      { date: "2026-04-04", bp: "142/92", pulse: 85, temp: 38.2, spo2: 95, glucose: 11.5 },
-      { date: "2026-04-03", bp: "148/96", pulse: 90, temp: 38.0, spo2: 94, glucose: 13.2 },
-      { date: "2026-04-02", bp: "150/98", pulse: 92, temp: 37.8, spo2: 96, glucose: 14.1 },
-    ],
-  },
-  "P-003": {
-    name: "Sonia Trabelsi",
-    vitals: [
-      { label: "Tension Artérielle", value: "160/100", unit: "mmHg", status: "Critique", reference: "< 130/80", icon: Activity },
-      { label: "Pouls", value: "110", unit: "bpm", status: "Attention", reference: "60–100", icon: Heart },
-      { label: "Température", value: "39.1", unit: "°C", status: "Critique", reference: "36.1–37.2", icon: Thermometer },
-      { label: "SpO₂", value: "90", unit: "%", status: "Critique", reference: "> 95", icon: Droplets },
-      { label: "Glycémie", value: "7.2", unit: "mmol/L", status: "Normal", reference: "3.9–7.8", icon: Activity },
-    ],
-    history: [
-      { date: "2026-04-04", bp: "158/98", pulse: 108, temp: 38.8, spo2: 91, glucose: 7.0 },
-      { date: "2026-04-03", bp: "162/102", pulse: 112, temp: 39.5, spo2: 89, glucose: 7.4 },
-      { date: "2026-04-02", bp: "155/96", pulse: 106, temp: 38.6, spo2: 92, glucose: 6.8 },
-    ],
-  },
-};
+const tok = () => localStorage.getItem("megacare_token") ?? "";
 
-const patientList = [
-  { id: "P-001", name: "Fatima Ben Ali" },
-  { id: "P-002", name: "Mohammed Gharbi" },
-  { id: "P-003", name: "Sonia Trabelsi" },
-];
+function bpStatus(sbp: number, dbp: number): VitalStatus {
+  if (sbp >= 160 || dbp >= 100) return "Critique";
+  if (sbp >= 130 || dbp >= 80) return "Attention";
+  return "Normal";
+}
+function hrStatus(hr: number): VitalStatus {
+  if (hr > 110) return "Critique";
+  if (hr > 100 || hr < 60) return "Attention";
+  return "Normal";
+}
+function tempStatus(t: number): VitalStatus {
+  if (t >= 39) return "Critique";
+  if (t >= 37.3) return "Attention";
+  return "Normal";
+}
+function spo2Status(s: number): VitalStatus {
+  if (s < 90) return "Critique";
+  if (s < 95) return "Attention";
+  return "Normal";
+}
+function glucStatus(g: number): VitalStatus {
+  if (g > 12 || g < 3.9) return "Critique";
+  if (g > 7.8) return "Attention";
+  return "Normal";
+}
+
+interface ApiVitalRecord { sbp: number; dbp: number; hr: number; temp: number; spo2: number; glucose: number; date: string; }
+
+function toPatientVitals(name: string, records: ApiVitalRecord[]): PatientVitals {
+  const latest = records[0] ?? { sbp: 0, dbp: 0, hr: 0, temp: 0, spo2: 0, glucose: 0, date: "" };
+  return {
+    name,
+    vitals: [
+      { label: "Tension Artérielle", value: `${latest.sbp}/${latest.dbp}`, unit: "mmHg", status: bpStatus(latest.sbp, latest.dbp), reference: "< 130/80", icon: Activity },
+      { label: "Pouls", value: String(latest.hr), unit: "bpm", status: hrStatus(latest.hr), reference: "60–100", icon: Heart },
+      { label: "Température", value: String(latest.temp), unit: "°C", status: tempStatus(latest.temp), reference: "36.1–37.2", icon: Thermometer },
+      { label: "SpO₂", value: String(latest.spo2), unit: "%", status: spo2Status(latest.spo2), reference: "> 95", icon: Droplets },
+      { label: "Glycémie", value: String(latest.glucose), unit: "mmol/L", status: glucStatus(latest.glucose), reference: "3.9–7.8", icon: Activity },
+    ],
+    history: records.map(v => ({ date: v.date, bp: `${v.sbp}/${v.dbp}`, pulse: v.hr, temp: v.temp, spo2: v.spo2, glucose: v.glucose })),
+  };
+}
 
 const statusConfig: Record<VitalStatus, { label: string; color: string; bg: string; border: string; icon: typeof CheckCircle2 }> = {
   Normal: { label: "Normal", color: "text-green-600", bg: "bg-green-50", border: "border-green-200", icon: CheckCircle2 },
@@ -81,9 +72,37 @@ const statusConfig: Record<VitalStatus, { label: string; color: string; bg: stri
 };
 
 export default function VitalsPage() {
-  const [selectedPatientId, setSelectedPatientId] = useState("P-001");
+  const [selectedPatientId, setSelectedPatientId] = useState("");
+  const [patientList, setPatientList] = useState<{ id: string; name: string }[]>([]);
+  const [patient, setPatient] = useState<PatientVitals | null>(null);
 
-  const patient = patientsData[selectedPatientId];
+  useEffect(() => {
+    fetch("/api/medical-service/patients", { headers: { Authorization: `Bearer ${tok()}` } })
+      .then(r => r.json())
+      .then(d => {
+        const list = Array.isArray(d) ? d : [];
+        setPatientList(list);
+        if (list.length) setSelectedPatientId(list[0].id);
+      })
+      .catch(() => { });
+  }, []);
+
+  useEffect(() => {
+    if (!selectedPatientId) return;
+    const pt = patientList.find(p => p.id === selectedPatientId);
+    fetch(`/api/medical-service/vitals/${selectedPatientId}`, { headers: { Authorization: `Bearer ${tok()}` } })
+      .then(r => r.json())
+      .then(d => setPatient(toPatientVitals(pt?.name ?? "", Array.isArray(d) ? d : [])))
+      .catch(() => { });
+  }, [selectedPatientId, patientList]);
+
+  if (!patient) return (
+    <div className="flex min-h-screen bg-background">
+      <MedicalServiceDashboardSidebar />
+      <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">Chargement...</div>
+    </div>
+  );
+
   const hasCritical = patient.vitals.some((v) => v.status === "Critique");
   const hasAttention = patient.vitals.some((v) => v.status === "Attention");
 

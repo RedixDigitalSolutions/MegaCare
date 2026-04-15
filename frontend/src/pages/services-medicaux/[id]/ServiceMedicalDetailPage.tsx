@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -56,7 +56,8 @@ interface MedicalEstablishment {
   }[];
 }
 
-const establishments: MedicalEstablishment[] = [
+const establishments: MedicalEstablishment[] = []; /* MOCK DATA REMOVED — fetched from API
+[
   {
     id: "1",
     name: "Clinique Hannibal",
@@ -503,7 +504,7 @@ const establishments: MedicalEstablishment[] = [
     team: [],
     patientReviews: [],
   },
-];
+]*/
 
 const typeColors: Record<string, string> = {
   Clinique: "bg-blue-500/10 text-blue-700 dark:text-blue-400",
@@ -560,7 +561,15 @@ export default function ServiceMedicalDetailPage() {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
-  const estab = establishments.find((e) => e.id === id);
+  const [estab, setEstab] = useState<MedicalEstablishment | null>(null);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    setLoading(true);
+    fetch(`/api/public/establishments/${id}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => { setEstab(data); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, [id]);
 
   const [tab, setTab] = useState<"about" | "team" | "schedule" | "reviews">(
     "about",
@@ -571,6 +580,16 @@ export default function ServiceMedicalDetailPage() {
   const [selectedService, setSelectedService] = useState<string>("");
   const [weekOffset, setWeekOffset] = useState(0);
   const [booked, setBooked] = useState(false);
+
+  if (loading) return (
+    <div className="min-h-screen bg-background flex flex-col">
+      <Header />
+      <main className="flex-1 flex items-center justify-center py-20">
+        <div className="animate-pulse text-muted-foreground text-sm">Chargement…</div>
+      </main>
+      <Footer />
+    </div>
+  );
 
   if (!estab) {
     return (
@@ -740,7 +759,7 @@ export default function ServiceMedicalDetailPage() {
                           onClick={() =>
                             setGalleryIdx(
                               (galleryIdx - 1 + gallery.length) %
-                                gallery.length,
+                              gallery.length,
                             )
                           }
                           className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/50 rounded-full flex items-center justify-center text-white hover:bg-black/70 transition"
@@ -791,11 +810,10 @@ export default function ServiceMedicalDetailPage() {
                         <button
                           key={t}
                           onClick={() => setTab(t)}
-                          className={`flex-1 py-3.5 text-sm font-semibold transition-colors ${
-                            tab === t
+                          className={`flex-1 py-3.5 text-sm font-semibold transition-colors ${tab === t
                               ? "text-primary border-b-2 border-primary bg-primary/5"
                               : "text-muted-foreground hover:text-foreground hover:bg-secondary/30"
-                          }`}
+                            }`}
                         >
                           {labels[t]}
                           {t === "reviews" && estab.patientReviews?.length ? (
@@ -929,7 +947,7 @@ export default function ServiceMedicalDetailPage() {
                   {tab === "reviews" && (
                     <div className="space-y-4">
                       {!estab.patientReviews ||
-                      estab.patientReviews.length === 0 ? (
+                        estab.patientReviews.length === 0 ? (
                         <p className="text-sm text-muted-foreground text-center py-6">
                           Aucun avis pour le moment.
                         </p>
@@ -1082,11 +1100,10 @@ export default function ServiceMedicalDetailPage() {
                               setSelectedSlot(null);
                             }}
                             disabled={d.slots.length === 0}
-                            className={`flex flex-col items-center py-2 rounded-xl text-xs font-medium transition-all ${
-                              i === selectedDayIdx
+                            className={`flex flex-col items-center py-2 rounded-xl text-xs font-medium transition-all ${i === selectedDayIdx
                                 ? "bg-primary text-primary-foreground"
                                 : "hover:bg-secondary/70 text-foreground/70"
-                            } ${d.slots.length === 0 ? "opacity-40 cursor-not-allowed" : ""}`}
+                              } ${d.slots.length === 0 ? "opacity-40 cursor-not-allowed" : ""}`}
                           >
                             <span className="text-[9px] opacity-70">
                               {DAY_LABELS[d.date.getDay()]}
@@ -1120,11 +1137,10 @@ export default function ServiceMedicalDetailPage() {
                             <button
                               key={slot}
                               onClick={() => setSelectedSlot(slot)}
-                              className={`py-2.5 rounded-xl text-xs font-semibold transition-all ${
-                                selectedSlot === slot
+                              className={`py-2.5 rounded-xl text-xs font-semibold transition-all ${selectedSlot === slot
                                   ? "bg-primary text-primary-foreground"
                                   : "bg-secondary/60 text-foreground/80 hover:bg-secondary"
-                              }`}
+                                }`}
                             >
                               {slot}
                             </button>

@@ -31,195 +31,25 @@ interface SaleData {
   }[];
 }
 
-const DATA: Record<Period, SaleData> = {
-  "Ce mois": {
-    revenue: 12450,
-    orders: 142,
-    customers: 324,
-    avgOrder: 87.7,
-    revenueGrowth: 18,
-    ordersGrowth: 12,
-    customersGrowth: 14,
-    avgGrowth: 5,
-    chartBars: [
-      { label: "Lun", value: 1820 },
-      { label: "Mar", value: 2340 },
-      { label: "Mer", value: 1560 },
-      { label: "Jeu", value: 2890 },
-      { label: "Ven", value: 2100 },
-      { label: "Sam", value: 1740 },
-      { label: "Dim", value: 0 },
-    ],
-    topMedicines: [
-      {
-        rank: 1,
-        name: "Paracétamol 500mg",
-        qty: 342,
-        revenue: 2568,
-        growth: 22,
-      },
-      {
-        rank: 2,
-        name: "Vitamine D3 1000UI",
-        qty: 256,
-        revenue: 3840,
-        growth: 18,
-      },
-      { rank: 3, name: "Oméga-3 1000mg", qty: 189, revenue: 4725, growth: 11 },
-      { rank: 4, name: "Doliprane 1000mg", qty: 178, revenue: 1424, growth: 7 },
-      {
-        rank: 5,
-        name: "Vitamine C 1000mg",
-        qty: 203,
-        revenue: 1218,
-        growth: -3,
-      },
-    ],
-  },
-  "3 mois": {
-    revenue: 34800,
-    orders: 412,
-    customers: 890,
-    avgOrder: 84.5,
-    revenueGrowth: 15,
-    ordersGrowth: 9,
-    customersGrowth: 20,
-    avgGrowth: -2,
-    chartBars: [
-      { label: "Fév", value: 10200 },
-      { label: "Mar", value: 12150 },
-      { label: "Avr", value: 12450 },
-      { label: "", value: 0 },
-      { label: "", value: 0 },
-      { label: "", value: 0 },
-      { label: "", value: 0 },
-    ],
-    topMedicines: [
-      {
-        rank: 1,
-        name: "Paracétamol 500mg",
-        qty: 980,
-        revenue: 7350,
-        growth: 16,
-      },
-      {
-        rank: 2,
-        name: "Vitamine D3 1000UI",
-        qty: 720,
-        revenue: 10800,
-        growth: 24,
-      },
-      { rank: 3, name: "Doliprane 1000mg", qty: 560, revenue: 4480, growth: 8 },
-      { rank: 4, name: "Oméga-3 1000mg", qty: 540, revenue: 13500, growth: 12 },
-      {
-        rank: 5,
-        name: "Amoxicilline 500mg",
-        qty: 490,
-        revenue: 3920,
-        growth: -5,
-      },
-    ],
-  },
-  "6 mois": {
-    revenue: 71200,
-    orders: 850,
-    customers: 1640,
-    avgOrder: 83.8,
-    revenueGrowth: 21,
-    ordersGrowth: 17,
-    customersGrowth: 28,
-    avgGrowth: 3,
-    chartBars: [
-      { label: "Nov", value: 9800 },
-      { label: "Déc", value: 11200 },
-      { label: "Jan", value: 10500 },
-      { label: "Fév", value: 10200 },
-      { label: "Mar", value: 12150 },
-      { label: "Avr", value: 12450 },
-      { label: "", value: 0 },
-    ],
-    topMedicines: [
-      {
-        rank: 1,
-        name: "Paracétamol 500mg",
-        qty: 1980,
-        revenue: 14850,
-        growth: 19,
-      },
-      {
-        rank: 2,
-        name: "Vitamine D3 1000UI",
-        qty: 1450,
-        revenue: 21750,
-        growth: 26,
-      },
-      {
-        rank: 3,
-        name: "Oméga-3 1000mg",
-        qty: 1120,
-        revenue: 28000,
-        growth: 14,
-      },
-      {
-        rank: 4,
-        name: "Doliprane 1000mg",
-        qty: 1050,
-        revenue: 8400,
-        growth: 10,
-      },
-      { rank: 5, name: "Magnésium B6", qty: 890, revenue: 5340, growth: 7 },
-    ],
-  },
-  "Cette année": {
-    revenue: 124800,
-    orders: 1482,
-    customers: 2890,
-    avgOrder: 84.2,
-    revenueGrowth: 31,
-    ordersGrowth: 24,
-    customersGrowth: 38,
-    avgGrowth: 6,
-    chartBars: [
-      { label: "Jan", value: 9800 },
-      { label: "Fév", value: 10200 },
-      { label: "Mar", value: 12150 },
-      { label: "Avr", value: 12450 },
-      { label: "Mai", value: 0 },
-      { label: "Jun", value: 0 },
-      { label: "Jul", value: 0 },
-    ],
-    topMedicines: [
-      {
-        rank: 1,
-        name: "Paracétamol 500mg",
-        qty: 3420,
-        revenue: 25650,
-        growth: 28,
-      },
-      {
-        rank: 2,
-        name: "Vitamine D3 1000UI",
-        qty: 2560,
-        revenue: 38400,
-        growth: 32,
-      },
-      {
-        rank: 3,
-        name: "Oméga-3 1000mg",
-        qty: 1890,
-        revenue: 47250,
-        growth: 19,
-      },
-      {
-        rank: 4,
-        name: "Doliprane 1000mg",
-        qty: 1780,
-        revenue: 14240,
-        growth: 15,
-      },
-      { rank: 5, name: "Magnésium B6", qty: 1560, revenue: 9360, growth: 11 },
-    ],
-  },
+const DEFAULT_SALE_DATA: SaleData = {
+  revenue: 0,
+  orders: 0,
+  customers: 0,
+  avgOrder: 0,
+  revenueGrowth: 0,
+  ordersGrowth: 0,
+  customersGrowth: 0,
+  avgGrowth: 0,
+  chartBars: [
+    { label: "Lun", value: 0 },
+    { label: "Mar", value: 0 },
+    { label: "Mer", value: 0 },
+    { label: "Jeu", value: 0 },
+    { label: "Ven", value: 0 },
+    { label: "Sam", value: 0 },
+    { label: "Dim", value: 0 },
+  ],
+  topMedicines: [],
 };
 
 function GrowthBadge({ value }: { value: number }) {
@@ -238,6 +68,9 @@ export default function PharmacySalesPage() {
   const { user, isLoading, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [period, setPeriod] = useState<Period>("Ce mois");
+  const [salesData, setSalesData] = useState<SaleData>(DEFAULT_SALE_DATA);
+  const [loadingData, setLoadingData] = useState(true);
+  const fetchedPeriods = useState(() => new Map<Period, SaleData>())[0];
 
   useEffect(() => {
     if (!isLoading && (!isAuthenticated || !user || user.role !== "pharmacy")) {
@@ -245,10 +78,31 @@ export default function PharmacySalesPage() {
     }
   }, [isLoading, isAuthenticated, user, navigate]);
 
+  useEffect(() => {
+    if (!isAuthenticated || !user || user.role !== "pharmacy") return;
+    if (fetchedPeriods.has(period)) {
+      setSalesData(fetchedPeriods.get(period)!);
+      setLoadingData(false);
+      return;
+    }
+    setLoadingData(true);
+    const token = localStorage.getItem("megacare_token");
+    fetch(`/api/pharmacy/sales?period=${encodeURIComponent(period)}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => r.json())
+      .then((data: SaleData) => {
+        fetchedPeriods.set(period, data);
+        setSalesData(data);
+        setLoadingData(false);
+      })
+      .catch(() => setLoadingData(false));
+  }, [period, isAuthenticated, user]);
+
   if (isLoading || !isAuthenticated || !user || user.role !== "pharmacy")
     return null;
 
-  const d = DATA[period];
+  const d = salesData;
   const maxBar = Math.max(...d.chartBars.map((b) => b.value), 1);
   const maxQty = Math.max(...d.topMedicines.map((m) => m.qty), 1);
 
@@ -276,11 +130,10 @@ export default function PharmacySalesPage() {
                   <button
                     key={p}
                     onClick={() => setPeriod(p)}
-                    className={`px-4 py-1.5 rounded-full text-sm font-medium transition ${
-                      period === p
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-muted-foreground hover:bg-muted/70"
-                    }`}
+                    className={`px-4 py-1.5 rounded-full text-sm font-medium transition ${period === p
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground hover:bg-muted/70"
+                      }`}
                   >
                     {p}
                   </button>
@@ -402,15 +255,14 @@ export default function PharmacySalesPage() {
                     className="px-5 py-4 flex items-center gap-4"
                   >
                     <span
-                      className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-                        med.rank === 1
-                          ? "bg-yellow-100 text-yellow-700"
-                          : med.rank === 2
-                            ? "bg-gray-100 text-gray-600"
-                            : med.rank === 3
-                              ? "bg-orange-100 text-orange-700"
-                              : "bg-muted text-muted-foreground"
-                      }`}
+                      className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${med.rank === 1
+                        ? "bg-yellow-100 text-yellow-700"
+                        : med.rank === 2
+                          ? "bg-gray-100 text-gray-600"
+                          : med.rank === 3
+                            ? "bg-orange-100 text-orange-700"
+                            : "bg-muted text-muted-foreground"
+                        }`}
                     >
                       {med.rank}
                     </span>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { DoctorDashboardSidebar } from "@/components/DoctorDashboardSidebar";
@@ -14,190 +14,100 @@ import {
 
 type Period = "Ce mois" | "3 mois" | "6 mois" | "Cette année";
 
-interface Transaction {
-  id: number;
-  patient: string;
+interface AppointmentData {
+  id: string;
+  patientId: string;
+  patientName?: string;
   date: string;
-  amount: number;
-  type: "Vidéo" | "Cabinet";
-  status: "Payée" | "En attente";
+  time: string;
+  status: string;
+  fee?: number;
 }
 
-const DATA: Record<
-  Period,
-  {
-    revenue: number;
-    consultations: number;
-    avgRevenue: number;
-    growth: number;
-    video: number;
-    cabinet: number;
-    chartBars: { label: string; value: number }[];
-    transactions: Transaction[];
+const WEEKDAYS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
+
+function getPeriodRange(p: Period, today: Date): { start: Date; end: Date } {
+  const start = new Date(today);
+  const end = new Date(today);
+  if (p === "Ce mois") {
+    start.setDate(1);
+    end.setMonth(end.getMonth() + 1, 0);
+  } else if (p === "3 mois") {
+    start.setMonth(start.getMonth() - 2, 1);
+    end.setMonth(end.getMonth() + 1, 0);
+  } else if (p === "6 mois") {
+    start.setMonth(start.getMonth() - 5, 1);
+    end.setMonth(end.getMonth() + 1, 0);
+  } else {
+    start.setMonth(0, 1);
+    end.setMonth(11, 31);
   }
-> = {
-  "Ce mois": {
-    revenue: 2450,
-    consultations: 28,
-    avgRevenue: 87.5,
-    growth: 12,
-    video: 16,
-    cabinet: 12,
-    chartBars: [
-      { label: "Lun", value: 320 },
-      { label: "Mar", value: 480 },
-      { label: "Mer", value: 210 },
-      { label: "Jeu", value: 560 },
-      { label: "Ven", value: 390 },
-      { label: "Sam", value: 150 },
-      { label: "Dim", value: 0 },
-    ],
-    transactions: [
-      {
-        id: 1,
-        patient: "Fatima Benali",
-        date: "2026-04-03",
-        amount: 80,
-        type: "Vidéo",
-        status: "Payée",
-      },
-      {
-        id: 2,
-        patient: "Mohamed Karoui",
-        date: "2026-04-02",
-        amount: 120,
-        type: "Cabinet",
-        status: "Payée",
-      },
-      {
-        id: 3,
-        patient: "Aisha Hamdi",
-        date: "2026-04-01",
-        amount: 80,
-        type: "Vidéo",
-        status: "Payée",
-      },
-      {
-        id: 4,
-        patient: "Youssef Tlili",
-        date: "2026-04-01",
-        amount: 120,
-        type: "Cabinet",
-        status: "En attente",
-      },
-      {
-        id: 5,
-        patient: "Layla Meddeb",
-        date: "2026-03-30",
-        amount: 80,
-        type: "Vidéo",
-        status: "Payée",
-      },
-    ],
-  },
-  "3 mois": {
-    revenue: 6820,
-    consultations: 79,
-    avgRevenue: 86.3,
-    growth: 8,
-    video: 45,
-    cabinet: 34,
-    chartBars: [
-      { label: "Jan", value: 1900 },
-      { label: "Fév", value: 2270 },
-      { label: "Mar", value: 2450 },
-      { label: "", value: 0 },
-      { label: "", value: 0 },
-      { label: "", value: 0 },
-      { label: "", value: 0 },
-    ],
-    transactions: [
-      {
-        id: 6,
-        patient: "Nadia Boughanmi",
-        date: "2026-03-28",
-        amount: 80,
-        type: "Vidéo",
-        status: "Payée",
-      },
-      {
-        id: 7,
-        patient: "Salim Drissi",
-        date: "2026-03-15",
-        amount: 100,
-        type: "Cabinet",
-        status: "Payée",
-      },
-      {
-        id: 8,
-        patient: "Fatima Benali",
-        date: "2026-02-10",
-        amount: 80,
-        type: "Vidéo",
-        status: "Payée",
-      },
-    ],
-  },
-  "6 mois": {
-    revenue: 13200,
-    consultations: 152,
-    avgRevenue: 86.8,
-    growth: 15,
-    video: 88,
-    cabinet: 64,
-    chartBars: [
-      { label: "Oct", value: 1800 },
-      { label: "Nov", value: 2100 },
-      { label: "Déc", value: 1950 },
-      { label: "Jan", value: 2300 },
-      { label: "Fév", value: 2600 },
-      { label: "Mar", value: 2450 },
-      { label: "", value: 0 },
-    ],
-    transactions: [
-      {
-        id: 9,
-        patient: "Mohamed Karoui",
-        date: "2025-11-18",
-        amount: 120,
-        type: "Cabinet",
-        status: "Payée",
-      },
-    ],
-  },
-  "Cette année": {
-    revenue: 24800,
-    consultations: 286,
-    avgRevenue: 86.7,
-    growth: 21,
-    video: 165,
-    cabinet: 121,
-    chartBars: [
-      { label: "Jan", value: 1900 },
-      { label: "Fév", value: 2270 },
-      { label: "Mar", value: 2450 },
-      { label: "Avr", value: 2100 },
-      { label: "Mai", value: 0 },
-      { label: "Jun", value: 0 },
-      { label: "Jul", value: 0 },
-    ],
-    transactions: [
-      {
-        id: 10,
-        patient: "Aisha Hamdi",
-        date: "2026-01-04",
-        amount: 80,
-        type: "Vidéo",
-        status: "Payée",
-      },
-    ],
-  },
-};
+  return { start, end };
+}
+
+function getPrevPeriodRange(p: Period, today: Date): { start: Date; end: Date } {
+  const months = p === "Ce mois" ? 1 : p === "3 mois" ? 3 : p === "6 mois" ? 6 : 12;
+  const end = new Date(today.getFullYear(), today.getMonth() - (p === "Cette année" ? 12 : 0), 0);
+  const start = new Date(end.getFullYear(), end.getMonth() - months + 1, 1);
+  return { start, end };
+}
+
+function inRange(dateStr: string, range: { start: Date; end: Date }): boolean {
+  const d = new Date(dateStr);
+  return d >= range.start && d <= range.end;
+}
 
 export default function DoctorRevenuePage() {
   const { user, isLoading, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [period, setPeriod] = useState<Period>("Ce mois");
+  const [appointments, setAppointments] = useState<AppointmentData[]>([]);
+  const [patientNames, setPatientNames] = useState<Record<string, string>>({});
+  const [dataLoading, setDataLoading] = useState(true);
+
+  const fetchAppointments = useCallback(async () => {
+    const token = localStorage.getItem("megacare_token");
+    if (!token) { setDataLoading(false); return; }
+    setDataLoading(true);
+    try {
+      const res = await fetch("/api/appointments", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const json = await res.json();
+        const data = Array.isArray(json) ? json : (json.data ?? []);
+        const active = data.filter(
+          (a: AppointmentData) =>
+            a.status !== "rejected" && a.status !== "cancelled",
+        );
+        setAppointments(active);
+        // Resolve patient names
+        const uniqueIds = [
+          ...new Set(active.map((a: AppointmentData) => a.patientId)),
+        ] as string[];
+        const names: Record<string, string> = {};
+        await Promise.all(
+          uniqueIds.map((id) =>
+            fetch(`/api/users/${id}`, {
+              headers: { Authorization: `Bearer ${token}` },
+            })
+              .then((r) => (r.ok ? r.json() : null))
+              .then((u) => {
+                if (u)
+                  names[id] =
+                    `${u.firstName || ""} ${u.lastName || ""}`.trim() ||
+                    u.email;
+              })
+              .catch(() => { }),
+          ),
+        );
+        setPatientNames(names);
+      }
+    } catch {
+      /* ignore */
+    }
+    setDataLoading(false);
+  }, []);
 
   useEffect(() => {
     if (!isLoading && (!isAuthenticated || !user || user.role !== "doctor")) {
@@ -205,13 +115,104 @@ export default function DoctorRevenuePage() {
     }
   }, [isLoading, isAuthenticated, user, navigate]);
 
+  useEffect(() => {
+    if (!isLoading && isAuthenticated && user?.role === "doctor") {
+      fetchAppointments();
+    }
+  }, [isLoading, isAuthenticated, user, fetchAppointments]);
+
+  const d = useMemo(() => {
+    const today = new Date();
+    const range = getPeriodRange(period, today);
+    const prevRange = getPrevPeriodRange(period, today);
+
+    const periodAppts = appointments.filter((a) => inRange(a.date, range));
+    const prevAppts = appointments.filter((a) => inRange(a.date, prevRange));
+
+    const revenue = periodAppts.reduce((sum, a) => sum + (a.fee ?? 80), 0);
+    const prevRevenue = prevAppts.reduce((sum, a) => sum + (a.fee ?? 80), 0);
+    const consultations = periodAppts.length;
+    const avgRevenue = consultations > 0 ? Math.round(revenue / consultations) : 0;
+    const growth =
+      prevRevenue > 0
+        ? Math.round(((revenue - prevRevenue) / prevRevenue) * 100)
+        : consultations > 0
+          ? 100
+          : 0;
+
+    // All consultations are video (telemedicine platform)
+    const video = consultations;
+    const cabinet = 0;
+
+    // Chart bars
+    const chartBars: { label: string; value: number }[] = [];
+    if (period === "Ce mois") {
+      const dayMap: Record<string, number> = {};
+      for (const a of periodAppts) {
+        const d = new Date(a.date);
+        const idx = (d.getDay() + 6) % 7;
+        const label = WEEKDAYS[idx];
+        dayMap[label] = (dayMap[label] || 0) + (a.fee ?? 80);
+      }
+      WEEKDAYS.forEach((label) =>
+        chartBars.push({ label, value: dayMap[label] || 0 }),
+      );
+    } else {
+      const numMonths =
+        period === "3 mois" ? 3 : period === "6 mois" ? 6 : 12;
+      for (let i = numMonths - 1; i >= 0; i--) {
+        const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+        const key = d.toISOString().slice(0, 7);
+        const label = d.toLocaleDateString("fr-FR", { month: "short" });
+        const value = appointments
+          .filter(
+            (a) =>
+              a.date.startsWith(key) &&
+              a.status !== "rejected" &&
+              a.status !== "cancelled",
+          )
+          .reduce((sum, a) => sum + (a.fee ?? 80), 0);
+        chartBars.push({ label, value });
+      }
+      // Pad to 7 bars
+      while (chartBars.length < 7) chartBars.push({ label: "", value: 0 });
+      if (chartBars.length > 7) chartBars.splice(7);
+    }
+
+    // Transactions
+    const transactions = periodAppts.slice(0, 10).map((a) => ({
+      id: String(a.id),
+      patient:
+        patientNames[a.patientId] || a.patientName || "Patient",
+      date: a.date,
+      amount: a.fee ?? 80,
+      type: "Vidéo" as const,
+      status:
+        a.status === "completed"
+          ? ("Payée" as const)
+          : ("En attente" as const),
+    }));
+
+    return {
+      revenue,
+      consultations,
+      avgRevenue,
+      growth,
+      video,
+      cabinet,
+      chartBars,
+      transactions,
+    };
+  }, [appointments, patientNames, period]);
+
   if (isLoading || !isAuthenticated || !user || user.role !== "doctor")
     return null;
 
-  const d = DATA[period];
-  const videoPct = Math.round((d.video / d.consultations) * 100) || 0;
+  const videoPct = Math.round((d.video / Math.max(d.consultations, 1)) * 100);
   const cabinetPct = 100 - videoPct;
   const maxBar = Math.max(...d.chartBars.map((b) => b.value), 1);
+
+
 
   return (
     <div className="min-h-screen bg-background">
@@ -237,11 +238,10 @@ export default function DoctorRevenuePage() {
                   <button
                     key={p}
                     onClick={() => setPeriod(p)}
-                    className={`px-4 py-1.5 rounded-full text-sm font-medium transition ${
-                      period === p
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-muted-foreground hover:bg-muted/70"
-                    }`}
+                    className={`px-4 py-1.5 rounded-full text-sm font-medium transition ${period === p
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground hover:bg-muted/70"
+                      }`}
                   >
                     {p}
                   </button>
@@ -336,9 +336,8 @@ export default function DoctorRevenuePage() {
                         <span className="text-xs text-transparent">0</span>
                       )}
                       <div
-                        className={`w-full rounded-t-md transition-all ${
-                          bar.value > 0 ? "bg-primary/80" : "bg-muted/30"
-                        }`}
+                        className={`w-full rounded-t-md transition-all ${bar.value > 0 ? "bg-primary/80" : "bg-muted/30"
+                          }`}
                         style={{
                           height: `${Math.round((bar.value / maxBar) * 96)}px`,
                           minHeight: bar.value > 0 ? "4px" : "0",
@@ -427,11 +426,10 @@ export default function DoctorRevenuePage() {
                   >
                     <div className="flex items-center gap-3">
                       <div
-                        className={`p-2 rounded-xl ${
-                          tx.type === "Vidéo"
-                            ? "bg-blue-50 text-blue-600"
-                            : "bg-green-50 text-green-600"
-                        }`}
+                        className={`p-2 rounded-xl ${tx.type === "Vidéo"
+                          ? "bg-blue-50 text-blue-600"
+                          : "bg-green-50 text-green-600"
+                          }`}
                       >
                         {tx.type === "Vidéo" ? (
                           <Video size={16} />
@@ -450,11 +448,10 @@ export default function DoctorRevenuePage() {
                     </div>
                     <div className="flex items-center gap-3">
                       <span
-                        className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
-                          tx.status === "Payée"
-                            ? "bg-green-100 text-green-700"
-                            : "bg-amber-100 text-amber-700"
-                        }`}
+                        className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${tx.status === "Payée"
+                          ? "bg-green-100 text-green-700"
+                          : "bg-amber-100 text-amber-700"
+                          }`}
                       >
                         {tx.status === "Payée" ? (
                           <CheckCircle size={11} />

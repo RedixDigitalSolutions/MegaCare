@@ -1,6 +1,8 @@
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
+
+const tok = () => localStorage.getItem("megacare_token") ?? "";
 import { MedicalServiceDashboardSidebar } from "@/components/MedicalServiceDashboardSidebar";
 import {
   Users,
@@ -74,11 +76,20 @@ export default function MedicalServiceDashboardPage() {
   });
   const initials = `${user.firstName?.[0] ?? ""}${user.lastName?.[0] ?? ""}`.toUpperCase() || "MS";
 
+  const [kpiData, setKpiData] = useState<{ totalPatients: number; visitsToday: number; teamCount: number; revenue: number } | null>(null);
+
+  useEffect(() => {
+    fetch("/api/medical-service/kpis", { headers: { Authorization: `Bearer ${tok()}` } })
+      .then(r => r.json())
+      .then(d => setKpiData(d))
+      .catch(() => { });
+  }, []);
+
   const kpiCards = [
-    { icon: Users, label: "Patients Actifs", value: "24", sub: "+2 cette semaine", subColor: "text-green-600", iconColor: "text-blue-500", iconBg: "bg-blue-50" },
-    { icon: Calendar, label: "Visites Aujourd'hui", value: "8", sub: "4 en cours", subColor: "text-amber-600", iconColor: "text-indigo-500", iconBg: "bg-indigo-50" },
-    { icon: UserCheck, label: "Taille de l'Équipe", value: "12", sub: "8 actifs aujourd'hui", subColor: "text-blue-600", iconColor: "text-purple-500", iconBg: "bg-purple-50" },
-    { icon: TrendingUp, label: "Revenus Mensuels", value: "48 500 DT", sub: "+15% ce mois", subColor: "text-green-600", iconColor: "text-emerald-500", iconBg: "bg-emerald-50" },
+    { icon: Users, label: "Patients Actifs", value: kpiData ? String(kpiData.totalPatients) : "—", sub: "En cours", subColor: "text-green-600", iconColor: "text-blue-500", iconBg: "bg-blue-50" },
+    { icon: Calendar, label: "Visites Aujourd'hui", value: kpiData ? String(kpiData.visitsToday) : "—", sub: "Planifiées", subColor: "text-amber-600", iconColor: "text-indigo-500", iconBg: "bg-indigo-50" },
+    { icon: UserCheck, label: "Taille de l'Équipe", value: kpiData ? String(kpiData.teamCount) : "—", sub: "Actifs", subColor: "text-blue-600", iconColor: "text-purple-500", iconBg: "bg-purple-50" },
+    { icon: TrendingUp, label: "Revenus Mensuels", value: kpiData ? `${kpiData.revenue} DT` : "—", sub: "Encaissés", subColor: "text-green-600", iconColor: "text-emerald-500", iconBg: "bg-emerald-50" },
   ];
 
   return (

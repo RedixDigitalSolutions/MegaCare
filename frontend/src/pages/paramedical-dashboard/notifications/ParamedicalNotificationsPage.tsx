@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ParamedicalDashboardSidebar } from "@/components/ParamedicalDashboardSidebar";
 import {
   AlertTriangle,
@@ -15,7 +15,7 @@ import {
 type NotifType = "urgent" | "doctor" | "schedule" | "prescription";
 
 interface Notification {
-  id: number;
+  id: string;
   type: NotifType;
   title: string;
   body: string;
@@ -24,22 +24,15 @@ interface Notification {
 }
 
 const typeConfig: Record<NotifType, { label: string; icon: typeof Bell; dot: string; bg: string; border: string; text: string }> = {
-  urgent:       { label: "Urgent",    icon: AlertTriangle, dot: "bg-red-500",    bg: "bg-red-50",    border: "border-red-200",   text: "text-red-700" },
-  doctor:       { label: "Médecin",   icon: MessageSquare, dot: "bg-blue-500",   bg: "bg-blue-50",   border: "border-blue-200",  text: "text-blue-700" },
-  schedule:     { label: "Planning",  icon: Calendar,      dot: "bg-amber-400",  bg: "bg-amber-50",  border: "border-amber-200", text: "text-amber-700" },
-  prescription: { label: "Ordonnance",icon: FileText,      dot: "bg-violet-500", bg: "bg-violet-50", border: "border-violet-200",text: "text-violet-700" },
+  urgent: { label: "Urgent", icon: AlertTriangle, dot: "bg-red-500", bg: "bg-red-50", border: "border-red-200", text: "text-red-700" },
+  doctor: { label: "Médecin", icon: MessageSquare, dot: "bg-blue-500", bg: "bg-blue-50", border: "border-blue-200", text: "text-blue-700" },
+  schedule: { label: "Planning", icon: Calendar, dot: "bg-amber-400", bg: "bg-amber-50", border: "border-amber-200", text: "text-amber-700" },
+  prescription: { label: "Ordonnance", icon: FileText, dot: "bg-violet-500", bg: "bg-violet-50", border: "border-violet-200", text: "text-violet-700" },
 };
 
-const INITIAL: Notification[] = [
-  { id: 1,  type: "urgent",       title: "Alerte constantes urgente",              body: "Mme Zahra : tension artérielle 158/95 – seuil critique dépassé.",               time: "Il y a 3 min",   read: false },
-  { id: 2,  type: "urgent",       title: "Saturation critique",                     body: "M. Riadh : SpO₂ 88 % – intervention immédiate requise.",                        time: "Il y a 8 min",   read: false },
-  { id: 3,  type: "doctor",       title: "Message de Dr. Mansouri",                 body: "Modifier le protocole de soins pour Mme Khaled – voir instructions jointes.",    time: "Il y a 22 min",  read: false },
-  { id: 4,  type: "schedule",     title: "Modification de planning",                body: "La visite chez M. Ben Ali est reportée de 10h00 à 13h30.",                       time: "Il y a 45 min",  read: false },
-  { id: 5,  type: "prescription", title: "Nouvelle ordonnance reçue",               body: "Dr. Ben Ali a prescrit Amoxicilline 500 mg pour Mme Karmous.",                   time: "Il y a 1 h",     read: false },
-  { id: 6,  type: "doctor",       title: "Message de Dr. Troudi",                   body: "Bilan dermatologique du patient M. Hassan transmis. Merci pour le suivi.",       time: "Il y a 2 h",     read: true  },
-  { id: 7,  type: "schedule",     title: "Nouveau rendez-vous ajouté",              body: "Visite domicile – Mme Fatima Bakir, 16:00, 11 rue Ibn Khaldoun.",                time: "Il y a 3 h",     read: true  },
-  { id: 8,  type: "prescription", title: "Renouvellement ordonnance",               body: "Insuline 100 UI/ml renouvelée pour M. Tounsi – à administrer en visite.",        time: "Il y a 5 h",     read: true  },
-];
+const tok = () => localStorage.getItem("megacare_token") ?? "";
+
+const INITIAL: Notification[] = [];
 
 type FilterType = "all" | NotifType;
 
@@ -47,9 +40,16 @@ export default function ParamedicalNotificationsPage() {
   const [notifs, setNotifs] = useState<Notification[]>(INITIAL);
   const [filter, setFilter] = useState<FilterType>("all");
 
+  useEffect(() => {
+    fetch("/api/paramedical/notifications", { headers: { Authorization: `Bearer ${tok()}` } })
+      .then((r) => r.json())
+      .then((d) => setNotifs(Array.isArray(d) ? d : []))
+      .catch(() => { });
+  }, []);
+
   const unreadCount = notifs.filter((n) => !n.read).length;
 
-  const markRead = (id: number) =>
+  const markRead = (id: string) =>
     setNotifs((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
 
   const markAllRead = () =>
@@ -63,10 +63,10 @@ export default function ParamedicalNotificationsPage() {
   const filtered = notifs.filter((n) => filter === "all" || n.type === filter);
 
   const filters: { key: FilterType; label: string }[] = [
-    { key: "all",          label: "Tout" },
-    { key: "urgent",       label: "Urgents" },
-    { key: "doctor",       label: "Médecins" },
-    { key: "schedule",     label: "Planning" },
+    { key: "all", label: "Tout" },
+    { key: "urgent", label: "Urgents" },
+    { key: "doctor", label: "Médecins" },
+    { key: "schedule", label: "Planning" },
     { key: "prescription", label: "Ordonnances" },
   ];
 
@@ -110,17 +110,15 @@ export default function ParamedicalNotificationsPage() {
                   <button
                     key={f.key}
                     onClick={() => setFilter(f.key)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition ${
-                      filter === f.key
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition ${filter === f.key
                         ? "bg-primary text-primary-foreground border-primary"
                         : "bg-card border-border text-muted-foreground hover:border-primary/40"
-                    }`}
+                      }`}
                   >
                     {f.label}
                     {count > 0 && (
-                      <span className={`w-4 h-4 rounded-full text-xs flex items-center justify-center font-bold ${
-                        filter === f.key ? "bg-white/30 text-white" : "bg-primary/10 text-primary"
-                      }`}>
+                      <span className={`w-4 h-4 rounded-full text-xs flex items-center justify-center font-bold ${filter === f.key ? "bg-white/30 text-white" : "bg-primary/10 text-primary"
+                        }`}>
                         {count}
                       </span>
                     )}
@@ -145,11 +143,10 @@ export default function ParamedicalNotificationsPage() {
                 return (
                   <div
                     key={n.id}
-                    className={`rounded-xl border p-4 transition ${
-                      n.read
+                    className={`rounded-xl border p-4 transition ${n.read
                         ? "bg-card border-border opacity-70"
                         : `${cfg.bg} ${cfg.border}`
-                    }`}
+                      }`}
                   >
                     <div className="flex items-start gap-3">
                       {/* Icon */}

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ParamedicalDashboardSidebar } from "@/components/ParamedicalDashboardSidebar";
 import {
   Download,
@@ -16,7 +16,7 @@ type ReportType = "daily" | "weekly";
 type ViewMode = "daily" | "weekly";
 
 interface Report {
-  id: number;
+  id: string;
   date: string;
   type: ReportType;
   visits: number;
@@ -25,7 +25,7 @@ interface Report {
 }
 
 interface HistoryEntry {
-  id: number;
+  id: string;
   date: string;
   patient: string;
   care: string;
@@ -33,27 +33,11 @@ interface HistoryEntry {
   practitioner: string;
 }
 
-const REPORTS: Report[] = [
-  { id: 1, date: "2026-04-06", type: "daily",   visits: 6,  hours: "8h 30",  patientsNote: "Mme Khaled, M. Ben Ali, Mme Zahra, M. Riadh, Mme Karmous, M. Hassan" },
-  { id: 2, date: "2026-04-05", type: "daily",   visits: 5,  hours: "7h 15",  patientsNote: "Mme Khaled, M. Ben Ali, Mme Zahra, M. Riadh, Mme Karmous" },
-  { id: 3, date: "2026-04-04", type: "daily",   visits: 4,  hours: "6h 00",  patientsNote: "Mme Khaled, M. Ben Ali, M. Riadh, M. Hassan" },
-  { id: 4, date: "2026-03-30 – 2026-04-05", type: "weekly", visits: 28, hours: "37h 30", patientsNote: "12 patients suivis cette semaine" },
-  { id: 5, date: "2026-03-23 – 2026-03-29", type: "weekly", visits: 31, hours: "40h 00", patientsNote: "13 patients suivis cette semaine" },
-  { id: 6, date: "2026-03-22", type: "daily",   visits: 7,  hours: "9h 15",  patientsNote: "Mme Khaled, M. Ben Ali, Mme Zahra, M. Riadh, Mme Karmous, M. Hassan, Mme Bakir" },
-];
+const tok = () => localStorage.getItem("megacare_token") ?? "";
 
-const HISTORY: HistoryEntry[] = [
-  { id: 1,  date: "06/04/2026 16:30", patient: "M. Hassan Jebali",   care: "Soins plaie",        duration: "25 min", practitioner: "Vous" },
-  { id: 2,  date: "06/04/2026 15:00", patient: "Mme Amira Karmous",  care: "Prise de sang",      duration: "10 min", practitioner: "Vous" },
-  { id: 3,  date: "06/04/2026 13:30", patient: "M. Riadh Maaloul",   care: "Kinésithérapie",     duration: "45 min", practitioner: "Vous" },
-  { id: 4,  date: "06/04/2026 11:00", patient: "Mme Zahra Trabelsi", care: "Perfusion IV",       duration: "35 min", practitioner: "Vous" },
-  { id: 5,  date: "06/04/2026 09:30", patient: "M. Ali Ben Salah",   care: "Injection",          duration: "15 min", practitioner: "Vous" },
-  { id: 6,  date: "06/04/2026 08:00", patient: "Mme Fatima Khaled",  care: "Pansement",          duration: "20 min", practitioner: "Vous" },
-  { id: 7,  date: "05/04/2026 16:00", patient: "Mme Amira Karmous",  care: "Évaluation douleur", duration: "30 min", practitioner: "Vous" },
-  { id: 8,  date: "05/04/2026 14:00", patient: "M. Riadh Maaloul",   care: "Kinésithérapie",     duration: "45 min", practitioner: "Vous" },
-  { id: 9,  date: "05/04/2026 11:30", patient: "Mme Zahra Trabelsi", care: "Constantes",         duration: "10 min", practitioner: "Vous" },
-  { id: 10, date: "05/04/2026 09:00", patient: "Mme Fatima Khaled",  care: "Pansement",          duration: "20 min", practitioner: "Vous" },
-];
+const REPORTS: Report[] = [];
+
+const HISTORY: HistoryEntry[] = [];
 
 const fmtDate = (d: string) => {
   if (d.includes("–")) return d;
@@ -81,19 +65,31 @@ const handlePdfDownload = (r: Report) => {
 };
 
 export default function ReportsPage() {
+  const [reports, setReports] = useState<Report[]>(REPORTS);
+  const [history, setHistory] = useState<HistoryEntry[]>(HISTORY);
   const [view, setView] = useState<ViewMode>("daily");
-  const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [histPage, setHistPage] = useState(0);
   const PAGE_SIZE = 5;
 
-  const filtered = REPORTS.filter((r) => r.type === view);
-  const histSlice = HISTORY.slice(histPage * PAGE_SIZE, (histPage + 1) * PAGE_SIZE);
-  const totalHistPages = Math.ceil(HISTORY.length / PAGE_SIZE);
+  useEffect(() => {
+    fetch("/api/paramedical/reports", { headers: { Authorization: `Bearer ${tok()}` } })
+      .then((r) => r.json())
+      .then((d) => {
+        if (d?.reports) setReports(d.reports);
+        if (d?.history) setHistory(d.history);
+      })
+      .catch(() => { });
+  }, []);
 
-  const toggle = (id: number) => setExpandedId(expandedId === id ? null : id);
+  const filtered = reports.filter((r) => r.type === view);
+  const histSlice = history.slice(histPage * PAGE_SIZE, (histPage + 1) * PAGE_SIZE);
+  const totalHistPages = Math.ceil(history.length / PAGE_SIZE);
+
+  const toggle = (id: string) => setExpandedId(expandedId === id ? null : id);
 
   // Weekly KPIs
-  const weeklyReport = REPORTS.find((r) => r.type === "weekly");
+  const weeklyReport = reports.find((r) => r.type === "weekly");
   const kpis = [
     { label: "Visites aujourd'hui", value: "6", icon: CheckCircle2, color: "text-green-600" },
     { label: "Heures cette semaine", value: weeklyReport?.hours ?? "—", icon: Clock, color: "text-blue-600" },
@@ -144,9 +140,8 @@ export default function ReportsPage() {
                   <button
                     key={v}
                     onClick={() => setView(v)}
-                    className={`px-4 py-1.5 font-medium transition ${
-                      view === v ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground hover:text-foreground"
-                    }`}
+                    className={`px-4 py-1.5 font-medium transition ${view === v ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground hover:text-foreground"
+                      }`}
                   >
                     {v === "daily" ? "Journaliers" : "Hebdomadaires"}
                   </button>

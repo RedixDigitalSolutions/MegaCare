@@ -1,5 +1,7 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
+const tok = () => localStorage.getItem("megacare_token") ?? "";
 import { MedicalServiceDashboardSidebar } from "@/components/MedicalServiceDashboardSidebar";
 import {
   Search, Plus, Edit2, Trash2, X, FileText, CheckCircle2, Clock, AlertCircle,
@@ -8,7 +10,7 @@ import {
 type RxStatus = "Active" | "Terminée" | "En attente";
 
 interface Prescription {
-  id: number;
+  id: string;
   patient: string;
   doctor: string;
   date: string;
@@ -17,30 +19,31 @@ interface Prescription {
   notes: string;
 }
 
-const initialRx: Prescription[] = [
-  { id: 1, patient: "Fatima Ben Ali", doctor: "Dr. Karim Mansouri", date: "2026-03-20", medications: "Paracétamol 1g, Amoxicilline 500mg", status: "Active", notes: "3x/jour après repas" },
-  { id: 2, patient: "Mohammed Gharbi", doctor: "Dr. Nour Belhadj", date: "2026-03-18", medications: "Metformine 850mg, Lisinopril 10mg", status: "Active", notes: "Matin et soir" },
-  { id: 3, patient: "Leila Mansouri", doctor: "Dr. Karim Mansouri", date: "2026-02-10", medications: "Insuline Glargine 20UI", status: "Terminée", notes: "Injection sous-cutanée" },
-  { id: 4, patient: "Ahmed Nasser", doctor: "Dr. Sana Triki", date: "2026-03-25", medications: "Morphine 10mg, Dexaméthasone 4mg", status: "En attente", notes: "Soins palliatifs" },
-  { id: 5, patient: "Sonia Trabelsi", doctor: "Dr. Nour Belhadj", date: "2026-03-28", medications: "Ibuprofène 400mg, Codéine 30mg", status: "Active", notes: "Antidouleur post-op" },
-];
+
 
 const statusConfig: Record<RxStatus, { bg: string; text: string; icon: typeof CheckCircle2 }> = {
-  "Active":     { bg: "bg-green-100",  text: "text-green-700",  icon: CheckCircle2 },
-  "Terminée":   { bg: "bg-slate-100",  text: "text-slate-600",  icon: FileText },
-  "En attente": { bg: "bg-amber-100",  text: "text-amber-700",  icon: Clock },
+  "Active": { bg: "bg-green-100", text: "text-green-700", icon: CheckCircle2 },
+  "Terminée": { bg: "bg-slate-100", text: "text-slate-600", icon: FileText },
+  "En attente": { bg: "bg-amber-100", text: "text-amber-700", icon: Clock },
 };
 
 const emptyForm = { patient: "", doctor: "", date: "", medications: "", status: "Active" as RxStatus, notes: "" };
 
 export default function MedicalServicePrescriptionsPage() {
-  const [rxList, setRxList] = useState<Prescription[]>(initialRx);
+  const [rxList, setRxList] = useState<Prescription[]>([]);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<"all" | RxStatus>("all");
   const [showModal, setShowModal] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
-  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/medical-service/prescriptions", { headers: { Authorization: `Bearer ${tok()}` } })
+      .then(r => r.json())
+      .then(d => setRxList(Array.isArray(d) ? d : []))
+      .catch(() => { });
+  }, []);
 
   const filtered = rxList.filter((r) => {
     const matchSearch = r.patient.toLowerCase().includes(search.toLowerCase()) ||
@@ -56,19 +59,25 @@ export default function MedicalServicePrescriptionsPage() {
     setShowModal(true);
   };
 
-  const saveRx = () => {
+  const saveRx = async () => {
     if (!form.patient.trim() || !form.medications.trim()) return;
-    if (editingId !== null) {
-      setRxList((prev) => prev.map((r) => r.id === editingId ? { ...r, ...form } : r));
-    } else {
-      const newId = Math.max(0, ...rxList.map((r) => r.id)) + 1;
-      setRxList((prev) => [...prev, { id: newId, ...form, date: form.date || new Date().toISOString().slice(0, 10) }]);
-    }
+    const url = editingId ? `/api/medical-service/prescriptions/${editingId}` : "/api/medical-service/prescriptions";
+    const r = await fetch(url, {
+      method: editingId ? "PUT" : "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok()}` },
+      body: JSON.stringify({ ...form, date: form.date || new Date().toISOString().slice(0, 10) }),
+    });
+    const data = await r.json();
+    if (editingId) setRxList(prev => prev.map(r => r.id === editingId ? data : r));
+    else setRxList(prev => [...prev, data]);
     setShowModal(false);
   };
 
-  const confirmDelete = () => {
-    if (deleteId !== null) setRxList((prev) => prev.filter((r) => r.id !== deleteId));
+  const confirmDelete = async () => {
+    if (deleteId !== null) {
+      await fetch(`/api/medical-service/prescriptions/${deleteId}`, { method: "DELETE", headers: { Authorization: `Bearer ${tok()}` } });
+      setRxList(prev => prev.filter(r => r.id !== deleteId));
+    }
     setDeleteId(null);
   };
 

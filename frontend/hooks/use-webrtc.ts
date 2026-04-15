@@ -5,6 +5,17 @@ const ICE_SERVERS: RTCConfiguration = {
   iceServers: [
     { urls: "stun:stun.l.google.com:19302" },
     { urls: "stun:stun1.l.google.com:19302" },
+    // TURN server — required for peers behind symmetric NAT (production).
+    // Set VITE_TURN_URL, VITE_TURN_USERNAME, VITE_TURN_CREDENTIAL in .env.
+    ...(import.meta.env.VITE_TURN_URL
+      ? [
+        {
+          urls: import.meta.env.VITE_TURN_URL as string,
+          username: import.meta.env.VITE_TURN_USERNAME as string,
+          credential: import.meta.env.VITE_TURN_CREDENTIAL as string,
+        },
+      ]
+      : []),
   ],
 };
 
@@ -45,7 +56,7 @@ export function useWebRTC({ socket, partnerId, initiator }: UseWebRTCOptions) {
       : "/sounds/doctor-joined.mp3";
     const audio = new Audio(src);
     audio.volume = 0.7;
-    audio.play().catch(() => {});
+    audio.play().catch(() => { });
   }, [initiator]);
 
   // Get local media
@@ -301,8 +312,15 @@ export function useWebRTC({ socket, partnerId, initiator }: UseWebRTCOptions) {
       // Tell the doctor we're ready to receive the offer
       socket.emit("webrtc:ready", { to: partnerId });
 
-      // Re-emit ready periodically in case doctor joins later
-      const readyInterval = setInterval(() => {
+      // Re-emit ready periodically in case doctor joins later.
+      // Stops automatically once the ICE connection is established.
+      let readyInterval: ReturnType<typeof setInterval>;
+      readyInterval = setInterval(() => {
+        const iceState = pcRef.current?.iceConnectionState;
+        if (iceState === "connected" || iceState === "completed") {
+          clearInterval(readyInterval);
+          return;
+        }
         if (!pcRef.current || pcRef.current.signalingState === "closed") {
           socket.emit("webrtc:ready", { to: partnerId });
         }

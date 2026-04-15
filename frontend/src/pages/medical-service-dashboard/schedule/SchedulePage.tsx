@@ -1,5 +1,7 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
+const tok = () => localStorage.getItem("megacare_token") ?? "";
 import { MedicalServiceDashboardSidebar } from "@/components/MedicalServiceDashboardSidebar";
 import {
   Calendar,
@@ -17,7 +19,7 @@ import {
 type VisitStatus = "Planifié" | "En cours" | "Complété" | "Annulé";
 
 interface Visit {
-  id: number;
+  id: string;
   patient: string;
   staff: string;
   date: string;
@@ -30,14 +32,7 @@ interface Visit {
 const today = new Date().toISOString().slice(0, 10);
 const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
 
-const initialVisits: Visit[] = [
-  { id: 1, patient: "Fatima Ben Ali", staff: "Samir Khalifa", date: today, time: "09:00", duration: "1h", status: "Planifié", notes: "Contrôle pansement" },
-  { id: 2, patient: "Mohammed Gharbi", staff: "Nadia Fayed", date: today, time: "11:00", duration: "45min", status: "En cours", notes: "Rééducation cardiaque" },
-  { id: 3, patient: "Leila Mansouri", staff: "Ali Ben Mahmoud", date: today, time: "14:00", duration: "1h30", status: "Planifié", notes: "Injection insuline" },
-  { id: 4, patient: "Ahmed Nasser", staff: "Hassan Abidi", date: tomorrow, time: "10:00", duration: "2h", status: "Planifié", notes: "Soins palliatifs" },
-  { id: 5, patient: "Sonia Trabelsi", staff: "Fatma Krichene", date: tomorrow, time: "08:30", duration: "1h", status: "Planifié", notes: "Kinésithérapie" },
-  { id: 6, patient: "Youssef Hamdi", staff: "Hana Riahi", date: today, time: "16:00", duration: "45min", status: "Complété", notes: "Soins plaies" },
-];
+
 
 const statusConfig: Record<VisitStatus, { bg: string; text: string; icon: typeof CheckCircle2 }> = {
   "Planifié": { bg: "bg-blue-100", text: "text-blue-700", icon: Calendar },
@@ -49,12 +44,19 @@ const statusConfig: Record<VisitStatus, { bg: string; text: string; icon: typeof
 const emptyForm = { patient: "", staff: "", date: today, time: "09:00", duration: "1h", status: "Planifié" as VisitStatus, notes: "" };
 
 export default function SchedulePage() {
-  const [visits, setVisits] = useState<Visit[]>(initialVisits);
+  const [visits, setVisits] = useState<Visit[]>([]);
   const [filterDate, setFilterDate] = useState<"today" | "tomorrow" | "all">("today");
   const [showModal, setShowModal] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
-  const [cancelId, setCancelId] = useState<number | null>(null);
+  const [cancelId, setCancelId] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/medical-service/schedule", { headers: { Authorization: `Bearer ${tok()}` } })
+      .then(r => r.json())
+      .then(d => setVisits(Array.isArray(d) ? d : []))
+      .catch(() => { });
+  }, []);
 
   const filtered = visits.filter((v) => {
     if (filterDate === "today") return v.date === today;
@@ -69,19 +71,29 @@ export default function SchedulePage() {
     setShowModal(true);
   };
 
-  const saveVisit = () => {
+  const saveVisit = async () => {
     if (!form.patient.trim() || !form.staff.trim()) return;
-    if (editingId !== null) {
-      setVisits((prev) => prev.map((v) => v.id === editingId ? { ...v, ...form } : v));
-    } else {
-      const newId = Math.max(0, ...visits.map((v) => v.id)) + 1;
-      setVisits((prev) => [...prev, { id: newId, ...form }]);
-    }
+    const url = editingId ? `/api/medical-service/schedule/${editingId}` : "/api/medical-service/schedule";
+    const r = await fetch(url, {
+      method: editingId ? "PUT" : "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok()}` },
+      body: JSON.stringify(form),
+    });
+    const data = await r.json();
+    if (editingId) setVisits(prev => prev.map(v => v.id === editingId ? data : v));
+    else setVisits(prev => [...prev, data]);
     setShowModal(false);
   };
 
-  const confirmCancel = () => {
-    if (cancelId !== null) setVisits((prev) => prev.map((v) => v.id === cancelId ? { ...v, status: "Annulé" } : v));
+  const confirmCancel = async () => {
+    if (cancelId !== null) {
+      await fetch(`/api/medical-service/schedule/${cancelId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok()}` },
+        body: JSON.stringify({ status: "Annulé" }),
+      });
+      setVisits(prev => prev.map(v => v.id === cancelId ? { ...v, status: "Annulé" } : v));
+    }
     setCancelId(null);
   };
 
@@ -158,9 +170,8 @@ export default function SchedulePage() {
                   <button
                     key={f}
                     onClick={() => setFilterDate(f)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
-                      filterDate === f ? "bg-primary text-primary-foreground" : "bg-card border border-border text-muted-foreground hover:bg-muted"
-                    }`}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${filterDate === f ? "bg-primary text-primary-foreground" : "bg-card border border-border text-muted-foreground hover:bg-muted"
+                      }`}
                   >
                     {f === "today" ? "Aujourd'hui" : f === "tomorrow" ? "Demain" : "Toutes"}
                   </button>

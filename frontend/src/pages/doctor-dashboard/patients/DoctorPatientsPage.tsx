@@ -148,7 +148,8 @@ export default function DoctorPatientsPage() {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) return;
-      const allUsers = await res.json();
+      const json = await res.json();
+      const allUsers = Array.isArray(json) ? json : (json.data ?? []);
       const patientUsers = allUsers.filter((u: any) => u.role === "patient");
 
       // Also fetch dossiers to get allergy/bloodType data
@@ -263,22 +264,20 @@ export default function DoctorPatientsPage() {
                 <div
                   key={s}
                   onClick={() => setStatusFilter(s)}
-                  className={`bg-card border rounded-xl p-4 text-center cursor-pointer transition hover:shadow-md ${
-                    statusFilter === s
+                  className={`bg-card border rounded-xl p-4 text-center cursor-pointer transition hover:shadow-md ${statusFilter === s
                       ? "border-primary ring-2 ring-primary/20"
                       : "border-border"
-                  }`}
+                    }`}
                 >
                   <p
-                    className={`text-2xl font-bold ${
-                      s === "Urgent"
+                    className={`text-2xl font-bold ${s === "Urgent"
                         ? "text-red-600"
                         : s === "Inactif"
                           ? "text-gray-500"
                           : s === "Actif"
                             ? "text-green-600"
                             : "text-foreground"
-                    }`}
+                      }`}
                   >
                     {countOf(s)}
                   </p>

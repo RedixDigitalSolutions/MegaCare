@@ -1,42 +1,40 @@
+import { useState, useEffect } from "react";
 import { MedicalServiceDashboardSidebar } from "@/components/MedicalServiceDashboardSidebar";
 import { Users, ClipboardList, TrendingUp, Banknote } from "lucide-react";
 
-const kpis = [
-  { label: "Patients pris en charge", value: "124", sub: "+8 ce mois", icon: Users, color: "text-blue-500", bg: "bg-blue-50" },
-  { label: "Visites effectuées", value: "342", sub: "+24 ce mois", icon: ClipboardList, color: "text-purple-500", bg: "bg-purple-50" },
-  { label: "Taux de satisfaction", value: "91%", sub: "+2% vs mois dernier", icon: TrendingUp, color: "text-green-500", bg: "bg-green-50" },
-  { label: "Revenus du mois", value: "24 800 DT", sub: "+12% vs mois dernier", icon: Banknote, color: "text-amber-500", bg: "bg-amber-50" },
-];
+const tok = () => localStorage.getItem("megacare_token") ?? "";
 
-const teamPerf = [
-  { name: "Sofia Cherif", role: "Infirmière", visits: 68, score: 94 },
-  { name: "Bilel Amdouni", role: "Aide-soignant", visits: 55, score: 87 },
-  { name: "Nadia Boussaid", role: "Kinésithérapeute", visits: 48, score: 91 },
-  { name: "Kamel Tlili", role: "Infirmier", visits: 72, score: 89 },
-  { name: "Rania Fersi", role: "Infirmière", visits: 60, score: 96 },
-];
-
-const pathologies = [
-  { label: "Diabète", count: 34, color: "bg-blue-400" },
-  { label: "HTA", count: 28, color: "bg-purple-400" },
-  { label: "Plaies chroniques", count: 22, color: "bg-green-400" },
-  { label: "Insuffisance cardiaque", count: 18, color: "bg-amber-400" },
-  { label: "BPCO", count: 14, color: "bg-red-400" },
-  { label: "Cancer", count: 8, color: "bg-pink-400" },
-];
-const maxPath = Math.max(...pathologies.map((p) => p.count));
-
-const monthly = [
-  { month: "Novembre", visits: 48, patients: 18, revenue: 19200 },
-  { month: "Décembre", visits: 52, patients: 20, revenue: 20800 },
-  { month: "Janvier", visits: 60, patients: 22, revenue: 22400 },
-  { month: "Février", visits: 58, patients: 21, revenue: 21900 },
-  { month: "Mars", visits: 66, patients: 23, revenue: 23600 },
-  { month: "Avril", visits: 58, patients: 20, revenue: 24800 },
-];
-const maxVisits = Math.max(...monthly.map((m) => m.visits));
+type KpiItem = { label: string; value: string; sub: string; icon: typeof Users; color: string; bg: string };
+type TeamMember = { name: string; role: string; visits: number; score: number };
+type Pathology = { label: string; count: number; color: string };
+type MonthlyRow = { month: string; visits: number; patients: number; revenue: number };
 
 export default function AnalyticsPage() {
+  const [kpis, setKpis] = useState<KpiItem[]>([]);
+  const [teamPerf, setTeamPerf] = useState<TeamMember[]>([]);
+  const [pathologies, setPathologies] = useState<Pathology[]>([]);
+  const [monthly, setMonthly] = useState<MonthlyRow[]>([]);
+
+  useEffect(() => {
+    fetch("/api/medical-service/analytics", { headers: { Authorization: `Bearer ${tok()}` } })
+      .then(r => r.json())
+      .then(d => {
+        if (d.kpis) setKpis([
+          { label: "Patients pris en charge", value: String(d.kpis.totalPatients ?? "—"), sub: "", icon: Users, color: "text-blue-500", bg: "bg-blue-50" },
+          { label: "Visites effectuées", value: String(d.kpis.totalVisits ?? "—"), sub: "", icon: ClipboardList, color: "text-purple-500", bg: "bg-purple-50" },
+          { label: "Taux de satisfaction", value: `${d.kpis.successRate ?? "—"}%`, sub: "", icon: TrendingUp, color: "text-green-500", bg: "bg-green-50" },
+          { label: "Revenus du mois", value: `${d.kpis.revenue ?? "—"} DT`, sub: "", icon: Banknote, color: "text-amber-500", bg: "bg-amber-50" },
+        ]);
+        if (d.teamPerf) setTeamPerf(d.teamPerf);
+        if (d.pathologies) setPathologies(d.pathologies);
+        if (d.monthly) setMonthly(d.monthly);
+      })
+      .catch(() => { });
+  }, []);
+
+  const maxPath = pathologies.length ? Math.max(...pathologies.map(p => p.count)) : 1;
+  const maxVisits = monthly.length ? Math.max(...monthly.map(m => m.visits)) : 1;
+
   return (
     <div className="flex min-h-screen bg-background">
       <MedicalServiceDashboardSidebar />
@@ -49,16 +47,18 @@ export default function AnalyticsPage() {
         <main className="flex-1 overflow-y-auto p-6 space-y-6">
           {/* KPIs */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {kpis.map((k) => { const Icon = k.icon; return (
-              <div key={k.label} className="bg-card rounded-xl border border-border p-4 space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${k.bg}`}><Icon size={18} className={k.color} /></div>
+            {kpis.map((k) => {
+              const Icon = k.icon; return (
+                <div key={k.label} className="bg-card rounded-xl border border-border p-4 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${k.bg}`}><Icon size={18} className={k.color} /></div>
+                  </div>
+                  <p className="text-2xl font-bold text-foreground">{k.value}</p>
+                  <p className="text-xs text-muted-foreground">{k.label}</p>
+                  <p className="text-xs text-green-500 font-medium">{k.sub}</p>
                 </div>
-                <p className="text-2xl font-bold text-foreground">{k.value}</p>
-                <p className="text-xs text-muted-foreground">{k.label}</p>
-                <p className="text-xs text-green-500 font-medium">{k.sub}</p>
-              </div>
-            ); })}
+              );
+            })}
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -101,7 +101,7 @@ export default function AnalyticsPage() {
                       <span className="text-muted-foreground text-xs">{p.count} patients</span>
                     </div>
                     <div className="w-full h-2.5 bg-muted rounded-full overflow-hidden">
-                      <div className={`h-2.5 ${p.color} rounded-full transition-all`} style={{ width: `${Math.round((p.count / maxPath) * 100)}%` }} />
+                      <div className="h-2.5 rounded-full transition-all" style={{ width: `${Math.round((p.count / maxPath) * 100)}%`, backgroundColor: p.color }} />
                     </div>
                   </div>
                 ))}

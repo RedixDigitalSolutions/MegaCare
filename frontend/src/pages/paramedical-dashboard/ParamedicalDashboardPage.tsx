@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 import { useAuth, UserRole } from "@/contexts/AuthContext";
@@ -26,48 +26,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 
-const kpis = [
-  {
-    label: "Patients Suivis",
-    value: "24",
-    sub: "Suivi actif",
-    icon: Users,
-    color: "text-blue-500",
-    bg: "bg-blue-50",
-    trend: "+2 ce mois",
-    trendColor: "text-green-600",
-  },
-  {
-    label: "Consultations Aujourd'hui",
-    value: "6",
-    sub: "3 terminées",
-    icon: Calendar,
-    color: "text-emerald-500",
-    bg: "bg-emerald-50",
-    trend: "2 restantes",
-    trendColor: "text-amber-600",
-  },
-  {
-    label: "Heures Cette Semaine",
-    value: "38h",
-    sub: "Semaine en cours",
-    icon: Clock,
-    color: "text-purple-500",
-    bg: "bg-purple-50",
-    trend: "Objectif 40h",
-    trendColor: "text-muted-foreground",
-  },
-  {
-    label: "Revenus Mensuels",
-    value: "8 500 DT",
-    sub: "Avril 2026",
-    icon: TrendingUp,
-    color: "text-amber-500",
-    bg: "bg-amber-50",
-    trend: "+8% vs mars",
-    trendColor: "text-green-600",
-  },
-];
+const tok = () => localStorage.getItem("megacare_token") ?? "";
 
 const quickLinks = [
   { href: "/paramedical-dashboard/appointments", label: "Rendez-vous", desc: "Gérer l'agenda", icon: CalendarDays, color: "text-blue-500", bg: "bg-blue-50" },
@@ -94,6 +53,12 @@ const recentActivity = [
 export default function ParamedicalDashboardPage() {
   const { user, isLoading, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const [kpiData, setKpiData] = useState<{
+    totalPatients: number;
+    consultationsToday: number;
+    weeklyHours: number;
+    recentActivities: { text: string; time: string; status: string }[];
+  } | null>(null);
 
   useEffect(() => {
     if (isLoading) return;
@@ -113,6 +78,68 @@ export default function ParamedicalDashboardPage() {
       navigate(dashboards[user.role] ?? "/");
     }
   }, [isLoading, isAuthenticated, user, navigate]);
+
+  useEffect(() => {
+    fetch("/api/paramedical/kpis", { headers: { Authorization: `Bearer ${tok()}` } })
+      .then((r) => r.json())
+      .then((d) => {
+        if (d && typeof d === "object") setKpiData(d);
+      })
+      .catch(() => { });
+  }, []);
+
+  const kpis = [
+    {
+      label: "Patients Suivis",
+      value: String(kpiData?.totalPatients ?? "—"),
+      sub: "Suivi actif",
+      icon: Users,
+      color: "text-blue-500",
+      bg: "bg-blue-50",
+      trend: "Données en direct",
+      trendColor: "text-green-600",
+    },
+    {
+      label: "Consultations Aujourd'hui",
+      value: String(kpiData?.consultationsToday ?? "—"),
+      sub: "Rendez-vous du jour",
+      icon: Calendar,
+      color: "text-emerald-500",
+      bg: "bg-emerald-50",
+      trend: "Mise a jour continue",
+      trendColor: "text-amber-600",
+    },
+    {
+      label: "Heures Cette Semaine",
+      value: `${kpiData?.weeklyHours ?? "—"}h`,
+      sub: "Semaine en cours",
+      icon: Clock,
+      color: "text-purple-500",
+      bg: "bg-purple-50",
+      trend: "Base soins enregistres",
+      trendColor: "text-muted-foreground",
+    },
+    {
+      label: "Revenus Mensuels",
+      value: "—",
+      sub: "Indisponible",
+      icon: TrendingUp,
+      color: "text-amber-500",
+      bg: "bg-amber-50",
+      trend: "Non calcule cote backend",
+      trendColor: "text-muted-foreground",
+    },
+  ];
+
+  const activities = (kpiData?.recentActivities ?? []).length
+    ? (kpiData?.recentActivities ?? []).map((a) => ({
+      icon: CheckCircle2,
+      color: "text-blue-500",
+      bg: "bg-blue-50",
+      text: a.text,
+      time: a.time,
+    }))
+    : recentActivity;
 
   if (isLoading || !isAuthenticated || !user || user.role !== "paramedical") {
     return (
@@ -216,7 +243,7 @@ export default function ParamedicalDashboardPage() {
               </Link>
             </div>
             <div className="divide-y divide-border">
-              {recentActivity.map((a, i) => {
+              {activities.map((a, i) => {
                 const Icon = a.icon;
                 return (
                   <div key={i} className="flex items-center gap-4 px-5 py-3.5">

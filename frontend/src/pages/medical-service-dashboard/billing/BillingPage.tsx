@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
+const tok = () => localStorage.getItem("megacare_token") ?? "";
 import { MedicalServiceDashboardSidebar } from "@/components/MedicalServiceDashboardSidebar";
 import { Plus, X, CheckCircle2, Clock, AlertCircle, CreditCard, TrendingUp, FileText, Banknote } from "lucide-react";
 
@@ -6,7 +8,7 @@ type InvStatus = "Payée" | "En attente" | "En retard";
 type PayMethod = "Virement" | "Espèces" | "Carte" | "Assurance";
 
 interface Invoice {
-  id: number;
+  id: string;
   ref: string;
   patient: string;
   amount: number;
@@ -17,7 +19,7 @@ interface Invoice {
 }
 
 interface Payment {
-  id: number;
+  id: string;
   ref: string;
   patient: string;
   amount: number;
@@ -26,19 +28,7 @@ interface Payment {
   invoice: string;
 }
 
-const initialInvoices: Invoice[] = [
-  { id: 1, ref: "FAC-2026-001", patient: "Fatima Ben Ali", amount: 450, date: "2026-04-01", dueDate: "2026-04-15", status: "Payée", services: "Soins infirmiers x3, Fournitures" },
-  { id: 2, ref: "FAC-2026-002", patient: "Mohammed Gharbi", amount: 780, date: "2026-04-02", dueDate: "2026-04-16", status: "En attente", services: "Kinésithérapie x5, Consultation" },
-  { id: 3, ref: "FAC-2026-003", patient: "Sonia Trabelsi", amount: 320, date: "2026-03-20", dueDate: "2026-04-03", status: "En retard", services: "Pansements x4, Médicaments" },
-  { id: 4, ref: "FAC-2026-004", patient: "Leila Mansouri", amount: 600, date: "2026-04-03", dueDate: "2026-04-17", status: "En attente", services: "Soins palliatifs, Consultation" },
-  { id: 5, ref: "FAC-2026-005", patient: "Ahmed Nasser", amount: 250, date: "2026-04-04", dueDate: "2026-04-18", status: "Payée", services: "Soins infirmiers x2" },
-];
 
-const initialPayments: Payment[] = [
-  { id: 1, ref: "PAY-2026-001", patient: "Fatima Ben Ali", amount: 450, date: "2026-04-08", method: "Virement", invoice: "FAC-2026-001" },
-  { id: 2, ref: "PAY-2026-002", patient: "Ahmed Nasser", amount: 250, date: "2026-04-09", method: "Espèces", invoice: "FAC-2026-005" },
-  { id: 3, ref: "PAY-2026-003", patient: "Sonia Trabelsi", amount: 150, date: "2026-04-02", method: "Carte", invoice: "FAC-2026-003" },
-];
 
 const invStatusConfig: Record<InvStatus, { color: string; bg: string; icon: typeof CheckCircle2 }> = {
   Payée: { color: "text-green-600", bg: "bg-green-100", icon: CheckCircle2 },
@@ -50,10 +40,18 @@ const emptyForm = { patient: "", amount: "", date: "", dueDate: "", services: ""
 
 export default function BillingPage() {
   const [activeTab, setActiveTab] = useState<"invoices" | "payments">("invoices");
-  const [invoices, setInvoices] = useState<Invoice[]>(initialInvoices);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [payments, setPayments] = useState<Payment[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [deleteTarget, setDeleteTarget] = useState<Invoice | null>(null);
+
+  useEffect(() => {
+    fetch("/api/medical-service/billing/invoices", { headers: { Authorization: `Bearer ${tok()}` } })
+      .then(r => r.json()).then(d => setInvoices(Array.isArray(d) ? d : [])).catch(() => { });
+    fetch("/api/medical-service/billing/payments", { headers: { Authorization: `Bearer ${tok()}` } })
+      .then(r => r.json()).then(d => setPayments(Array.isArray(d) ? d : [])).catch(() => { });
+  }, []);
 
   const totalRevenue = invoices.filter((i) => i.status === "Payée").reduce((s, i) => s + i.amount, 0);
   const pending = invoices.filter((i) => i.status === "En attente").reduce((s, i) => s + i.amount, 0);
@@ -66,10 +64,15 @@ export default function BillingPage() {
     { label: "Total factures", value: invoices.length, icon: FileText, color: "text-indigo-500", bg: "bg-indigo-50" },
   ];
 
-  function saveInvoice() {
+  async function saveInvoice() {
     if (!form.patient.trim() || !form.amount) return;
-    const newRef = `FAC-2026-00${invoices.length + 1}`;
-    setInvoices((prev) => [...prev, { id: Date.now(), ref: newRef, patient: form.patient, amount: Number(form.amount), date: form.date, dueDate: form.dueDate, status: form.status, services: form.services }]);
+    const r = await fetch("/api/medical-service/billing/invoices", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok()}` },
+      body: JSON.stringify({ ...form, amount: Number(form.amount) }),
+    });
+    const data = await r.json();
+    setInvoices(prev => [...prev, data]);
     setShowModal(false);
     setForm(emptyForm);
   }
@@ -91,12 +94,14 @@ export default function BillingPage() {
         <main className="flex-1 overflow-y-auto p-6 space-y-6">
           {/* KPIs */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {kpis.map((k) => { const Icon = k.icon; return (
-              <div key={k.label} className="bg-card rounded-xl border border-border p-4 flex items-center gap-4">
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${k.bg}`}><Icon size={20} className={k.color} /></div>
-                <div><p className="text-2xl font-bold text-foreground">{k.value}</p><p className="text-xs text-muted-foreground">{k.label}</p></div>
-              </div>
-            ); })}
+            {kpis.map((k) => {
+              const Icon = k.icon; return (
+                <div key={k.label} className="bg-card rounded-xl border border-border p-4 flex items-center gap-4">
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${k.bg}`}><Icon size={20} className={k.color} /></div>
+                  <div><p className="text-2xl font-bold text-foreground">{k.value}</p><p className="text-xs text-muted-foreground">{k.label}</p></div>
+                </div>
+              );
+            })}
           </div>
 
           {/* Tabs */}
@@ -167,7 +172,7 @@ export default function BillingPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {initialPayments.map((p) => (
+                    {payments.map((p) => (
                       <tr key={p.id} className="border-b border-border last:border-0 hover:bg-muted/30 transition">
                         <td className="px-4 py-3 font-mono text-xs text-foreground">{p.ref}</td>
                         <td className="px-4 py-3 font-medium text-foreground">{p.patient}</td>
@@ -236,7 +241,7 @@ export default function BillingPage() {
             </div>
             <div className="flex gap-3">
               <button onClick={() => setDeleteTarget(null)} className="flex-1 px-4 py-2 border border-border rounded-lg text-sm hover:bg-muted transition">Annuler</button>
-              <button onClick={() => { setInvoices((p) => p.filter((i) => i.id !== deleteTarget.id)); setDeleteTarget(null); }} className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600 transition font-medium">Supprimer</button>
+              <button onClick={async () => { await fetch(`/api/medical-service/billing/invoices/${deleteTarget.id}`, { method: "DELETE", headers: { Authorization: `Bearer ${tok()}` } }); setInvoices((p) => p.filter((i) => i.id !== deleteTarget.id)); setDeleteTarget(null); }} className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg text-sm hover:bg-red-600 transition font-medium">Supprimer</button>
             </div>
           </div>
         </div>

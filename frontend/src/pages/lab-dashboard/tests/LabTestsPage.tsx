@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { LabDashboardSidebar } from "@/components/LabDashboardSidebar";
 import {
   Search,
@@ -15,7 +15,7 @@ type TestStatus = "En attente" | "En cours" | "Complété";
 type Priority = "Normal" | "Urgent";
 
 interface LabTest {
-  id: number;
+  id: string;
   patient: string;
   testType: string;
   doctor: string;
@@ -24,79 +24,6 @@ interface LabTest {
   date: string;
   notes: string;
 }
-
-const initialTests: LabTest[] = [
-  {
-    id: 1,
-    patient: "Fatima Ben Ali",
-    testType: "Numération sanguine",
-    doctor: "Dr. Karim Mansouri",
-    status: "En cours",
-    priority: "Normal",
-    date: "2026-04-05",
-    notes: "À jeun",
-  },
-  {
-    id: 2,
-    patient: "Mohammed Gharbi",
-    testType: "Glycémie",
-    doctor: "Dr. Nour Belhadj",
-    status: "Complété",
-    priority: "Normal",
-    date: "2026-04-05",
-    notes: "Matin",
-  },
-  {
-    id: 3,
-    patient: "Leila Mansouri",
-    testType: "Test PCR ADN",
-    doctor: "Dr. Sana Triki",
-    status: "En attente",
-    priority: "Urgent",
-    date: "2026-04-05",
-    notes: "Résultat sous 24h",
-  },
-  {
-    id: 4,
-    patient: "Ahmed Nasser",
-    testType: "Bilan lipidique",
-    doctor: "Dr. Karim Mansouri",
-    status: "En cours",
-    priority: "Normal",
-    date: "2026-04-04",
-    notes: "—",
-  },
-  {
-    id: 5,
-    patient: "Sara Meddeb",
-    testType: "TSH",
-    doctor: "Dr. Nour Belhadj",
-    status: "Complété",
-    priority: "Normal",
-    date: "2026-04-04",
-    notes: "—",
-  },
-  {
-    id: 6,
-    patient: "Karim Smaoui",
-    testType: "Créatinine",
-    doctor: "Dr. Sana Triki",
-    status: "En attente",
-    priority: "Urgent",
-    date: "2026-04-05",
-    notes: "Insuffisance rénale suspectée",
-  },
-  {
-    id: 7,
-    patient: "Nida Khadija",
-    testType: "Hémoculture",
-    doctor: "Dr. Karim Mansouri",
-    status: "En attente",
-    priority: "Urgent",
-    date: "2026-04-05",
-    notes: "Fièvre persistante",
-  },
-];
 
 const statusConfig: Record<
   TestStatus,
@@ -121,13 +48,24 @@ const emptyForm = {
 };
 
 export default function LabTestsPage() {
-  const [tests, setTests] = useState<LabTest[]>(initialTests);
+  const [tests, setTests] = useState<LabTest[]>([]);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<"all" | TestStatus>("all");
   const [filterPriority, setFilterPriority] = useState<"all" | Priority>("all");
   const [showModal, setShowModal] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
+
+  const token = () => localStorage.getItem("megacare_token") ?? "";
+
+  useEffect(() => {
+    fetch("/api/lab/tests", {
+      headers: { Authorization: `Bearer ${token()}` },
+    })
+      .then((r) => r.json())
+      .then((json: any) => setTests(Array.isArray(json) ? json : (json.data ?? [])))
+      .catch(() => { });
+  }, []);
 
   const filtered = tests.filter((t) => {
     const q = search.toLowerCase();
@@ -190,27 +128,49 @@ export default function LabTestsPage() {
     });
     setShowModal(true);
   }
-  function markComplete(id: number) {
-    setTests((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, status: "Complété" } : t)),
-    );
+  function markComplete(id: string) {
+    fetch(`/api/lab/tests/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token()}`,
+      },
+      body: JSON.stringify({ status: "Complété" }),
+    })
+      .then((r) => r.json())
+      .then((updated: LabTest) =>
+        setTests((prev) => prev.map((t) => (t.id === id ? updated : t))),
+      )
+      .catch(() => { });
   }
   function saveForm() {
     if (!form.patient.trim() || !form.testType.trim()) return;
     if (editingId !== null) {
-      setTests((prev) =>
-        prev.map((t) => (t.id === editingId ? { ...t, ...form } : t)),
-      );
-    } else {
-      setTests((prev) => [
-        ...prev,
-        {
-          id: Date.now(),
-          ...form,
-          status: "En attente",
-          date: form.date || new Date().toISOString().slice(0, 10),
+      fetch(`/api/lab/tests/${editingId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token()}`,
         },
-      ]);
+        body: JSON.stringify(form),
+      })
+        .then((r) => r.json())
+        .then((updated: LabTest) =>
+          setTests((prev) => prev.map((t) => (t.id === editingId ? updated : t))),
+        )
+        .catch(() => { });
+    } else {
+      fetch("/api/lab/tests", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token()}`,
+        },
+        body: JSON.stringify({ ...form, status: "En attente" }),
+      })
+        .then((r) => r.json())
+        .then((created: LabTest) => setTests((prev) => [created, ...prev]))
+        .catch(() => { });
     }
     setShowModal(false);
   }

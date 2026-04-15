@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { DoctorDashboardSidebar } from "@/components/DoctorDashboardSidebar";
@@ -8,13 +8,11 @@ import {
   Eye,
   X,
   CheckCircle,
-  Clock,
   Trash2,
   FileText,
 } from "lucide-react";
 
-type PrescriptionStatus = "Validée" | "En attente";
-type TabFilter = "Toutes" | PrescriptionStatus;
+type TabFilter = "Toutes" | "Validée";
 
 interface Medicine {
   name: string;
@@ -22,101 +20,25 @@ interface Medicine {
   duration: string;
 }
 
-interface Prescription {
+interface RxData {
   id: string;
-  patient: string;
-  age: number;
-  date: string;
+  patientId: string | null;
   medicines: Medicine[];
-  status: PrescriptionStatus;
-  notes: string;
+  createdAt: string;
 }
 
-const PRESCRIPTIONS: Prescription[] = [
-  {
-    id: "ORD-001",
-    patient: "Fatima Benali",
-    age: 34,
-    date: "2026-04-03",
-    medicines: [
-      { name: "Amlodipine 5mg", dosage: "1 cp/jour", duration: "3 mois" },
-      { name: "Ramipril 10mg", dosage: "1 cp/soir", duration: "3 mois" },
-    ],
-    status: "Validée",
-    notes: "Contrôle TA dans 4 semaines.",
-  },
-  {
-    id: "ORD-002",
-    patient: "Mohamed Karoui",
-    age: 52,
-    date: "2026-04-02",
-    medicines: [
-      { name: "Furosémide 40mg", dosage: "1 cp matin", duration: "1 mois" },
-      { name: "Spironolactone 25mg", dosage: "1 cp/jour", duration: "3 mois" },
-      { name: "Bisoprolol 5mg", dosage: "½ cp/jour", duration: "3 mois" },
-    ],
-    status: "En attente",
-    notes: "Surveiller kaliémie. Bilan J+15.",
-  },
-  {
-    id: "ORD-003",
-    patient: "Aisha Hamdi",
-    age: 28,
-    date: "2026-03-28",
-    medicines: [
-      {
-        name: "Propranolol 10mg",
-        dosage: "½ cp si palpitations",
-        duration: "1 mois",
-      },
-    ],
-    status: "Validée",
-    notes: "Résultat Holter attendu.",
-  },
-  {
-    id: "ORD-004",
-    patient: "Youssef Tlili",
-    age: 47,
-    date: "2026-04-01",
-    medicines: [
-      {
-        name: "Nitroglycérine LP 5mg",
-        dosage: "1 cp matin",
-        duration: "6 mois",
-      },
-      { name: "Aspirine 100mg", dosage: "1 cp/jour", duration: "6 mois" },
-      {
-        name: "Atorvastatine 20mg",
-        dosage: "1 cp le soir",
-        duration: "6 mois",
-      },
-    ],
-    status: "En attente",
-    notes: "Test effort prévu le 12/04.",
-  },
-];
+interface PatientOption {
+  id: string;
+  name: string;
+}
 
-const STATUS_CFG: Record<
-  PrescriptionStatus,
-  { badgeCls: string; icon: React.ReactNode; borderCls: string }
-> = {
-  Validée: {
-    badgeCls: "bg-green-100 text-green-700",
-    icon: <CheckCircle size={13} className="text-green-600" />,
-    borderCls: "border-l-green-500",
-  },
-  "En attente": {
-    badgeCls: "bg-amber-100 text-amber-700",
-    icon: <Clock size={13} className="text-amber-600" />,
-    borderCls: "border-l-amber-400",
-  },
+const STATUS_CFG = {
+  badgeCls: "bg-green-100 text-green-700",
+  icon: <CheckCircle size={13} className="text-green-600" />,
+  borderCls: "border-l-green-500",
 };
 
-const EMPTY_FORM = {
-  patient: "",
-  date: new Date().toISOString().slice(0, 10),
-  notes: "",
-};
+const EMPTY_FORM = { patientId: "" };
 
 export default function DoctorPrescriptionsPage() {
   const { user, isLoading, isAuthenticated } = useAuth();
@@ -127,6 +49,86 @@ export default function DoctorPrescriptionsPage() {
   const [medicines, setMedicines] = useState<Medicine[]>([
     { name: "", dosage: "", duration: "" },
   ]);
+  const [prescriptions, setPrescriptions] = useState<RxData[]>([]);
+  const [patientNames, setPatientNames] = useState<Record<string, string>>({});
+  const [patients, setPatients] = useState<PatientOption[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+
+  const fetchPrescriptions = useCallback(async () => {
+    const token = localStorage.getItem("megacare_token");
+    if (!token) return;
+    setLoading(true);
+    try {
+      const res = await fetch("/api/prescriptions", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const json = await res.json();
+        const data = Array.isArray(json) ? json : (json.data ?? []);
+        const mapped: RxData[] = data.map((p: any) => ({
+          id: String(p.id || p._id),
+          patientId: p.patientId || null,
+          medicines: Array.isArray(p.medicines) ? p.medicines : [],
+          createdAt: p.createdAt || new Date().toISOString(),
+        }));
+        setPrescriptions(mapped);
+        // Resolve patient names
+        const uniqueIds = [
+          ...new Set(
+            mapped
+              .filter((p) => p.patientId)
+              .map((p) => p.patientId as string),
+          ),
+        ];
+        const names: Record<string, string> = {};
+        await Promise.all(
+          uniqueIds.map((id) =>
+            fetch(`/api/users/${id}`, {
+              headers: { Authorization: `Bearer ${token}` },
+            })
+              .then((r) => (r.ok ? r.json() : null))
+              .then((u) => {
+                if (u)
+                  names[id] =
+                    `${u.firstName || ""} ${u.lastName || ""}`.trim() ||
+                    u.email;
+              })
+              .catch(() => { }),
+          ),
+        );
+        setPatientNames(names);
+      }
+    } catch {
+      /* ignore */
+    }
+    setLoading(false);
+  }, []);
+
+  const fetchPatients = useCallback(async () => {
+    const token = localStorage.getItem("megacare_token");
+    if (!token) return;
+    try {
+      const res = await fetch("/api/users", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const json = await res.json();
+        const data = Array.isArray(json) ? json : (json.data ?? []);
+        setPatients(
+          data
+            .filter((u: any) => u.role === "patient")
+            .map((u: any) => ({
+              id: String(u.id || u._id),
+              name:
+                `${u.firstName || ""} ${u.lastName || ""}`.trim() || u.email,
+            })),
+        );
+      }
+    } catch {
+      /* ignore */
+    }
+  }, []);
 
   useEffect(() => {
     if (!isLoading && (!isAuthenticated || !user || user.role !== "doctor")) {
@@ -134,16 +136,19 @@ export default function DoctorPrescriptionsPage() {
     }
   }, [isLoading, isAuthenticated, user, navigate]);
 
+  useEffect(() => {
+    if (!isLoading && isAuthenticated && user?.role === "doctor") {
+      fetchPrescriptions();
+      fetchPatients();
+    }
+  }, [isLoading, isAuthenticated, user, fetchPrescriptions, fetchPatients]);
+
   if (isLoading || !isAuthenticated || !user || user.role !== "doctor")
     return null;
 
-  const filtered =
-    tab === "Toutes" ? PRESCRIPTIONS : PRESCRIPTIONS.filter((p) => p.status === tab);
+  const filtered = prescriptions; // all from API are "Validée"
 
-  const countOf = (s: TabFilter) =>
-    s === "Toutes"
-      ? PRESCRIPTIONS.length
-      : PRESCRIPTIONS.filter((p) => p.status === s).length;
+  const countOf = (s: TabFilter) => prescriptions.length; // all same
 
   const addMedicineRow = () =>
     setMedicines((prev) => [...prev, { name: "", dosage: "", duration: "" }]);
@@ -161,12 +166,32 @@ export default function DoctorPrescriptionsPage() {
     );
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setShowModal(false);
-    setForm(EMPTY_FORM);
-    setMedicines([{ name: "", dosage: "", duration: "" }]);
+    if (!form.patientId || medicines.some((m) => !m.name.trim())) return;
+    const token = localStorage.getItem("megacare_token");
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/prescriptions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ patientId: form.patientId, medicines }),
+      });
+      if (res.ok) {
+        await fetchPrescriptions();
+        setShowModal(false);
+        setForm(EMPTY_FORM);
+        setMedicines([{ name: "", dosage: "", duration: "" }]);
+      }
+    } catch {
+      /* ignore */
+    }
+    setSubmitting(false);
   };
+
 
   return (
     <div className="min-h-screen bg-background">
@@ -183,7 +208,7 @@ export default function DoctorPrescriptionsPage() {
                 Ordonnances
               </h1>
               <p className="text-muted-foreground mt-1">
-                {PRESCRIPTIONS.length} ordonnances émises
+                {loading ? "Chargement..." : `${prescriptions.length} ordonnances émises`}
               </p>
             </div>
             <button
@@ -198,25 +223,21 @@ export default function DoctorPrescriptionsPage() {
           <div className="p-6 space-y-5">
             {/* Stats */}
             <div className="grid grid-cols-3 sm:grid-cols-3 gap-4">
-              {(["Toutes", "Validée", "En attente"] as TabFilter[]).map(
+              {(["Toutes", "Validée"] as TabFilter[]).map(
                 (s) => (
                   <div
                     key={s}
                     onClick={() => setTab(s)}
-                    className={`bg-card border rounded-xl p-4 text-center cursor-pointer transition hover:shadow-md ${
-                      tab === s
-                        ? "border-primary ring-2 ring-primary/20"
-                        : "border-border"
-                    }`}
+                    className={`bg-card border rounded-xl p-4 text-center cursor-pointer transition hover:shadow-md ${tab === s
+                      ? "border-primary ring-2 ring-primary/20"
+                      : "border-border"
+                      }`}
                   >
                     <p
-                      className={`text-2xl font-bold ${
-                        s === "Validée"
-                          ? "text-green-600"
-                          : s === "En attente"
-                            ? "text-amber-600"
-                            : "text-foreground"
-                      }`}
+                      className={`text-2xl font-bold ${s === "Validée"
+                        ? "text-green-600"
+                        : "text-foreground"
+                        }`}
                     >
                       {countOf(s)}
                     </p>
@@ -228,16 +249,15 @@ export default function DoctorPrescriptionsPage() {
 
             {/* Filter Tabs */}
             <div className="flex gap-2 flex-wrap">
-              {(["Toutes", "Validée", "En attente"] as TabFilter[]).map(
+              {(["Toutes", "Validée"] as TabFilter[]).map(
                 (s) => (
                   <button
                     key={s}
                     onClick={() => setTab(s)}
-                    className={`px-4 py-1.5 rounded-full text-sm font-medium transition ${
-                      tab === s
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted text-muted-foreground hover:bg-muted/70"
-                    }`}
+                    className={`px-4 py-1.5 rounded-full text-sm font-medium transition ${tab === s
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted text-muted-foreground hover:bg-muted/70"
+                      }`}
                   >
                     {s}
                     <span className="ml-1.5 text-xs opacity-75">
@@ -250,82 +270,84 @@ export default function DoctorPrescriptionsPage() {
 
             {/* Prescription Cards */}
             <div className="space-y-4">
-              {filtered.map((rx) => {
-                const cfg = STATUS_CFG[rx.status];
-                return (
-                  <div
-                    key={rx.id}
-                    className={`bg-card border border-border border-l-4 ${cfg.borderCls} rounded-xl p-5 hover:shadow-md transition`}
-                  >
-                    {/* Card Header */}
-                    <div className="flex items-start justify-between mb-3">
-                      <div>
-                        <div className="flex items-center gap-2 mb-0.5">
-                          <span className="text-xs font-mono text-muted-foreground bg-muted/50 px-2 py-0.5 rounded">
-                            {rx.id}
-                          </span>
-                          <span
-                            className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${cfg.badgeCls}`}
-                          >
-                            {cfg.icon}
-                            {rx.status}
-                          </span>
-                        </div>
-                        <h3 className="font-semibold text-foreground text-lg">
-                          {rx.patient}
-                        </h3>
-                        <p className="text-sm text-muted-foreground">
-                          {rx.age} ans · Émise le {rx.date}
-                        </p>
-                      </div>
-                      <div className="flex gap-2">
-                        <button className="p-2 rounded-lg border border-border hover:bg-muted transition">
-                          <Eye size={16} className="text-muted-foreground" />
-                        </button>
-                        <button className="p-2 rounded-lg border border-border hover:bg-muted transition">
-                          <Download
-                            size={16}
-                            className="text-muted-foreground"
-                          />
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Medicines */}
-                    <div className="space-y-2 mb-3">
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                        Médicaments prescrits
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {rx.medicines.map((m, i) => (
-                          <div
-                            key={i}
-                            className="bg-muted/40 border border-border rounded-lg px-3 py-1.5 text-xs"
-                          >
-                            <span className="font-medium text-foreground">
-                              {m.name}
+              {loading ? (
+                [0, 1, 2].map((i) => (
+                  <div key={i} className="bg-card border border-border rounded-xl p-5 animate-pulse h-32" />
+                ))
+              ) : filtered.length === 0 ? (
+                <p className="text-center py-12 text-muted-foreground">
+                  Aucune ordonnance trouvée.
+                </p>
+              ) : (
+                filtered.map((rx) => {
+                  const patientLabel = rx.patientId
+                    ? patientNames[rx.patientId] || "Patient"
+                    : "Sans patient";
+                  const displayId = `ORD-${rx.id.slice(0, 7).toUpperCase()}`;
+                  const displayDate = new Date(rx.createdAt).toLocaleDateString("fr-FR");
+                  return (
+                    <div
+                      key={rx.id}
+                      className={`bg-card border border-border border-l-4 ${STATUS_CFG.borderCls} rounded-xl p-5 hover:shadow-md transition`}
+                    >
+                      {/* Card Header */}
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <span className="text-xs font-mono text-muted-foreground bg-muted/50 px-2 py-0.5 rounded">
+                              {displayId}
                             </span>
-                            <span className="text-muted-foreground ml-1">
-                              — {m.dosage} · {m.duration}
+                            <span
+                              className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_CFG.badgeCls}`}
+                            >
+                              {STATUS_CFG.icon}
+                              Validée
                             </span>
                           </div>
-                        ))}
+                          <h3 className="font-semibold text-foreground text-lg">
+                            {patientLabel}
+                          </h3>
+                          <p className="text-sm text-muted-foreground">
+                            Émise le {displayDate}
+                          </p>
+                        </div>
+                        <div className="flex gap-2">
+                          <button className="p-2 rounded-lg border border-border hover:bg-muted transition">
+                            <Eye size={16} className="text-muted-foreground" />
+                          </button>
+                          <button className="p-2 rounded-lg border border-border hover:bg-muted transition">
+                            <Download size={16} className="text-muted-foreground" />
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Medicines */}
+                      <div className="space-y-2">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                          Médicaments prescrits
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {rx.medicines.map((m, i) => (
+                            <div
+                              key={i}
+                              className="bg-muted/40 border border-border rounded-lg px-3 py-1.5 text-xs"
+                            >
+                              <span className="font-medium text-foreground">
+                                {m.name}
+                              </span>
+                              {(m.dosage || m.duration) && (
+                                <span className="text-muted-foreground ml-1">
+                                  {m.dosage && `— ${m.dosage}`}{m.duration && ` · ${m.duration}`}
+                                </span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     </div>
-
-                    {/* Notes */}
-                    {rx.notes && (
-                      <p className="text-sm text-muted-foreground border-t border-border pt-3 flex items-start gap-1.5">
-                        <FileText
-                          size={13}
-                          className="shrink-0 mt-0.5 text-muted-foreground"
-                        />
-                        {rx.notes}
-                      </p>
-                    )}
-                  </div>
-                );
-              })}
+                  );
+                })
+              )}
             </div>
           </div>
         </main>
@@ -363,113 +385,87 @@ export default function DoctorPrescriptionsPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2 space-y-1">
                   <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                    Nom du patient *
+                    Patient *
                   </label>
-                  <input
+                  <select
                     required
-                    value={form.patient}
+                    value={form.patientId}
                     onChange={(e) =>
-                      setForm((f) => ({ ...f, patient: e.target.value }))
-                    }
-                    placeholder="Prénom Nom"
-                    className="w-full border border-border rounded-lg px-3 py-2 bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/30 text-sm"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                    Date *
-                  </label>
-                  <input
-                    required
-                    type="date"
-                    value={form.date}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, date: e.target.value }))
+                      setForm((f) => ({ ...f, patientId: e.target.value }))
                     }
                     className="w-full border border-border rounded-lg px-3 py-2 bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/30 text-sm"
-                  />
-                </div>
-              </div>
-
-              {/* Medicines */}
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                    Médicaments *
-                  </label>
-                  <button
-                    type="button"
-                    onClick={addMedicineRow}
-                    className="flex items-center gap-1 text-xs text-primary hover:underline"
                   >
-                    <Plus size={12} /> Ajouter
-                  </button>
+                    <option value="">Sélectionner un patient</option>
+                    {patients.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-                <div className="space-y-3">
-                  {medicines.map((m, i) => (
-                    <div
-                      key={i}
-                      className="border border-border rounded-lg p-3 space-y-2 bg-muted/20"
+                <div className="col-span-2 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                      Médicaments *
+                    </label>
+                    <button
+                      type="button"
+                      onClick={addMedicineRow}
+                      className="flex items-center gap-1 text-xs text-primary hover:underline"
                     >
-                      <div className="flex items-center gap-2">
-                        <input
-                          required
-                          value={m.name}
-                          onChange={(e) =>
-                            updateMedicine(i, "name", e.target.value)
-                          }
-                          placeholder="Nom du médicament"
-                          className="flex-1 border border-border rounded px-2.5 py-1.5 bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/30 text-sm"
-                        />
-                        {medicines.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => removeMedicineRow(i)}
-                            className="p-1 hover:bg-red-50 rounded text-red-400 hover:text-red-600 transition"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        )}
+                      <Plus size={12} /> Ajouter
+                    </button>
+                  </div>
+                  <div className="space-y-3">
+                    {medicines.map((m, i) => (
+                      <div
+                        key={i}
+                        className="border border-border rounded-lg p-3 space-y-2 bg-muted/20"
+                      >
+                        <div className="flex items-center gap-2">
+                          <input
+                            required
+                            value={m.name}
+                            onChange={(e) =>
+                              updateMedicine(i, "name", e.target.value)
+                            }
+                            placeholder="Nom du médicament"
+                            className="flex-1 border border-border rounded px-2.5 py-1.5 bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/30 text-sm"
+                          />
+                          {medicines.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => removeMedicineRow(i)}
+                              className="p-1 hover:bg-red-50 rounded text-red-400 hover:text-red-600 transition"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <input
+                            required
+                            value={m.dosage}
+                            onChange={(e) =>
+                              updateMedicine(i, "dosage", e.target.value)
+                            }
+                            placeholder="Posologie"
+                            className="border border-border rounded px-2.5 py-1.5 bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/30 text-sm"
+                          />
+                          <input
+                            required
+                            value={m.duration}
+                            onChange={(e) =>
+                              updateMedicine(i, "duration", e.target.value)
+                            }
+                            placeholder="Durée"
+                            className="border border-border rounded px-2.5 py-1.5 bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/30 text-sm"
+                          />
+                        </div>
                       </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <input
-                          required
-                          value={m.dosage}
-                          onChange={(e) =>
-                            updateMedicine(i, "dosage", e.target.value)
-                          }
-                          placeholder="Posologie"
-                          className="border border-border rounded px-2.5 py-1.5 bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/30 text-sm"
-                        />
-                        <input
-                          required
-                          value={m.duration}
-                          onChange={(e) =>
-                            updateMedicine(i, "duration", e.target.value)
-                          }
-                          placeholder="Durée"
-                          className="border border-border rounded px-2.5 py-1.5 bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/30 text-sm"
-                        />
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
-
-              {/* Notes */}
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                  Notes / Recommandations
-                </label>
-                <textarea
-                  rows={3}
-                  value={form.notes}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, notes: e.target.value }))
-                  }
-                  placeholder="Instructions particulières…"
-                  className="w-full border border-border rounded-lg px-3 py-2 bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/30 text-sm resize-none"
-                />
               </div>
 
               {/* Actions */}
@@ -483,10 +479,11 @@ export default function DoctorPrescriptionsPage() {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition text-sm font-medium"
+                  disabled={submitting || !form.patientId || medicines.some((m) => !m.name.trim())}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <FileText size={15} />
-                  Émettre l'ordonnance
+                  {submitting ? "Enregistrement..." : "Émettre l'ordonnance"}
                 </button>
               </div>
             </form>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -67,7 +67,8 @@ interface LabCenter {
 }
 
 // ─── Mock Data ─────────────────────────────────────────────────────────────────
-const labs: LabCenter[] = [
+const labs: LabCenter[] = []; /* MOCK DATA REMOVED — fetched from API
+[
   {
     id: "1",
     name: "Laboratoire Pasteur Tunis",
@@ -756,7 +757,7 @@ const labs: LabCenter[] = [
       },
     ],
   },
-];
+]*/
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const DAY_LABELS = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];
@@ -853,11 +854,10 @@ function OrdonnanceWidget({ lab }: { lab: LabCenter }) {
         {[1, 2].map((s) => (
           <div key={s} className="flex items-center gap-2 flex-1">
             <div
-              className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
-                step >= s
+              className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${step >= s
                   ? "bg-primary text-primary-foreground"
                   : "bg-secondary text-muted-foreground"
-              }`}
+                }`}
             >
               {s}
             </div>
@@ -903,11 +903,10 @@ function OrdonnanceWidget({ lab }: { lab: LabCenter }) {
               const f = e.dataTransfer.files[0];
               if (f) setFile(f);
             }}
-            className={`border-2 border-dashed rounded-xl p-6 text-center transition-colors cursor-pointer ${
-              drag
+            className={`border-2 border-dashed rounded-xl p-6 text-center transition-colors cursor-pointer ${drag
                 ? "border-primary bg-primary/5"
                 : "border-border hover:border-primary/50"
-            }`}
+              }`}
             onClick={() => document.getElementById("ord-widget-input")?.click()}
           >
             <Upload size={24} className="mx-auto mb-2 text-muted-foreground" />
@@ -960,7 +959,15 @@ export default function LaboDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
-  const lab = labs.find((l) => l.id === id);
+  const [lab, setLab] = useState<LabCenter | null>(null);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    setLoading(true);
+    fetch(`/api/public/labs/${id}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => { setLab(data); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, [id]);
 
   const [activeTab, setActiveTab] = useState<
     "catalogue" | "equipe" | "horaires" | "avis"
@@ -973,6 +980,16 @@ export default function LaboDetailPage() {
   const [booked, setBooked] = useState(false);
   const [activeWidget, setActiveWidget] = useState<"booking" | "ordonnance">(
     "booking",
+  );
+
+  if (loading) return (
+    <div className="min-h-screen bg-background flex flex-col">
+      <Header />
+      <main className="flex-1 flex items-center justify-center py-20">
+        <div className="animate-pulse text-muted-foreground text-sm">Chargement…</div>
+      </main>
+      <Footer />
+    </div>
   );
 
   if (!lab) {
@@ -1172,11 +1189,10 @@ export default function LaboDetailPage() {
                     <button
                       key={i}
                       onClick={() => setGalleryIdx(i)}
-                      className={`flex-shrink-0 w-14 h-14 rounded-lg overflow-hidden border-2 transition ${
-                        i === galleryIdx
+                      className={`flex-shrink-0 w-14 h-14 rounded-lg overflow-hidden border-2 transition ${i === galleryIdx
                           ? "border-primary"
                           : "border-transparent opacity-60 hover:opacity-100"
-                      }`}
+                        }`}
                     >
                       <img
                         src={img}
@@ -1196,11 +1212,10 @@ export default function LaboDetailPage() {
                   <button
                     key={key}
                     onClick={() => setActiveTab(key)}
-                    className={`px-5 py-4 text-sm font-semibold whitespace-nowrap transition-colors ${
-                      activeTab === key
+                    className={`px-5 py-4 text-sm font-semibold whitespace-nowrap transition-colors ${activeTab === key
                         ? "border-b-2 border-primary text-primary"
                         : "text-muted-foreground hover:text-foreground"
-                    }`}
+                      }`}
                   >
                     {label}
                   </button>
@@ -1415,21 +1430,19 @@ export default function LaboDetailPage() {
                 <div className="flex border-b border-border">
                   <button
                     onClick={() => setActiveWidget("booking")}
-                    className={`flex-1 py-3.5 text-sm font-semibold transition-colors flex items-center justify-center gap-2 ${
-                      activeWidget === "booking"
+                    className={`flex-1 py-3.5 text-sm font-semibold transition-colors flex items-center justify-center gap-2 ${activeWidget === "booking"
                         ? "border-b-2 border-primary text-primary"
                         : "text-muted-foreground hover:text-foreground"
-                    }`}
+                      }`}
                   >
                     <Calendar size={15} /> Prendre RDV
                   </button>
                   <button
                     onClick={() => setActiveWidget("ordonnance")}
-                    className={`flex-1 py-3.5 text-sm font-semibold transition-colors flex items-center justify-center gap-2 ${
-                      activeWidget === "ordonnance"
+                    className={`flex-1 py-3.5 text-sm font-semibold transition-colors flex items-center justify-center gap-2 ${activeWidget === "ordonnance"
                         ? "border-b-2 border-primary text-primary"
                         : "text-muted-foreground hover:text-foreground"
-                    }`}
+                      }`}
                   >
                     <FileText size={15} /> Ordonnance
                   </button>
@@ -1543,11 +1556,10 @@ export default function LaboDetailPage() {
                                     setSelectedDayIdx(i);
                                     setSelectedSlot(null);
                                   }}
-                                  className={`flex flex-col items-center py-2 rounded-xl text-xs font-medium transition-all ${
-                                    i === selectedDayIdx
+                                  className={`flex flex-col items-center py-2 rounded-xl text-xs font-medium transition-all ${i === selectedDayIdx
                                       ? "bg-primary text-primary-foreground"
                                       : "hover:bg-secondary/70 text-foreground/70"
-                                  } ${d.slots.length === 0 ? "opacity-40 cursor-not-allowed" : ""}`}
+                                    } ${d.slots.length === 0 ? "opacity-40 cursor-not-allowed" : ""}`}
                                   disabled={d.slots.length === 0}
                                 >
                                   <span className="text-[10px] opacity-70">
@@ -1577,11 +1589,10 @@ export default function LaboDetailPage() {
                                 <button
                                   key={slot}
                                   onClick={() => setSelectedSlot(slot)}
-                                  className={`py-2 rounded-xl text-xs font-semibold transition-all text-center ${
-                                    selectedSlot === slot
+                                  className={`py-2 rounded-xl text-xs font-semibold transition-all text-center ${selectedSlot === slot
                                       ? "bg-primary text-primary-foreground shadow-sm"
                                       : "bg-secondary/60 text-foreground/80 hover:bg-secondary"
-                                  }`}
+                                    }`}
                                 >
                                   {slot}
                                 </button>

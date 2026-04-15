@@ -33,6 +33,7 @@ export default function ConsultationsPage() {
 
     fetch("/api/appointments", { headers })
       .then((r) => (r.ok ? r.json() : []))
+      .then((j: any) => Array.isArray(j) ? j : (j.data ?? []))
       .then(async (appts: ConsultationData[]) => {
         // Show completed appointments as past consultations
         const completed = appts.filter((a) => a.status === "completed");
@@ -59,7 +60,7 @@ export default function ConsultationsPage() {
                     specialty: u.specialization || "Médecine générale",
                   };
               })
-              .catch(() => {}),
+              .catch(() => { }),
           ),
         );
 
@@ -84,7 +85,7 @@ export default function ConsultationsPage() {
             })),
         );
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setLoading(false));
   }, [isAuthenticated, user]);
 

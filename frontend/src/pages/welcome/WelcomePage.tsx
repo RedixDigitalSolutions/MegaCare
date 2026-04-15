@@ -11,21 +11,18 @@ export default function WelcomePage() {
       icon: '👤',
       description: 'Accédez à vos consultations et votre dossier médical',
       features: ['Prendre rendez-vous', 'Suivi médical', 'Pharmacie en ligne'],
-      testData: 'Email: patient@test.com\nMDP: demo123',
     },
     {
       role: 'Médecin',
       icon: '👨‍⚕️',
       description: 'Gérez vos rendez-vous et vos patients',
       features: ['Consultations vidéo', 'Gestion des patients', 'Ordonnances'],
-      testData: 'License: MD-001-2024\nEmail: doctor@test.com\nMDP: demo123',
     },
     {
       role: 'Pharmacien',
       icon: '💊',
       description: 'Gérez votre stock et vos commandes',
       features: ['Gestion du stock', 'Traitement des commandes', 'Analytiques'],
-      testData: 'Agrément: PH-001-2024\nEmail: pharmacy@test.com\nMDP: demo123',
     },
   ];
 
@@ -138,7 +135,7 @@ export default function WelcomePage() {
                 Parcourez une vue d'ensemble de chaque dashboard
               </p>
               <Link
-                to="/dashboards-overview"
+                to="/dashboard"
                 className="inline-flex items-center justify-center w-full px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition font-medium gap-2"
               >
                 Explorer les dashboards
@@ -175,12 +172,6 @@ export default function WelcomePage() {
                         </li>
                       ))}
                     </ul>
-                  </div>
-
-                  <div className="bg-primary/10 rounded-lg p-3">
-                    <p className="text-xs font-mono text-primary whitespace-pre-line">
-                      {account.testData}
-                    </p>
                   </div>
 
                   <Link

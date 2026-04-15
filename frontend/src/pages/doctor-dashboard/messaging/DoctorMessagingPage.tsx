@@ -66,7 +66,7 @@ export default function DoctorMessagingPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const selectedPartnerRef = useRef<string | null>(null);
-  const fetchConversationsRef = useRef<() => void>(() => {});
+  const fetchConversationsRef = useRef<() => void>(() => { });
 
   const token = localStorage.getItem("megacare_token");
   const headers = {
@@ -84,7 +84,7 @@ export default function DoctorMessagingPage() {
     try {
       const res = await fetch("/api/messages/conversations", { headers });
       if (res.ok) setConversations(await res.json());
-    } catch {}
+    } catch { }
   }, [token]);
 
   fetchConversationsRef.current = fetchConversations;
@@ -94,7 +94,7 @@ export default function DoctorMessagingPage() {
     try {
       const res = await fetch("/api/messages/contacts", { headers });
       if (res.ok) setContacts(await res.json());
-    } catch {}
+    } catch { }
   }, [token]);
 
   const fetchThread = useCallback(
@@ -105,10 +105,11 @@ export default function DoctorMessagingPage() {
           headers,
         });
         if (res.ok) {
-          setThread(await res.json());
+          const json = await res.json();
+          setThread(Array.isArray(json) ? json : (json.data ?? []));
           fetchConversations();
         }
-      } catch {}
+      } catch { }
     },
     [token, fetchConversations],
   );
@@ -391,23 +392,22 @@ export default function DoctorMessagingPage() {
                   setSelectedPartner(null);
                   setShowNewChat(false);
                 }}
-                className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 transition ${
-                  activeTab === "patients"
+                className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 transition ${activeTab === "patients"
                     ? "border-primary text-primary"
                     : "border-transparent text-muted-foreground hover:text-foreground"
-                }`}
+                  }`}
               >
                 <UserRound size={16} />
                 Patients
                 {conversations.filter(
                   (c) => c.partnerRole === "patient" && c.unread > 0,
                 ).length > 0 && (
-                  <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary text-primary-foreground rounded-full">
-                    {conversations
-                      .filter((c) => c.partnerRole === "patient")
-                      .reduce((s, c) => s + c.unread, 0)}
-                  </span>
-                )}
+                    <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary text-primary-foreground rounded-full">
+                      {conversations
+                        .filter((c) => c.partnerRole === "patient")
+                        .reduce((s, c) => s + c.unread, 0)}
+                    </span>
+                  )}
               </button>
               <button
                 onClick={() => {
@@ -415,23 +415,22 @@ export default function DoctorMessagingPage() {
                   setSelectedPartner(null);
                   setShowNewChat(false);
                 }}
-                className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 transition ${
-                  activeTab === "doctors"
+                className={`flex items-center gap-2 px-5 py-3 text-sm font-medium border-b-2 transition ${activeTab === "doctors"
                     ? "border-primary text-primary"
                     : "border-transparent text-muted-foreground hover:text-foreground"
-                }`}
+                  }`}
               >
                 <Stethoscope size={16} />
                 Confrères
                 {conversations.filter(
                   (c) => c.partnerRole === "doctor" && c.unread > 0,
                 ).length > 0 && (
-                  <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary text-primary-foreground rounded-full">
-                    {conversations
-                      .filter((c) => c.partnerRole === "doctor")
-                      .reduce((s, c) => s + c.unread, 0)}
-                  </span>
-                )}
+                    <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary text-primary-foreground rounded-full">
+                      {conversations
+                        .filter((c) => c.partnerRole === "doctor")
+                        .reduce((s, c) => s + c.unread, 0)}
+                    </span>
+                  )}
               </button>
             </div>
           </div>
@@ -440,9 +439,8 @@ export default function DoctorMessagingPage() {
           <div className="flex-1 flex overflow-hidden">
             {/* Sidebar — conversation list */}
             <div
-              className={`w-80 border-r border-border bg-card flex flex-col shrink-0 ${
-                selectedPartner ? "hidden md:flex" : "flex"
-              }`}
+              className={`w-80 border-r border-border bg-card flex flex-col shrink-0 ${selectedPartner ? "hidden md:flex" : "flex"
+                }`}
             >
               {/* Search + New */}
               <div className="p-3 border-b border-border space-y-2">
@@ -541,9 +539,8 @@ export default function DoctorMessagingPage() {
                           setSelectedPartner(conv.partnerId);
                           setShowNewChat(false);
                         }}
-                        className={`w-full flex items-center gap-3 px-4 py-3 border-b border-border hover:bg-muted/50 transition text-left ${
-                          selectedPartner === conv.partnerId ? "bg-muted" : ""
-                        }`}
+                        className={`w-full flex items-center gap-3 px-4 py-3 border-b border-border hover:bg-muted/50 transition text-left ${selectedPartner === conv.partnerId ? "bg-muted" : ""
+                          }`}
                       >
                         <div className="relative shrink-0">
                           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center text-xs font-bold text-primary">
@@ -590,9 +587,8 @@ export default function DoctorMessagingPage() {
 
             {/* Chat thread */}
             <div
-              className={`flex-1 flex flex-col ${
-                !selectedPartner ? "hidden md:flex" : "flex"
-              }`}
+              className={`flex-1 flex flex-col ${!selectedPartner ? "hidden md:flex" : "flex"
+                }`}
             >
               {!selectedPartner ? (
                 <div className="flex-1 flex flex-col items-center justify-center text-center px-8">
@@ -657,26 +653,23 @@ export default function DoctorMessagingPage() {
                       return (
                         <div
                           key={msg.id}
-                          className={`flex ${
-                            isMine ? "justify-end" : "justify-start"
-                          }`}
+                          className={`flex ${isMine ? "justify-end" : "justify-start"
+                            }`}
                         >
                           <div
-                            className={`max-w-[75%] rounded-2xl px-4 py-2.5 ${
-                              isMine
+                            className={`max-w-[75%] rounded-2xl px-4 py-2.5 ${isMine
                                 ? "bg-primary text-primary-foreground rounded-br-md"
                                 : "bg-muted text-foreground rounded-bl-md"
-                            }`}
+                              }`}
                           >
                             <p className="text-sm whitespace-pre-wrap">
                               {msg.content}
                             </p>
                             <p
-                              className={`text-[10px] mt-1 ${
-                                isMine
+                              className={`text-[10px] mt-1 ${isMine
                                   ? "text-primary-foreground/60"
                                   : "text-muted-foreground"
-                              }`}
+                                }`}
                             >
                               {formatTime(msg.createdAt)}
                             </p>

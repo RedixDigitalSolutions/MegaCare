@@ -1,8 +1,9 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { useAuth } from "@/contexts/AuthContext";
+import { tunisianGovernorates, examTypeOptions, labTypes } from "@/lib/config";
 import {
   Search,
   MapPin,
@@ -20,6 +21,7 @@ import {
   Upload,
   FileText,
   Shield,
+  Loader2,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -42,233 +44,6 @@ export interface LabCenter {
   description: string;
   open24h?: boolean;
 }
-
-// ─── Mock Data ─────────────────────────────────────────────────────────────────
-const labs: LabCenter[] = [
-  {
-    id: "1",
-    name: "Laboratoire Pasteur Tunis",
-    type: "Laboratoire",
-    governorate: "Tunis",
-    city: "Tunis Centre",
-    address: "Avenue de la Liberté, Tunis",
-    phone: "+216 71 283 400",
-    rating: 4.9,
-    reviews: 428,
-    cnam: true,
-    resultDelay: "24h",
-    exams: ["NFS", "Glycémie à jeun", "Bilan hépatique", "TSH", "CRP"],
-    allExamTypes: ["Biologie", "Hématologie", "Endocrinologie"],
-    priceFrom: 12,
-    imageUrl:
-      "https://images.unsplash.com/photo-1578496480157-697fc14d2e55?w=800&fit=crop&q=80",
-    description:
-      "Laboratoire de référence au cœur de Tunis, accrédité ISO 15189. Résultats disponibles en ligne sous 24h.",
-  },
-  {
-    id: "2",
-    name: "Centre d'Imagerie Ibn Sina",
-    type: "Radiologie",
-    governorate: "Tunis",
-    city: "La Marsa",
-    address: "Avenue Tahar Sfar, La Marsa, Tunis",
-    phone: "+216 71 748 200",
-    rating: 4.8,
-    reviews: 317,
-    cnam: true,
-    resultDelay: "2–3h",
-    exams: ["IRM 3T", "Scanner", "Échographie", "Mammographie", "Radio"],
-    allExamTypes: ["Imagerie", "IRM", "Scanner", "Échographie"],
-    priceFrom: 80,
-    imageUrl:
-      "https://images.unsplash.com/photo-1530497610245-94d3c16cda28?w=800&fit=crop&q=80",
-    description:
-      "Centre d'imagerie médicale équipé de l'IRM 3 Tesla dernière génération et d'un scanner 128 coupes.",
-  },
-  {
-    id: "3",
-    name: "BioMédical Lac",
-    type: "Mixte",
-    governorate: "Tunis",
-    city: "Les Berges du Lac",
-    address: "Immeuble Médical B1, Lac 2, Tunis",
-    phone: "+216 71 965 300",
-    rating: 4.7,
-    reviews: 214,
-    cnam: true,
-    resultDelay: "4h",
-    exams: ["NFS", "Bilan lipidique", "Échographie", "Radio pulmonaire", "PCR"],
-    allExamTypes: ["Biologie", "Imagerie", "Microbiologie"],
-    priceFrom: 15,
-    imageUrl:
-      "https://images.unsplash.com/photo-1581595219315-a187dd40c322?w=800&fit=crop&q=80",
-    description:
-      "Centre médico-biologique complet aux Berges du Lac. Analyses et imagerie sous le même toit.",
-  },
-  {
-    id: "4",
-    name: "Labo Analyses Sfax Central",
-    type: "Laboratoire",
-    governorate: "Sfax",
-    city: "Sfax",
-    address: "Rue Habib Maazoun, Sfax",
-    phone: "+216 74 227 100",
-    rating: 4.6,
-    reviews: 189,
-    cnam: true,
-    resultDelay: "24h",
-    exams: ["NFS", "Urée-Créatinine", "Ionogramme", "Hémoculture", "ECBU"],
-    allExamTypes: ["Biologie", "Microbiologie", "Hématologie"],
-    priceFrom: 10,
-    imageUrl:
-      "https://images.unsplash.com/photo-1606811971618-4486d14f3f99?w=800&fit=crop&q=80",
-    description:
-      "Principal laboratoire privé de Sfax. Accrédité COFRAC, résultats disponibles par email et sur l'application.",
-  },
-  {
-    id: "5",
-    name: "RadioSanté Sousse",
-    type: "Radiologie",
-    governorate: "Sousse",
-    city: "Sousse",
-    address: "Boulevard du 14 Janvier, Sousse",
-    phone: "+216 73 232 900",
-    rating: 4.5,
-    reviews: 152,
-    cnam: false,
-    resultDelay: "3h",
-    exams: ["IRM", "Scanner", "Ostéodensitométrie", "Échographie", "Radio"],
-    allExamTypes: ["Imagerie", "IRM", "Scanner", "Radiographie"],
-    priceFrom: 70,
-    imageUrl:
-      "https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=800&fit=crop&q=80",
-    description:
-      "Centre de radiologie avec IRM 1.5T, scanner multi-coupes et système de téléradiologie.",
-  },
-  {
-    id: "6",
-    name: "BioLis Nabeul",
-    type: "Laboratoire",
-    governorate: "Nabeul",
-    city: "Nabeul",
-    address: "Avenue Habib Bourguiba, Nabeul",
-    phone: "+216 72 285 500",
-    rating: 4.4,
-    reviews: 97,
-    cnam: true,
-    resultDelay: "24–48h",
-    exams: ["Glycémie", "Cholestérol", "NFS", "Sérologie", "Coagulation"],
-    allExamTypes: ["Biologie", "Hématologie", "Sérologie"],
-    priceFrom: 10,
-    imageUrl:
-      "https://images.unsplash.com/photo-1559757175-0eb30cd8c063?w=800&fit=crop&q=80",
-    description:
-      "Laboratoire chaleureux et réactif à Nabeul, avec accueil sans rendez-vous et résultats rapides.",
-  },
-  {
-    id: "7",
-    name: "Centre Imagerie Monastir",
-    type: "Mixte",
-    governorate: "Monastir",
-    city: "Monastir",
-    address: "Rue Hussein Ben Ali, Monastir",
-    phone: "+216 73 462 200",
-    rating: 4.6,
-    reviews: 133,
-    cnam: true,
-    resultDelay: "2h",
-    exams: ["IRM", "Scanner", "Scintigraphie", "NFS", "PCR"],
-    allExamTypes: ["Imagerie", "IRM", "Biologie", "Médecine nucléaire"],
-    priceFrom: 25,
-    imageUrl:
-      "https://images.unsplash.com/photo-1527613426441-4da17471b66d?w=800&fit=crop&q=80",
-    description:
-      "Centre médical complet à Monastir combinant biologie médicale et imagerie de pointe.",
-  },
-  {
-    id: "8",
-    name: "RadioGabès",
-    type: "Radiologie",
-    governorate: "Gabès",
-    city: "Gabès",
-    address: "Avenue Farhat Hached, Gabès",
-    phone: "+216 75 272 800",
-    rating: 4.3,
-    reviews: 76,
-    cnam: true,
-    resultDelay: "4h",
-    exams: ["Radio", "Échographie", "Scanner", "IRM", "Mammographie"],
-    allExamTypes: ["Imagerie", "Scanner", "Radiographie", "Échographie"],
-    priceFrom: 60,
-    imageUrl:
-      "https://images.unsplash.com/photo-1504868584819-f8e8b4b6d7e3?w=800&fit=crop&q=80",
-    description:
-      "Premier centre de radiologie de la région Sud avec scanner et échographie doppler couleur.",
-  },
-  {
-    id: "9",
-    name: "Labo Bizerte Bio",
-    type: "Laboratoire",
-    governorate: "Bizerte",
-    city: "Bizerte",
-    address: "Avenue de la République, Bizerte",
-    phone: "+216 72 433 600",
-    rating: 4.5,
-    reviews: 108,
-    cnam: true,
-    resultDelay: "24h",
-    exams: ["NFS", "Bilan rénal", "Bilan thyroïdien", "ECBU", "HbA1c"],
-    allExamTypes: ["Biologie", "Endocrinologie", "Microbiologie"],
-    priceFrom: 10,
-    imageUrl:
-      "https://images.unsplash.com/photo-1616587226960-4a03badbe8bf?w=800&fit=crop&q=80",
-    description:
-      "Laboratoire moderne à Bizerte avec équipements automatisés et résultats disponibles en 24h.",
-  },
-];
-
-const tunisianGovernorates = [
-  "Tunis",
-  "Ariana",
-  "Ben Arous",
-  "Manouba",
-  "Nabeul",
-  "Zaghouan",
-  "Bizerte",
-  "Béja",
-  "Jendouba",
-  "Le Kef",
-  "Siliana",
-  "Monastir",
-  "Mahdia",
-  "Sfax",
-  "Kairouan",
-  "Kasserine",
-  "Sidi Bouzid",
-  "Sousse",
-  "Gabès",
-  "Médenine",
-  "Tataouine",
-  "Gafsa",
-  "Tozeur",
-  "Kébili",
-];
-
-const examTypeOptions = [
-  "Biologie",
-  "Hématologie",
-  "Microbiologie",
-  "Sérologie",
-  "Endocrinologie",
-  "Imagerie",
-  "IRM",
-  "Scanner",
-  "Échographie",
-  "Radiographie",
-  "Médecine nucléaire",
-];
-
-const labTypes = ["Laboratoire", "Radiologie", "Mixte"] as const;
 
 const typeColors: Record<string, string> = {
   Laboratoire: "bg-blue-500/10 text-blue-700 dark:text-blue-400",
@@ -339,19 +114,17 @@ function OrdonnanceModal({
           {[1, 2, 3].map((s) => (
             <div key={s} className="flex items-center gap-2 flex-1">
               <div
-                className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 transition-colors ${
-                  step >= s
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-secondary text-muted-foreground"
-                }`}
+                className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 transition-colors ${step >= s
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-secondary text-muted-foreground"
+                  }`}
               >
                 {s}
               </div>
               {s < 3 && (
                 <div
-                  className={`h-0.5 flex-1 rounded transition-colors ${
-                    step > s ? "bg-primary" : "bg-border"
-                  }`}
+                  className={`h-0.5 flex-1 rounded transition-colors ${step > s ? "bg-primary" : "bg-border"
+                    }`}
                 />
               )}
             </div>
@@ -408,11 +181,10 @@ function OrdonnanceModal({
                   const f = e.dataTransfer.files[0];
                   if (f) setFile(f);
                 }}
-                className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors cursor-pointer ${
-                  drag
-                    ? "border-primary bg-primary/5"
-                    : "border-border hover:border-primary/50"
-                }`}
+                className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors cursor-pointer ${drag
+                  ? "border-primary bg-primary/5"
+                  : "border-border hover:border-primary/50"
+                  }`}
                 onClick={() => document.getElementById("ord-input")?.click()}
               >
                 <Upload
@@ -669,11 +441,10 @@ function BookingModal({
                       setSelectedDayIdx(i);
                       setSelectedSlot(null);
                     }}
-                    className={`flex flex-col items-center py-2 rounded-xl text-xs font-medium transition-all ${
-                      i === selectedDayIdx
-                        ? "bg-primary text-primary-foreground"
-                        : "hover:bg-secondary/70 text-foreground/70"
-                    } ${d.slots.length === 0 ? "opacity-40 cursor-not-allowed" : ""}`}
+                    className={`flex flex-col items-center py-2 rounded-xl text-xs font-medium transition-all ${i === selectedDayIdx
+                      ? "bg-primary text-primary-foreground"
+                      : "hover:bg-secondary/70 text-foreground/70"
+                      } ${d.slots.length === 0 ? "opacity-40 cursor-not-allowed" : ""}`}
                     disabled={d.slots.length === 0}
                   >
                     <span className="text-[10px] opacity-70">
@@ -707,11 +478,10 @@ function BookingModal({
                     <button
                       key={slot}
                       onClick={() => setSelectedSlot(slot)}
-                      className={`py-2 rounded-xl text-xs font-semibold transition-all text-center ${
-                        selectedSlot === slot
-                          ? "bg-primary text-primary-foreground shadow-sm"
-                          : "bg-secondary/60 text-foreground/80 hover:bg-secondary"
-                      }`}
+                      className={`py-2 rounded-xl text-xs font-semibold transition-all text-center ${selectedSlot === slot
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "bg-secondary/60 text-foreground/80 hover:bg-secondary"
+                        }`}
                     >
                       {slot}
                     </button>
@@ -936,14 +706,12 @@ function FilterPanel({
         <label className="flex items-center gap-2 cursor-pointer">
           <div
             onClick={() => setCnamOnly(!cnamOnly)}
-            className={`relative w-10 h-5 rounded-full transition-colors cursor-pointer ${
-              cnamOnly ? "bg-primary" : "bg-secondary"
-            }`}
+            className={`relative w-10 h-5 rounded-full transition-colors cursor-pointer ${cnamOnly ? "bg-primary" : "bg-secondary"
+              }`}
           >
             <div
-              className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${
-                cnamOnly ? "translate-x-5" : "translate-x-0.5"
-              }`}
+              className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${cnamOnly ? "translate-x-5" : "translate-x-0.5"
+                }`}
             />
           </div>
           <span className="text-sm text-foreground/80">CNAM uniquement</span>
@@ -962,6 +730,18 @@ function FilterPanel({
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 export default function LabosRadiologiePage() {
+  const [labs, setLabs] = useState<LabCenter[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    fetch("/api/public/labs")
+      .then((r) => r.json())
+      .then((data) => setLabs(Array.isArray(data) ? data : []))
+      .catch(() => setLabs([]))
+      .finally(() => setLoading(false));
+  }, []);
+
   const [query, setQuery] = useState("");
   const [selectedGov, setSelectedGov] = useState("");
   const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
@@ -1023,6 +803,7 @@ export default function LabosRadiologiePage() {
 
     return result;
   }, [
+    labs,
     query,
     selectedGov,
     selectedTypes,
@@ -1147,7 +928,11 @@ export default function LabosRadiologiePage() {
                 </select>
               </div>
 
-              {filtered.length === 0 ? (
+              {loading ? (
+                <div className="flex justify-center items-center py-24">
+                  <Loader2 size={40} className="animate-spin text-primary" />
+                </div>
+              ) : filtered.length === 0 ? (
                 <div className="bg-card rounded-xl border border-border p-12 text-center space-y-4">
                   <FlaskConical
                     size={48}

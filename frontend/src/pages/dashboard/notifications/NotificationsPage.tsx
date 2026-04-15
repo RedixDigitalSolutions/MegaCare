@@ -44,10 +44,10 @@ export default function NotificationsPage() {
 
     Promise.all([
       fetch("/api/appointments", { headers }).then((r) =>
-        r.ok ? r.json() : [],
+        r.ok ? r.json().then((j: any) => Array.isArray(j) ? j : (j.data ?? [])) : [],
       ),
       fetch("/api/prescriptions", { headers }).then((r) =>
-        r.ok ? r.json() : [],
+        r.ok ? r.json().then((j: any) => Array.isArray(j) ? j : (j.data ?? [])) : [],
       ),
     ])
       .then(async ([appts, rxs]) => {
@@ -70,7 +70,7 @@ export default function NotificationsPage() {
               .then((u) => {
                 if (u) names[did] = `Dr. ${u.firstName} ${u.lastName}`;
               })
-              .catch(() => {}),
+              .catch(() => { }),
           ),
         );
 
@@ -142,7 +142,7 @@ export default function NotificationsPage() {
 
         setNotifications(notifs);
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setLoading(false));
   }, [isAuthenticated, user]);
 
@@ -198,22 +198,20 @@ export default function NotificationsPage() {
                   return (
                     <div
                       key={notif.id}
-                      className={`p-4 rounded-lg border-2 flex items-start gap-4 ${
-                        notif.read
+                      className={`p-4 rounded-lg border-2 flex items-start gap-4 ${notif.read
                           ? "bg-card border-border"
                           : "bg-blue-50 border-blue-200"
-                      }`}
+                        }`}
                     >
                       <div
-                        className={`p-3 rounded-lg flex-shrink-0 ${
-                          notif.type === "appointment"
+                        className={`p-3 rounded-lg flex-shrink-0 ${notif.type === "appointment"
                             ? "bg-blue-100 text-blue-700"
                             : notif.type === "prescription"
                               ? "bg-purple-100 text-purple-700"
                               : notif.type === "alert"
                                 ? "bg-yellow-100 text-yellow-700"
                                 : "bg-green-100 text-green-700"
-                        }`}
+                          }`}
                       >
                         <Icon size={20} />
                       </div>

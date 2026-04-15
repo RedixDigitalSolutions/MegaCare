@@ -1,8 +1,9 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { useAuth } from "@/contexts/AuthContext";
+import { tunisianGovernorates, allServices, establishmentTypes } from "@/lib/config";
 import {
   Search,
   MapPin,
@@ -20,6 +21,7 @@ import {
   Users,
   Activity,
   SlidersHorizontal,
+  Loader2,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -45,313 +47,7 @@ export interface MedicalEstablishment {
   founded?: number;
 }
 
-// ─── Mock Data ─────────────────────────────────────────────────────────────────
-const establishments: MedicalEstablishment[] = [
-  {
-    id: "1",
-    name: "Clinique Hannibal",
-    type: "Clinique",
-    governorate: "Tunis",
-    city: "Carthage",
-    address: "Route de la Marsa, Carthage, Tunis",
-    phone: "+216 71 777 888",
-    rating: 4.8,
-    reviews: 312,
-    price: 60,
-    services: [
-      "Cardiologie",
-      "Chirurgie",
-      "Obstétrique",
-      "Réanimation",
-      "Imagerie",
-    ],
-    accredited: true,
-    emergencies: true,
-    imageUrl:
-      "https://images.unsplash.com/photo-1586773860418-d37222d8fce3?w=800&fit=crop&q=80",
-    description:
-      "Clinique médicale privée de référence, la Clinique Hannibal offre une prise en charge globale avec un plateau technique de pointe et une équipe de 120 médecins spécialistes.",
-    beds: 180,
-    doctors: 120,
-    founded: 1994,
-  },
-  {
-    id: "2",
-    name: "Hôpital Aziza Othmana",
-    type: "Hôpital",
-    governorate: "Tunis",
-    city: "Tunis Centre",
-    address: "Place de la Kasbah, Tunis",
-    phone: "+216 71 562 344",
-    rating: 4.3,
-    reviews: 540,
-    price: 30,
-    services: [
-      "Urgences",
-      "Médecine interne",
-      "Pédiatrie",
-      "Chirurgie",
-      "Maternité",
-    ],
-    accredited: true,
-    emergencies: true,
-    imageUrl:
-      "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=800&fit=crop&q=80",
-    description:
-      "Grand hôpital public universitaire offrant des soins de qualité dans 15 services spécialisés. Conventions avec la CNAM et prise en charge intégrale.",
-    beds: 450,
-    doctors: 280,
-    founded: 1949,
-  },
-  {
-    id: "3",
-    name: "Centre Médical des Berges du Lac",
-    type: "Centre médical",
-    governorate: "Tunis",
-    city: "Les Berges du Lac",
-    address: "Immeuble Médical, Les Berges du Lac 2, Tunis",
-    phone: "+216 71 964 100",
-    rating: 4.9,
-    reviews: 198,
-    price: 50,
-    services: [
-      "Dermatologie",
-      "Ophtalmologie",
-      "ORL",
-      "Gynécologie",
-      "Radiologie",
-    ],
-    accredited: true,
-    emergencies: false,
-    imageUrl:
-      "https://images.unsplash.com/photo-1538108149393-fbbd81895907?w=800&fit=crop&q=80",
-    description:
-      "Centre multi-spécialités moderne au cœur des Berges du Lac. Équipements dernier cri, IRM 3T et plateau d'imagerie complet.",
-    beds: 0,
-    doctors: 45,
-    founded: 2012,
-  },
-  {
-    id: "4",
-    name: "Clinique El Menzah",
-    type: "Clinique",
-    governorate: "Tunis",
-    city: "Menzah",
-    address: "Avenue Tahar Ben Ammar, El Menzah 6, Tunis",
-    phone: "+216 71 238 900",
-    rating: 4.6,
-    reviews: 241,
-    price: 55,
-    services: [
-      "Orthopédie",
-      "Cardiologie",
-      "Neurologie",
-      "Urologie",
-      "Chirurgie",
-    ],
-    accredited: true,
-    emergencies: true,
-    imageUrl:
-      "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=800&fit=crop&q=80",
-    description:
-      "Clinique pluridisciplinaire au nord de Tunis offrant chirurgie mini-invasive, soins de rééducation et consultations spécialisées.",
-    beds: 120,
-    doctors: 80,
-    founded: 2003,
-  },
-  {
-    id: "5",
-    name: "HAD MédiHome Sfax",
-    type: "HAD",
-    governorate: "Sfax",
-    city: "Sfax",
-    address: "Rue des Palmiers, Sfax",
-    phone: "+216 74 225 300",
-    rating: 4.7,
-    reviews: 89,
-    price: 45,
-    services: [
-      "Hospitalisation à domicile",
-      "Soins infirmiers",
-      "Perfusions",
-      "Soins palliatifs",
-      "Rééducation",
-    ],
-    accredited: true,
-    emergencies: false,
-    imageUrl:
-      "https://images.unsplash.com/photo-1631815589968-fdb09a223b1e?w=800&fit=crop&q=80",
-    description:
-      "Premier réseau d'hospitalisation à domicile à Sfax. Des équipes soignantes se déplacent chez vous 7j/7 avec tout le matériel nécessaire.",
-    beds: 0,
-    doctors: 22,
-    founded: 2018,
-  },
-  {
-    id: "6",
-    name: "Polyclinique de Sousse",
-    type: "Clinique",
-    governorate: "Sousse",
-    city: "Sousse",
-    address: "Boulevard du 7 Novembre, Sousse",
-    phone: "+216 73 228 600",
-    rating: 4.5,
-    reviews: 176,
-    price: 45,
-    services: [
-      "Cardiologie",
-      "Gastro-entérologie",
-      "Endocrinologie",
-      "Radiologie",
-      "Réanimation",
-    ],
-    accredited: true,
-    emergencies: true,
-    imageUrl:
-      "https://images.unsplash.com/photo-1599045118108-bf9954418b76?w=800&fit=crop&q=80",
-    description:
-      "Principale clinique privée du Sahel offrant une gamme complète de services médicaux et chirurgicaux avec un bloc opératoire de 6 salles.",
-    beds: 200,
-    doctors: 95,
-    founded: 1989,
-  },
-  {
-    id: "7",
-    name: "Centre Médical Nabeul",
-    type: "Centre médical",
-    governorate: "Nabeul",
-    city: "Nabeul",
-    address: "Avenue Habib Bourguiba, Nabeul",
-    phone: "+216 72 285 700",
-    rating: 4.4,
-    reviews: 134,
-    price: 40,
-    services: [
-      "Médecine générale",
-      "Pédiatrie",
-      "Gynécologie",
-      "Dentisterie",
-      "Radiologie",
-    ],
-    accredited: false,
-    emergencies: false,
-    imageUrl:
-      "https://images.unsplash.com/photo-1587351021759-3e566b6af7cc?w=800&fit=crop&q=80",
-    description:
-      "Centre de santé accessible offrant consultations de médecine générale et spécialisée à Nabeul avec des tarifs conventionnés CNAM.",
-    beds: 0,
-    doctors: 18,
-    founded: 2008,
-  },
-  {
-    id: "8",
-    name: "Hôpital Farhat Hached",
-    type: "Hôpital",
-    governorate: "Sousse",
-    city: "Sousse",
-    address: "Rue Ibn El Jazzar, Sousse",
-    phone: "+216 73 221 411",
-    rating: 4.2,
-    reviews: 480,
-    price: 25,
-    services: [
-      "Urgences",
-      "Neurochirurgie",
-      "Cardiologie",
-      "Oncologie",
-      "Maternité",
-    ],
-    accredited: true,
-    emergencies: true,
-    imageUrl:
-      "https://images.unsplash.com/photo-1536064479547-7ee40b74b807?w=800&fit=crop&q=80",
-    description:
-      "Centre hospitalier universitaire régional desservant le Sahel et le centre du pays. 800 lits, 20 services spécialisés, CHU de référence.",
-    beds: 800,
-    doctors: 380,
-    founded: 1983,
-  },
-  {
-    id: "9",
-    name: "Clinique Bizerte Santé",
-    type: "Clinique",
-    governorate: "Bizerte",
-    city: "Bizerte",
-    address: "Avenue Taieb Mhiri, Bizerte",
-    phone: "+216 72 432 100",
-    rating: 4.6,
-    reviews: 112,
-    price: 50,
-    services: [
-      "Chirurgie",
-      "Maternité",
-      "Pédiatrie",
-      "Cardiologie",
-      "Imagerie",
-    ],
-    accredited: true,
-    emergencies: true,
-    imageUrl:
-      "https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=800&fit=crop&q=80",
-    description:
-      "Principale clinique privée de la région nord, offrant maternité, chirurgie programmée et urgences médicales.",
-    beds: 90,
-    doctors: 55,
-    founded: 2007,
-  },
-];
-
-const tunisianGovernorates = [
-  "Tunis",
-  "Ariana",
-  "Ben Arous",
-  "Manouba",
-  "Nabeul",
-  "Zaghouan",
-  "Bizerte",
-  "Béja",
-  "Jendouba",
-  "Le Kef",
-  "Siliana",
-  "Monastir",
-  "Mahdia",
-  "Sfax",
-  "Kairouan",
-  "Kasserine",
-  "Sidi Bouzid",
-  "Sousse",
-  "Gabès",
-  "Médenine",
-  "Tataouine",
-  "Gafsa",
-  "Tozeur",
-  "Kébili",
-];
-
-const allServices = [
-  "Cardiologie",
-  "Chirurgie",
-  "Urgences",
-  "Maternité",
-  "Pédiatrie",
-  "Radiologie",
-  "Imagerie",
-  "Gynécologie",
-  "Orthopédie",
-  "Neurologie",
-  "Dermatologie",
-  "Ophtalmologie",
-  "ORL",
-  "Soins infirmiers",
-  "HAD",
-];
-
-const establishmentTypes = [
-  "Clinique",
-  "Hôpital",
-  "HAD",
-  "Centre médical",
-] as const;
+// ─── (data loaded from API in component) ────────────────────────────────────
 
 const typeColors: Record<string, string> = {
   Clinique: "bg-blue-500/10 text-blue-700 dark:text-blue-400",
@@ -541,11 +237,10 @@ function BookingModal({
                       setSelectedDayIdx(i);
                       setSelectedSlot(null);
                     }}
-                    className={`flex flex-col items-center py-2 rounded-xl text-xs font-medium transition-all ${
-                      i === selectedDayIdx
-                        ? "bg-primary text-primary-foreground"
-                        : "hover:bg-secondary/70 text-foreground/70"
-                    } ${d.slots.length === 0 ? "opacity-40 cursor-not-allowed" : ""}`}
+                    className={`flex flex-col items-center py-2 rounded-xl text-xs font-medium transition-all ${i === selectedDayIdx
+                      ? "bg-primary text-primary-foreground"
+                      : "hover:bg-secondary/70 text-foreground/70"
+                      } ${d.slots.length === 0 ? "opacity-40 cursor-not-allowed" : ""}`}
                     disabled={d.slots.length === 0}
                   >
                     <span className="text-[10px] opacity-70">
@@ -580,11 +275,10 @@ function BookingModal({
                     <button
                       key={slot}
                       onClick={() => setSelectedSlot(slot)}
-                      className={`py-2 rounded-xl text-xs font-semibold transition-all text-center ${
-                        selectedSlot === slot
-                          ? "bg-primary text-primary-foreground shadow-sm"
-                          : "bg-secondary/60 text-foreground/80 hover:bg-secondary"
-                      }`}
+                      className={`py-2 rounded-xl text-xs font-semibold transition-all text-center ${selectedSlot === slot
+                        ? "bg-primary text-primary-foreground shadow-sm"
+                        : "bg-secondary/60 text-foreground/80 hover:bg-secondary"
+                        }`}
                     >
                       {slot}
                     </button>
@@ -730,6 +424,18 @@ const partners = [
 
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 export default function ServicesMediauxPage() {
+  const [establishments, setEstablishments] = useState<MedicalEstablishment[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    fetch("/api/public/establishments")
+      .then((r) => r.json())
+      .then((data) => setEstablishments(Array.isArray(data) ? data : []))
+      .catch(() => setEstablishments([]))
+      .finally(() => setLoading(false));
+  }, []);
+
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set());
   const [selectedGov, setSelectedGov] = useState("");
@@ -785,6 +491,7 @@ export default function ServicesMediauxPage() {
     });
     return results;
   }, [
+    establishments,
     searchQuery,
     selectedTypes,
     selectedGov,
@@ -904,11 +611,10 @@ export default function ServicesMediauxPage() {
             <button
               key={r}
               onClick={() => setMinRating(r)}
-              className={`flex-1 py-1.5 text-xs rounded-xl font-semibold transition-all ${
-                minRating === r
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-secondary/60 text-foreground/70 hover:bg-secondary"
-              }`}
+              className={`flex-1 py-1.5 text-xs rounded-xl font-semibold transition-all ${minRating === r
+                ? "bg-primary text-primary-foreground"
+                : "bg-secondary/60 text-foreground/70 hover:bg-secondary"
+                }`}
             >
               {r === 0 ? "Tous" : `${r}+`}
             </button>
@@ -1043,7 +749,11 @@ export default function ServicesMediauxPage() {
                 </div>
               )}
 
-              {filtered.length === 0 ? (
+              {loading ? (
+                <div className="flex justify-center items-center py-24">
+                  <Loader2 size={40} className="animate-spin text-primary" />
+                </div>
+              ) : filtered.length === 0 ? (
                 <div className="bg-card rounded-xl border border-border p-12 text-center space-y-4">
                   <Building2
                     size={40}

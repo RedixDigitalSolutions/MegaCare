@@ -82,7 +82,10 @@ router.get("/:id", async (req, res) => {
 
 // POST /api/doctors
 router.post("/", authMiddleware, async (req, res) => {
-  const { name, specialty, governorate, ...rest } = req.body;
+  if (req.user.role !== "doctor" && req.user.role !== "admin") {
+    return res.status(403).json({ message: "Réservé aux médecins" });
+  }
+  const { name, specialty, governorate } = req.body;
   if (!name || !specialty) {
     return res.status(400).json({ message: "Nom et spécialité requis" });
   }
@@ -91,7 +94,6 @@ router.post("/", authMiddleware, async (req, res) => {
     name,
     specialty,
     governorate,
-    ...rest,
     userId: req.user.id,
   });
   res.status(201).json({ ...doctor.toObject(), id: doctor._id });

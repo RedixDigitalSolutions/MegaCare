@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -22,6 +22,47 @@ export default function PharmacyPage() {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
+  const [medicines, setMedicines] = useState<Medicine[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchProducts = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/pharmacy/products");
+      if (res.ok) {
+        const json = await res.json();
+        const data = Array.isArray(json) ? json : (json.data ?? []);
+        setMedicines(
+          data.map((p: any) => ({
+            id: String(p._id ?? p.id),
+            name: p.name,
+            form: p.form || "",
+            brand: p.brand || "",
+            dci: p.dci || "",
+            price: p.price,
+            rating: p.rating ?? 4.5,
+            reviews: p.reviews ?? 0,
+            available: p.stock ?? 0,
+            prescription: p.requiresPrescription ?? false,
+            pharmacy: p.pharmacy || "Pharmacie Centrale Tunis",
+            distance: p.distance ?? 1.5,
+            delivery: p.delivery || "2h",
+            description: p.description || "",
+            imageUrl: p.imageUrl || "",
+            category: p.category || "",
+          })),
+        );
+      }
+    } catch {
+      /* ignore */
+    }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
+
   const handleOpenModal = (med: Medicine) => {
     setSelectedMedicine(med);
     setIsModalOpen(true);
@@ -41,16 +82,16 @@ export default function PharmacyPage() {
   };
 
   const categories = [
-    { name: "Tous", count: 245, icon: "💊" },
-    { name: "Médicaments avec ordonnance", count: 87, icon: "📋" },
-    { name: "Médicaments sans ordonnance", count: 120, icon: "✓" },
-    { name: "Vitamines & Suppléments", count: 54, icon: "🌿" },
-    { name: "Dermatologie", count: 38, icon: "🧴" },
-    { name: "Grippe & Rhume", count: 32, icon: "🤧" },
+    { name: "Tous", count: medicines.length, icon: "💊" },
+    { name: "Médicaments avec ordonnance", count: medicines.filter((m) => m.prescription).length, icon: "📋" },
+    { name: "Médicaments sans ordonnance", count: medicines.filter((m) => !m.prescription).length, icon: "✓" },
+    { name: "Vitamines & Suppléments", count: medicines.filter((m) => m.category?.includes("Vitamine")).length, icon: "🌿" },
+    { name: "Dermatologie", count: medicines.filter((m) => m.category?.includes("Derm")).length, icon: "🧴" },
+    { name: "Grippe & Rhume", count: medicines.filter((m) => m.category?.includes("Grippe")).length, icon: "🤧" },
   ];
 
-  const medicines: Medicine[] = [
-    // ── Original 4 with images ──────────────────────────────────
+  const _deadStaticData: any[] = [
+    // replaced by API — do not use
     {
       id: 1,
       name: "Paracétamol 500mg",
@@ -1026,15 +1067,23 @@ export default function PharmacyPage() {
     },
   ];
 
-  const filteredMedicines = medicines.filter((med) => {
+  const sortedMedicines = [...medicines].sort((a, b) => {
+    if (sortBy === "price") return a.price - b.price;
+    if (sortBy === "rating") return b.rating - a.rating;
+    return 0;
+  });
+
+  const filteredMedicines = sortedMedicines.filter((med) => {
     const matchesSearch =
       med.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       med.dci.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory =
       selectedCategory === "Tous" ||
-      (selectedCategory === "Médicaments avec ordonnance" &&
-        med.prescription) ||
-      (selectedCategory === "Médicaments sans ordonnance" && !med.prescription);
+      (selectedCategory === "Médicaments avec ordonnance" && med.prescription) ||
+      (selectedCategory === "Médicaments sans ordonnance" && !med.prescription) ||
+      (selectedCategory === "Vitamines & Suppléments" && med.category?.includes("Vitamine")) ||
+      (selectedCategory === "Dermatologie" && med.category?.includes("Derm")) ||
+      (selectedCategory === "Grippe & Rhume" && med.category?.includes("Grippe"));
     const matchesPrice =
       med.price >= priceRange[0] && med.price <= priceRange[1];
     return matchesSearch && matchesCategory && matchesPrice;
@@ -1101,11 +1150,10 @@ export default function PharmacyPage() {
                   <button
                     key={cat.name}
                     onClick={() => setSelectedCategory(cat.name)}
-                    className={`block w-full text-left px-3 py-2 rounded transition ${
-                      selectedCategory === cat.name
-                        ? "bg-primary text-primary-foreground"
-                        : "hover:bg-secondary text-foreground"
-                    }`}
+                    className={`block w-full text-left px-3 py-2 rounded transition ${selectedCategory === cat.name
+                      ? "bg-primary text-primary-foreground"
+                      : "hover:bg-secondary text-foreground"
+                      }`}
                   >
                     <div className="flex justify-between items-center">
                       <span className="text-sm">
@@ -1158,7 +1206,13 @@ export default function PharmacyPage() {
 
             {/* Products Grid */}
             <div className="lg:col-span-3">
-              {filteredMedicines.length === 0 ? (
+              {loading ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+                  {[...Array(6)].map((_, i) => (
+                    <div key={i} className="bg-card border border-border rounded-xl overflow-hidden animate-pulse h-72" />
+                  ))}
+                </div>
+              ) : filteredMedicines.length === 0 ? (
                 <div className="text-center py-12">
                   <Pill
                     size={48}
@@ -1179,11 +1233,10 @@ export default function PharmacyPage() {
                       >
                         {/* Image Area */}
                         <div
-                          className={`relative h-40 flex items-center justify-center shrink-0 ${
-                            med.prescription
-                              ? "bg-gradient-to-br from-orange-50 to-red-100"
-                              : "bg-gradient-to-br from-blue-50 to-indigo-100"
-                          }`}
+                          className={`relative h-40 flex items-center justify-center shrink-0 ${med.prescription
+                            ? "bg-gradient-to-br from-orange-50 to-red-100"
+                            : "bg-gradient-to-br from-blue-50 to-indigo-100"
+                            }`}
                         >
                           {med.imageUrl ? (
                             <img
@@ -1206,11 +1259,10 @@ export default function PharmacyPage() {
                           {/* Status Badge */}
                           <div className="absolute top-2.5 left-2.5">
                             <span
-                              className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                                med.prescription
-                                  ? "bg-orange-500 text-white"
-                                  : "bg-green-500 text-white"
-                              }`}
+                              className={`text-xs font-semibold px-2 py-0.5 rounded-full ${med.prescription
+                                ? "bg-orange-500 text-white"
+                                : "bg-green-500 text-white"
+                                }`}
                             >
                               {med.prescription ? "📋 Ordon." : "✓ Libre"}
                             </span>
@@ -1218,13 +1270,12 @@ export default function PharmacyPage() {
                           {/* Stock Badge */}
                           <div className="absolute bottom-2.5 right-2.5">
                             <span
-                              className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-                                med.available > 10
-                                  ? "bg-green-100 text-green-700"
-                                  : med.available > 3
-                                    ? "bg-yellow-100 text-yellow-700"
-                                    : "bg-red-100 text-red-700"
-                              }`}
+                              className={`text-xs px-2 py-0.5 rounded-full font-medium ${med.available > 10
+                                ? "bg-green-100 text-green-700"
+                                : med.available > 3
+                                  ? "bg-yellow-100 text-yellow-700"
+                                  : "bg-red-100 text-red-700"
+                                }`}
                             >
                               {med.available > 0
                                 ? `${med.available} en stock`

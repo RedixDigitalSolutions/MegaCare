@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
 import { LabDashboardSidebar } from "@/components/LabDashboardSidebar";
@@ -17,41 +17,6 @@ import {
   CheckCircle2,
   AlertCircle,
 } from "lucide-react";
-
-const kpis = [
-  {
-    label: "Examens aujourd'hui",
-    value: "36",
-    sub: "28 complétés",
-    icon: FlaskConical,
-    color: "text-blue-500",
-    bg: "bg-blue-50",
-  },
-  {
-    label: "Résultats en attente",
-    value: "8",
-    sub: "À traiter",
-    icon: Clock,
-    color: "text-amber-500",
-    bg: "bg-amber-50",
-  },
-  {
-    label: "Médecins partenaires",
-    value: "45",
-    sub: "Actifs",
-    icon: Users,
-    color: "text-green-500",
-    bg: "bg-green-50",
-  },
-  {
-    label: "Revenus mensuels",
-    value: "52 000 DT",
-    sub: "+22% vs mois dernier",
-    icon: TrendingUp,
-    color: "text-purple-500",
-    bg: "bg-purple-50",
-  },
-];
 
 const quickLinks = [
   {
@@ -176,6 +141,13 @@ const recentActivity = [
 export default function LabDashboardPage() {
   const { user, isLoading, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const [kpiResponse, setKpiResponse] = useState({
+    examsToday: 0,
+    completedToday: 0,
+    pendingResults: 0,
+    criticalResults: 0,
+  });
+  const [loadingKpis, setLoadingKpis] = useState(true);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) navigate("/login");
@@ -191,8 +163,57 @@ export default function LabDashboardPage() {
     }
   }, [isLoading, isAuthenticated, user, navigate]);
 
+  useEffect(() => {
+    if (!isAuthenticated || !user || user.role !== "lab_radiology") return;
+    const token = localStorage.getItem("megacare_token");
+    fetch("/api/lab/kpis", {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        setKpiResponse(data);
+        setLoadingKpis(false);
+      })
+      .catch(() => setLoadingKpis(false));
+  }, [isAuthenticated, user]);
+
   if (isLoading || !isAuthenticated || !user || user.role !== "lab_radiology")
     return null;
+
+  const kpis = [
+    {
+      label: "Examens aujourd'hui",
+      value: loadingKpis ? "…" : String(kpiResponse.examsToday),
+      sub: loadingKpis ? "" : `${kpiResponse.completedToday} complétés`,
+      icon: FlaskConical,
+      color: "text-blue-500",
+      bg: "bg-blue-50",
+    },
+    {
+      label: "Résultats en attente",
+      value: loadingKpis ? "…" : String(kpiResponse.pendingResults),
+      sub: "À traiter",
+      icon: Clock,
+      color: "text-amber-500",
+      bg: "bg-amber-50",
+    },
+    {
+      label: "Résultats critiques",
+      value: loadingKpis ? "…" : String(kpiResponse.criticalResults),
+      sub: "Nécessitent attention",
+      icon: AlertCircle,
+      color: "text-red-500",
+      bg: "bg-red-50",
+    },
+    {
+      label: "Médecins partenaires",
+      value: "45",
+      sub: "Actifs",
+      icon: Users,
+      color: "text-green-500",
+      bg: "bg-green-50",
+    },
+  ];
 
   return (
     <div className="flex min-h-screen bg-background">

@@ -11,7 +11,6 @@ const doctorSchema = new mongoose.Schema(
   {
     timestamps: true,
     _id: false,
-    strict: false,
   },
 );
 

@@ -25,95 +25,6 @@ interface SupplierOrder {
   ref: string;
 }
 
-const ORDERS: SupplierOrder[] = [
-  {
-    id: "1",
-    ref: "ORD-F-001",
-    supplier: "EVOLUPHARM Tunisie",
-    date: "2026-04-01",
-    expectedDate: null,
-    items: [
-      { name: "Paracétamol 500mg", qty: 200, unit: "boîtes" },
-      { name: "Aspirine 500mg", qty: 100, unit: "boîtes" },
-      { name: "Vitamine C 1000mg", qty: 150, unit: "boîtes" },
-    ],
-    total: 1240,
-    status: "Livré",
-  },
-  {
-    id: "2",
-    ref: "ORD-F-002",
-    supplier: "SANDOZ Maghreb",
-    date: "2026-04-02",
-    expectedDate: "2026-04-07",
-    items: [
-      { name: "Amoxicilline 500mg", qty: 80, unit: "boîtes" },
-      { name: "Amoxicilline 1g", qty: 60, unit: "boîtes" },
-    ],
-    total: 736,
-    status: "En transit",
-  },
-  {
-    id: "3",
-    ref: "ORD-F-003",
-    supplier: "WASSEN International",
-    date: "2026-03-28",
-    expectedDate: null,
-    items: [
-      { name: "Vitamine D3 1000UI", qty: 120, unit: "boîtes" },
-      { name: "Oméga-3 1000mg", qty: 80, unit: "boîtes" },
-      { name: "Magnésium B6", qty: 100, unit: "boîtes" },
-    ],
-    total: 2310,
-    status: "Livré",
-  },
-  {
-    id: "4",
-    ref: "ORD-F-004",
-    supplier: "BIOGARAN Afrique du Nord",
-    date: "2026-03-25",
-    expectedDate: null,
-    items: [{ name: "Oméprazole 20mg", qty: 150, unit: "boîtes" }],
-    total: 450,
-    status: "Livré",
-  },
-  {
-    id: "5",
-    ref: "ORD-F-005",
-    supplier: "SANOFI Maroc",
-    date: "2026-04-03",
-    expectedDate: "2026-04-10",
-    items: [
-      { name: "Doliprane 1000mg", qty: 300, unit: "boîtes" },
-      { name: "Sérum Physiologique", qty: 200, unit: "unités" },
-    ],
-    total: 1820,
-    status: "En attente",
-  },
-  {
-    id: "6",
-    ref: "ORD-F-006",
-    supplier: "ZYRTEC MENA",
-    date: "2026-04-04",
-    expectedDate: "2026-04-12",
-    items: [{ name: "Cétirizine 10mg", qty: 120, unit: "boîtes" }],
-    total: 684,
-    status: "En attente",
-  },
-  {
-    id: "7",
-    ref: "ORD-F-007",
-    supplier: "MYLAN Tunisie",
-    date: "2026-03-20",
-    expectedDate: null,
-    items: [
-      { name: "Diclofénac 50mg", qty: 100, unit: "boîtes" },
-      { name: "Fluconazole 150mg", qty: 60, unit: "boîtes" },
-    ],
-    total: 1398,
-    status: "Livré",
-  },
-];
 
 const STATUS_CFG: Record<
   OrderStatus,
@@ -149,6 +60,8 @@ export default function PharmacyOrdersPage() {
   const navigate = useNavigate();
   const [tab, setTab] = useState<TabFilter>("Toutes");
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [orders, setOrders] = useState<SupplierOrder[]>([]);
+  const [loadingData, setLoadingData] = useState(true);
 
   useEffect(() => {
     if (!isLoading && (!isAuthenticated || !user || user.role !== "pharmacy")) {
@@ -156,18 +69,32 @@ export default function PharmacyOrdersPage() {
     }
   }, [isLoading, isAuthenticated, user, navigate]);
 
+  useEffect(() => {
+    if (!isAuthenticated || !user || user.role !== "pharmacy") return;
+    const token = localStorage.getItem("megacare_token");
+    fetch("/api/pharmacy/supplier-orders", {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => r.json())
+      .then((data: SupplierOrder[]) => {
+        setOrders(Array.isArray(data) ? data : []);
+        setLoadingData(false);
+      })
+      .catch(() => setLoadingData(false));
+  }, [isAuthenticated, user]);
+
   if (isLoading || !isAuthenticated || !user || user.role !== "pharmacy")
     return null;
 
   const filtered =
-    tab === "Toutes" ? ORDERS : ORDERS.filter((o) => o.status === tab);
+    tab === "Toutes" ? orders : orders.filter((o) => o.status === tab);
 
   const countOf = (s: TabFilter) =>
     s === "Toutes"
-      ? ORDERS.length
-      : ORDERS.filter((o) => o.status === s).length;
+      ? orders.length
+      : orders.filter((o) => o.status === s).length;
 
-  const totalValue = ORDERS.reduce((s, o) => s + o.total, 0);
+  const totalValue = orders.reduce((s, o) => s + o.total, 0);
 
   return (
     <div className="min-h-screen bg-background">
@@ -183,7 +110,7 @@ export default function PharmacyOrdersPage() {
               Commandes Fournisseurs
             </h1>
             <p className="text-muted-foreground mt-1">
-              {ORDERS.length} commandes · {totalValue.toLocaleString()} DT total
+              {loadingData ? "Chargement…" : `${orders.length} commandes · ${totalValue.toLocaleString()} DT total`}
             </p>
           </div>
 
@@ -196,22 +123,20 @@ export default function PharmacyOrdersPage() {
                 <div
                   key={s}
                   onClick={() => setTab(s)}
-                  className={`bg-card border rounded-xl p-4 text-center cursor-pointer transition hover:shadow-md ${
-                    tab === s
+                  className={`bg-card border rounded-xl p-4 text-center cursor-pointer transition hover:shadow-md ${tab === s
                       ? "border-primary ring-2 ring-primary/20"
                       : "border-border"
-                  }`}
+                    }`}
                 >
                   <p
-                    className={`text-2xl font-bold ${
-                      s === "Livré"
+                    className={`text-2xl font-bold ${s === "Livré"
                         ? "text-green-600"
                         : s === "En transit"
                           ? "text-blue-600"
                           : s === "En attente"
                             ? "text-amber-600"
                             : "text-foreground"
-                    }`}
+                      }`}
                   >
                     {countOf(s)}
                   </p>
@@ -230,11 +155,10 @@ export default function PharmacyOrdersPage() {
                 <button
                   key={s}
                   onClick={() => setTab(s)}
-                  className={`px-4 py-1.5 rounded-full text-sm font-medium transition ${
-                    tab === s
+                  className={`px-4 py-1.5 rounded-full text-sm font-medium transition ${tab === s
                       ? "bg-primary text-primary-foreground"
                       : "bg-muted text-muted-foreground hover:bg-muted/70"
-                  }`}
+                    }`}
                 >
                   {s} ({countOf(s)})
                 </button>

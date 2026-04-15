@@ -1,36 +1,72 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { Upload, FileText, Check, Clock, AlertCircle, Download } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+
+interface RxItem {
+  id: string;
+  date: string;
+  doctor: string;
+  specialty: string;
+  medicines: string[];
+  status: string;
+  expiryDate: string;
+  issuedDate: string;
+  scanned: boolean;
+}
 
 export default function PrescriptionsPage() {
-  const [prescriptions, setPrescriptions] = useState([
-    {
-      id: 1,
-      date: '2024-01-15',
-      doctor: 'Dr. Amira Mansouri',
-      specialty: 'Cardiologie',
-      medicines: ['Atorvastatine 20mg', 'Metoprolol 50mg'],
-      status: 'validée',
-      expiryDate: '2024-04-15',
-      issuedDate: '2024-01-15',
-      scanned: false,
-    },
-    {
-      id: 2,
-      date: '2024-01-10',
-      doctor: 'Dr. Fatima Zahra',
-      specialty: 'Dermatologie',
-      medicines: ['Tretinoine 0.025%', 'Benzamycine'],
-      status: 'en_attente',
-      expiryDate: '2024-04-10',
-      issuedDate: '2024-01-10',
-      scanned: true,
-    },
-  ]);
-
+  const { isAuthenticated } = useAuth();
+  const token = localStorage.getItem('megacare_token');
+  const [prescriptions, setPrescriptions] = useState<RxItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showUploadModal, setShowUploadModal] = useState(false);
+
+  useEffect(() => {
+    if (!token) { setLoading(false); return; }
+    fetch('/api/prescriptions', { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => r.ok ? r.json() : [])
+      .then((j: any) => Array.isArray(j) ? j : (j.data ?? []))
+      .then(async (data: any[]) => {
+        const t = localStorage.getItem('megacare_token');
+        const resolved = await Promise.all(
+          data.map(async (rx) => {
+            let doctorName = 'Médecin inconnu';
+            let specialty = '';
+            try {
+              const u = await fetch(`/api/users/${rx.doctorId}`, {
+                headers: { Authorization: `Bearer ${t}` },
+              });
+              if (u.ok) {
+                const ud = await u.json();
+                doctorName = `Dr. ${ud.firstName ?? ''} ${ud.lastName ?? ''}`.trim();
+                specialty = ud.specialization ?? ud.specialty ?? '';
+              }
+            } catch { /* ignore */ }
+            const issued = new Date(rx.createdAt);
+            const expiry = new Date(issued);
+            expiry.setMonth(expiry.getMonth() + 3);
+            return {
+              id: rx._id,
+              date: issued.toISOString(),
+              doctor: doctorName,
+              specialty,
+              medicines: (rx.medicines ?? []).map((m: any) => m.name ?? String(m)),
+              status: 'validée',
+              issuedDate: issued.toISOString(),
+              expiryDate: expiry.toISOString(),
+              scanned: false,
+            } as RxItem;
+          })
+        );
+        setPrescriptions(resolved);
+      })
+      .catch(() => { })
+      .finally(() => setLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated]);
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -78,7 +114,18 @@ export default function PrescriptionsPage() {
           {/* Prescriptions List */}
           <div className="space-y-4">
             <h2 className="text-2xl font-bold text-foreground">Historique</h2>
-            {prescriptions.length === 0 ? (
+            {!isAuthenticated ? (
+              <div className="bg-card border border-border rounded-lg p-12 text-center space-y-4">
+                <AlertCircle size={48} className="mx-auto text-muted-foreground opacity-50" />
+                <p className="text-muted-foreground">Connectez-vous pour voir vos ordonnances</p>
+              </div>
+            ) : loading ? (
+              <div className="space-y-4">
+                {[1, 2].map((i) => (
+                  <div key={i} className="bg-card border border-border rounded-lg p-6 animate-pulse h-40" />
+                ))}
+              </div>
+            ) : prescriptions.length === 0 ? (
               <div className="bg-card border border-border rounded-lg p-12 text-center space-y-4">
                 <FileText size={48} className="mx-auto text-muted-foreground opacity-50" />
                 <p className="text-muted-foreground">Aucune ordonnance pour le moment</p>
@@ -155,7 +202,7 @@ export default function PrescriptionsPage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-background rounded-lg p-6 space-y-4 max-w-md w-full">
             <h2 className="text-2xl font-bold text-foreground">Télécharger une ordonnance</h2>
-            
+
             <div className="space-y-3">
               <button className="w-full border-2 border-dashed border-primary rounded-lg p-8 space-y-2 hover:bg-primary/5 transition">
                 <Upload className="mx-auto text-primary" size={32} />

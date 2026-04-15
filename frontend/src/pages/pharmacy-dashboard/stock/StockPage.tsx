@@ -141,213 +141,8 @@ function ImageEditor({
 export default function PharmacyStockPage() {
   const { user, isLoading, isAuthenticated } = useAuth();
   const navigate = useNavigate();
-  const [stock, setStock] = useState<StockItem[]>([
-    {
-      id: 1,
-      name: "Paracétamol 500mg",
-      quantity: 320,
-      minStock: 100,
-      supplier: "EVOLUPHARM",
-      price: "2 DT",
-      imageUrl:
-        "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=400&fit=crop&q=80",
-    },
-    {
-      id: 2,
-      name: "Amoxicilline 500mg",
-      quantity: 45,
-      minStock: 100,
-      supplier: "SANDOZ",
-      price: "9.2 DT",
-      warning: true,
-      imageUrl:
-        "https://images.unsplash.com/photo-1587854692152-cbe660dbde88?w=400&fit=crop&q=80",
-    },
-    {
-      id: 3,
-      name: "Vitamine C 1000mg",
-      quantity: 280,
-      minStock: 80,
-      supplier: "WASSEN",
-      price: "5.5 DT",
-      imageUrl:
-        "https://images.unsplash.com/photo-1607619056574-7b8d3ee536b2?w=400&fit=crop&q=80",
-    },
-    {
-      id: 4,
-      name: "Ibuprofène 400mg",
-      quantity: 190,
-      minStock: 100,
-      supplier: "NUROFEN",
-      price: "6 DT",
-      imageUrl:
-        "https://images.unsplash.com/photo-1550572017-ea058ca87258?w=400&fit=crop&q=80",
-    },
-    {
-      id: 5,
-      name: "Aspirine 500mg",
-      quantity: 215,
-      minStock: 80,
-      supplier: "BAYER",
-      price: "3.5 DT",
-      imageUrl:
-        "https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=400&fit=crop&q=80",
-    },
-    {
-      id: 6,
-      name: "Oméprazole 20mg",
-      quantity: 30,
-      minStock: 60,
-      supplier: "BIOGARAN",
-      price: "7.8 DT",
-      warning: true,
-      imageUrl:
-        "https://images.unsplash.com/photo-1631549916768-4119b2e5f926?w=400&fit=crop&q=80",
-    },
-    {
-      id: 7,
-      name: "Doliprane 1000mg",
-      quantity: 404,
-      minStock: 150,
-      supplier: "SANOFI",
-      price: "3.2 DT",
-      imageUrl:
-        "https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=400&fit=crop&q=80",
-    },
-    {
-      id: 8,
-      name: "Vitamine D3 1000 UI",
-      quantity: 310,
-      minStock: 80,
-      supplier: "ZYMA D",
-      price: "6.9 DT",
-      imageUrl:
-        "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=400&fit=crop&q=80",
-    },
-    {
-      id: 9,
-      name: "Magnésium B6",
-      quantity: 175,
-      minStock: 60,
-      supplier: "MAGNE B6",
-      price: "8.1 DT",
-      imageUrl:
-        "https://images.unsplash.com/photo-1576671081837-49000212a370?w=400&fit=crop&q=80",
-    },
-    {
-      id: 10,
-      name: "Cétirizine 10mg",
-      quantity: 22,
-      minStock: 60,
-      supplier: "ZYRTEC",
-      price: "5.7 DT",
-      warning: true,
-      imageUrl:
-        "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=400&fit=crop&q=80",
-    },
-    {
-      id: 11,
-      name: "Zinc 15mg",
-      quantity: 260,
-      minStock: 80,
-      supplier: "PHYSIOLOGICA",
-      price: "4.3 DT",
-      imageUrl:
-        "https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=400&fit=crop&q=80",
-    },
-    {
-      id: 12,
-      name: "Oméga-3 1000mg",
-      quantity: 140,
-      minStock: 60,
-      supplier: "ISOMEGA",
-      price: "15.9 DT",
-      imageUrl:
-        "https://images.unsplash.com/photo-1631549916768-4119b2e5f926?w=400&fit=crop&q=80",
-    },
-    {
-      id: 13,
-      name: "Sirop Toux Sèche",
-      quantity: 88,
-      minStock: 50,
-      supplier: "TOPLEXIL",
-      price: "7.8 DT",
-      imageUrl:
-        "https://images.unsplash.com/photo-1587854692152-cbe660dbde88?w=400&fit=crop&q=80",
-    },
-    {
-      id: 14,
-      name: "Sirop Toux Grasse",
-      quantity: 110,
-      minStock: 50,
-      supplier: "MUCOMYST",
-      price: "6.5 DT",
-      imageUrl:
-        "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=400&fit=crop&q=80",
-    },
-    {
-      id: 15,
-      name: "Sérum Physiologique",
-      quantity: 18,
-      minStock: 80,
-      supplier: "GIFRER",
-      price: "3.6 DT",
-      warning: true,
-      imageUrl:
-        "https://images.unsplash.com/photo-1576671081837-49000212a370?w=400&fit=crop&q=80",
-    },
-    {
-      id: 16,
-      name: "Probiotiques Équilibre",
-      quantity: 95,
-      minStock: 50,
-      supplier: "LACTIBIANE",
-      price: "18.9 DT",
-      imageUrl:
-        "https://images.unsplash.com/photo-1607619056574-7b8d3ee536b2?w=400&fit=crop&q=80",
-    },
-    {
-      id: 17,
-      name: "Diclofénac 50mg",
-      quantity: 130,
-      minStock: 60,
-      supplier: "VOLTARENE",
-      price: "8.9 DT",
-      imageUrl:
-        "https://images.unsplash.com/photo-1550572017-ea058ca87258?w=400&fit=crop&q=80",
-    },
-    {
-      id: 18,
-      name: "Fluconazole 150mg",
-      quantity: 70,
-      minStock: 40,
-      supplier: "TRIFLUCAN",
-      price: "8.3 DT",
-      imageUrl:
-        "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=400&fit=crop&q=80",
-    },
-    {
-      id: 19,
-      name: "Fer 50mg",
-      quantity: 55,
-      minStock: 60,
-      supplier: "TARDYFERON",
-      price: "5.1 DT",
-      warning: true,
-      imageUrl:
-        "https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=400&fit=crop&q=80",
-    },
-    {
-      id: 20,
-      name: "Charbon Actif 260mg",
-      quantity: 200,
-      minStock: 60,
-      supplier: "CARBOLEVURE",
-      price: "5 DT",
-      imageUrl:
-        "https://images.unsplash.com/photo-1576671081837-49000212a370?w=400&fit=crop&q=80",
-    },
-  ]);
+  const [stock, setStock] = useState<StockItem[]>([]);
+  const [loadingStock, setLoadingStock] = useState(true);
 
   // Inline editing state
   const [editingId, setEditingId] = useState<number | null>(null);
@@ -369,8 +164,47 @@ export default function PharmacyStockPage() {
     }
   }, [isLoading, isAuthenticated, user, navigate]);
 
+  useEffect(() => {
+    if (!isAuthenticated || !user || user.role !== "pharmacy") return;
+    fetch("/api/pharmacy/products")
+      .then((r) => r.json())
+      .then((raw: any) => {
+        const data: {
+          _id: string;
+          name: string;
+          stock: number;
+          brand: string;
+          price: number;
+          imageUrl?: string;
+        }[] = Array.isArray(raw) ? raw : (raw.data ?? []);
+        const mapped: StockItem[] = data.map(
+          (p, idx) => ({
+            id: idx + 1,
+            name: p.name,
+            quantity: p.stock,
+            minStock: 20,
+            supplier: p.brand || "",
+            price: `${p.price} DT`,
+            warning: p.stock < 20,
+            imageUrl: p.imageUrl,
+          }),
+        );
+        setStock(mapped);
+        setLoadingStock(false);
+      },
+      )
+      .catch(() => setLoadingStock(false));
+  }, [isAuthenticated, user]);
+
   if (isLoading || !isAuthenticated || !user || user.role !== "pharmacy")
     return null;
+
+  if (loadingStock)
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <p className="text-muted-foreground">Chargement du stock…</p>
+      </div>
+    );
 
   const handleUpdateImage = (id: number, imageUrl: string) => {
     setStock((prev) =>

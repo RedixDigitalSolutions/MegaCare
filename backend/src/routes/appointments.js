@@ -6,10 +6,21 @@ const Appointment = require("../models/Appointment");
 
 // GET /api/appointments
 router.get("/", authMiddleware, async (req, res) => {
-  const result = await Appointment.find({
-    $or: [{ patientId: req.user.id }, { doctorId: req.user.id }],
-  }).lean();
-  res.json(result.map((a) => ({ ...a, id: a._id })));
+  const page = Math.max(1, parseInt(req.query.page) || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
+  const skip = (page - 1) * limit;
+  const filter = { $or: [{ patientId: req.user.id }, { doctorId: req.user.id }] };
+  const [result, total] = await Promise.all([
+    Appointment.find(filter).sort({ date: -1 }).skip(skip).limit(limit).lean(),
+    Appointment.countDocuments(filter),
+  ]);
+  res.json({
+    data: result.map((a) => ({ ...a, id: a._id })),
+    total,
+    page,
+    limit,
+    pages: Math.ceil(total / limit),
+  });
 });
 
 // GET /api/appointments/:id
@@ -28,12 +39,19 @@ router.post("/", authMiddleware, async (req, res) => {
   if (!doctorId || !date || !time) {
     return res.status(400).json({ message: "doctorId, date et time requis" });
   }
+  const User = require("../models/User");
+  const patientUser = await User.findById(req.user.id).lean();
+  const patientName = patientUser
+    ? `${patientUser.firstName || ""} ${patientUser.lastName || ""}`.trim()
+    : "";
   const appt = await Appointment.create({
     _id: randomUUID(),
     patientId: req.user.id,
+    patientName,
     doctorId,
     date,
     time,
+    fee: req.body.fee ?? 80,
     reason: reason || "",
     status: "pending",
   });
@@ -47,7 +65,17 @@ router.put("/:id", authMiddleware, async (req, res) => {
   if (appt.patientId !== req.user.id && appt.doctorId !== req.user.id) {
     return res.status(403).json({ message: "Accès refusé" });
   }
-  const { id, patientId, ...updates } = req.body;
+  // Strip fields patients must never overwrite
+  const { id, patientId, doctorId, ...updates } = req.body;
+  // Patients cannot set status to doctor-only values
+  const doctorOnlyStatuses = ["confirmed", "rejected", "completed"];
+  if (
+    req.user.role !== "doctor" &&
+    updates.status &&
+    doctorOnlyStatuses.includes(updates.status)
+  ) {
+    return res.status(403).json({ message: "Action réservée aux médecins" });
+  }
   Object.assign(appt, updates);
   await appt.save();
   res.json({ ...appt.toObject(), id: appt._id });

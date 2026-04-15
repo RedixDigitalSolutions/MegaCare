@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MedicalServiceDashboardSidebar } from "@/components/MedicalServiceDashboardSidebar";
 import { Send, Search } from "lucide-react";
 
 interface Conversation {
-  id: number;
+  id: string;
   name: string;
   role: string;
   lastMessage: string;
@@ -14,67 +14,92 @@ interface Conversation {
 }
 
 interface Message {
-  id: number;
+  id: string;
   sender: string;
   text: string;
   time: string;
   mine: boolean;
 }
 
-const conversations: Conversation[] = [
-  { id: 1, name: "Dr. Karim Mansouri", role: "Médecin référent", lastMessage: "Pouvez-vous surveiller la TA de Mme Ben Ali ?", time: "10:32", unread: 2, initials: "KM", color: "bg-blue-500" },
-  { id: 2, name: "Équipe soins", role: "Groupe", lastMessage: "Réunion planning confirmée à 14h", time: "09:15", unread: 1, initials: "EQ", color: "bg-purple-500" },
-  { id: 3, name: "Dr. Nour Belhadj", role: "Diabétologue", lastMessage: "Merci pour le compte rendu de M. Gharbi", time: "Hier", unread: 0, initials: "NB", color: "bg-green-500" },
-  { id: 4, name: "Pharmacie centrale", role: "Service", lastMessage: "Commande Metformine disponible", time: "Hier", unread: 0, initials: "PH", color: "bg-amber-500" },
-  { id: 5, name: "Sofia Cherif", role: "Infirmière", lastMessage: "Pansement Sonia fait, RAS", time: "Lun", unread: 0, initials: "SC", color: "bg-pink-500" },
-];
+const tok = () => localStorage.getItem("megacare_token") ?? "";
 
-const allMessages: Record<number, Message[]> = {
-  1: [
-    { id: 1, sender: "Dr. Karim Mansouri", text: "Bonjour, comment se porte Mme Ben Ali aujourd'hui ?", time: "10:10", mine: false },
-    { id: 2, sender: "Moi", text: "Bonjour Dr. Mansouri. Constantes stables ce matin, TA à 120/80.", time: "10:14", mine: true },
-    { id: 3, sender: "Dr. Karim Mansouri", text: "Bien. Pouvez-vous surveiller la TA de Mme Ben Ali cet après-midi et me remonter les valeurs ?", time: "10:32", mine: false },
-  ],
-  2: [
-    { id: 1, sender: "Chef d'équipe", text: "Rappel : réunion planning demain à 14h en salle de réunion.", time: "09:00", mine: false },
-    { id: 2, sender: "Sofia Cherif", text: "Confirmé, je serai là.", time: "09:08", mine: false },
-    { id: 3, sender: "Moi", text: "Réunion planning confirmée à 14h", time: "09:15", mine: true },
-  ],
-  3: [
-    { id: 1, sender: "Moi", text: "Dr. Belhadj, voici le compte rendu de M. Gharbi pour la semaine.", time: "17:30", mine: true },
-    { id: 2, sender: "Dr. Nour Belhadj", text: "Merci pour le compte rendu de M. Gharbi, je l'examine et reviens vers vous.", time: "18:05", mine: false },
-  ],
-  4: [
-    { id: 1, sender: "Pharmacie centrale", text: "Votre commande de Metformine 500mg (30 boîtes) est disponible pour retrait.", time: "14:20", mine: false },
-    { id: 2, sender: "Moi", text: "Merci, je viens récupérer demain matin.", time: "14:35", mine: true },
-  ],
-  5: [
-    { id: 1, sender: "Sofia Cherif", text: "Pansement de Mme Trabelsi effectué. Plaie propre, pas d'infection visible.", time: "11:00", mine: false },
-    { id: 2, sender: "Moi", text: "Parfait, merci Sofia. Notez dans le dossier.", time: "11:10", mine: true },
-  ],
-};
+const COLORS = ["bg-blue-500", "bg-purple-500", "bg-green-500", "bg-amber-500", "bg-pink-500", "bg-indigo-500"];
+function initials(name: string) { return name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2); }
+function roleLabel(role: string) {
+  const map: Record<string, string> = { doctor: "Médecin", pharmacist: "Pharmacien", admin: "Administrateur", medical_service: "Service médical", paramedical: "Paramédical", lab: "Laboratoire" };
+  return map[role] || role;
+}
+
+const conversations: Conversation[] = [];
+
+const allMessages: Record<string, Message[]> = {};
 
 export default function MessagingPage() {
-  const [selected, setSelected] = useState<number>(1);
+  const [selected, setSelected] = useState<string | null>(null);
   const [input, setInput] = useState("");
-  const [messages, setMessages] = useState<Record<number, Message[]>>(allMessages);
+  const [convos, setConvos] = useState<Conversation[]>(conversations);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [searchConv, setSearchConv] = useState("");
 
-  const conv = conversations.find((c) => c.id === selected)!;
-  const msgs = messages[selected] ?? [];
+  useEffect(() => {
+    fetch("/api/messages/conversations", { headers: { Authorization: `Bearer ${tok()}` } })
+      .then(r => r.json())
+      .then((d: any[]) => {
+        if (!Array.isArray(d)) return;
+        const list: Conversation[] = d.map((c, i) => ({
+          id: c.partnerId,
+          name: c.partnerName,
+          role: roleLabel(c.partnerRole),
+          lastMessage: c.lastMessage?.content || "",
+          time: c.lastMessage ? new Date(c.lastMessage.createdAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) : "",
+          unread: c.unread || 0,
+          initials: initials(c.partnerName),
+          color: COLORS[i % COLORS.length],
+        }));
+        setConvos(list);
+        if (list.length) { setSelected(list[0].id); }
+      })
+      .catch(() => { });
+  }, []);
 
-  const filteredConvs = conversations.filter((c) =>
+  useEffect(() => {
+    if (!selected) return;
+    fetch(`/api/messages/thread/${selected}`, { headers: { Authorization: `Bearer ${tok()}` } })
+      .then(r => r.json())
+      .then((j: any) => {
+        const d: any[] = Array.isArray(j) ? j : (j.data ?? []);
+        const myId = JSON.parse(atob((tok().split(".")[1] || "e30=").replace(/-/g, "+").replace(/_/g, "/")))?.id || "";
+        setMessages(d.map(m => ({
+          id: m.id || m._id,
+          sender: m.senderName,
+          text: m.content,
+          time: new Date(m.createdAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
+          mine: m.senderId === myId,
+        })));
+      })
+      .catch(() => { });
+  }, [selected]);
+
+  const conv = convos.find((c) => c.id === selected) ?? null;
+  const msgs = messages;
+
+  const filteredConvs = convos.filter((c) =>
     c.name.toLowerCase().includes(searchConv.toLowerCase())
   );
 
-  function sendMessage() {
-    if (!input.trim()) return;
-    const now = new Date();
-    const time = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
-    setMessages((prev) => ({
-      ...prev,
-      [selected]: [...(prev[selected] ?? []), { id: Date.now(), sender: "Moi", text: input.trim(), time, mine: true }],
-    }));
+  async function sendMessage() {
+    if (!input.trim() || !selected) return;
+    const r = await fetch("/api/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok()}` },
+      body: JSON.stringify({ receiverId: selected, content: input.trim() }),
+    }).catch(() => null);
+    if (r && r.ok) {
+      const data = await r.json();
+      const now = new Date();
+      const time = `${now.getHours().toString().padStart(2, "0")}:${now.getMinutes().toString().padStart(2, "0")}`;
+      setMessages(prev => [...prev, { id: data.id || String(Date.now()), sender: "Moi", text: input.trim(), time, mine: true }]);
+    }
     setInput("");
   }
 
@@ -122,10 +147,10 @@ export default function MessagingPage() {
           <div className="flex-1 flex flex-col overflow-hidden bg-background">
             {/* Chat header */}
             <div className="px-5 py-3 border-b border-border bg-card flex items-center gap-3">
-              <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold ${conv.color}`}>{conv.initials}</div>
+              <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold ${conv?.color ?? "bg-muted"}`}>{conv?.initials ?? ""}</div>
               <div>
-                <p className="font-semibold text-foreground text-sm">{conv.name}</p>
-                <p className="text-xs text-muted-foreground">{conv.role}</p>
+                <p className="font-semibold text-foreground text-sm">{conv?.name ?? ""}</p>
+                <p className="text-xs text-muted-foreground">{conv?.role ?? ""}</p>
               </div>
             </div>
 

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useEffect } from "react";
 import { ParamedicalDashboardSidebar } from "@/components/ParamedicalDashboardSidebar";
 import {
   MapPin,
@@ -13,7 +14,7 @@ import {
 type VisitStatus = "done" | "current" | "pending";
 
 interface Visit {
-  id: number;
+  id: string;
   order: number;
   name: string;
   address: string;
@@ -23,28 +24,36 @@ interface Visit {
   status: VisitStatus;
 }
 
-const VISITS: Visit[] = [
-  { id: 1, order: 1, name: "Mme Fatima Khaled",   address: "45 Rue de la Paix, Tunis",         careType: "Pansement",      time: "08:00", distFromPrev: 0,   status: "done"    },
-  { id: 2, order: 2, name: "M. Ali Ben Salah",    address: "78 Av. Habib Bourguiba, Tunis",    careType: "Injection",      time: "09:30", distFromPrev: 3.1, status: "done"    },
-  { id: 3, order: 3, name: "Mme Zahra Trabelsi",  address: "12 Rue Ibn Khaldoun, Tunis",       careType: "Perfusion IV",   time: "11:00", distFromPrev: 2.4, status: "current" },
-  { id: 4, order: 4, name: "M. Riadh Maaloul",    address: "34 Rue du Lac, Les Berges du Lac", careType: "Kinésithérapie", time: "13:30", distFromPrev: 5.7, status: "pending" },
-  { id: 5, order: 5, name: "Mme Amira Karmous",   address: "99 Av. de la Liberté, Tunis",     careType: "Prise de sang",  time: "15:00", distFromPrev: 4.2, status: "pending" },
-  { id: 6, order: 6, name: "M. Hassen Jebali",    address: "5 Cité El Menzah 4, Ariana",      careType: "Soins plaie",    time: "16:30", distFromPrev: 6.3, status: "pending" },
-];
+const tok = () => localStorage.getItem("megacare_token") ?? "";
+
+const VISITS: Visit[] = [];
 
 const statusConfig: Record<VisitStatus, { icon: typeof Circle; ring: string; bg: string; badge: string; badgeText: string }> = {
-  done:    { icon: CheckCircle2, ring: "border-green-400",  bg: "bg-green-50",  badge: "bg-green-100 text-green-700",  badgeText: "Effectuée"   },
-  current: { icon: Navigation,   ring: "border-primary",    bg: "bg-primary/5", badge: "bg-primary/10 text-primary",   badgeText: "En cours"    },
-  pending: { icon: Circle,       ring: "border-border",     bg: "bg-card",      badge: "bg-muted text-muted-foreground",badgeText: "À venir"    },
+  done: { icon: CheckCircle2, ring: "border-green-400", bg: "bg-green-50", badge: "bg-green-100 text-green-700", badgeText: "Effectuée" },
+  current: { icon: Navigation, ring: "border-primary", bg: "bg-primary/5", badge: "bg-primary/10 text-primary", badgeText: "En cours" },
+  pending: { icon: Circle, ring: "border-border", bg: "bg-card", badge: "bg-muted text-muted-foreground", badgeText: "À venir" },
 };
 
-const totalKm = VISITS.reduce((sum, v) => sum + v.distFromPrev, 0);
-const doneCount = VISITS.filter((v) => v.status === "done").length;
+const totalKm = 0;
+const doneCount = 0;
 
 export default function MapPage() {
-  const [activeId, setActiveId] = useState<number | null>(
-    VISITS.find((v) => v.status === "current")?.id ?? null
-  );
+  const [visits, setVisits] = useState<Visit[]>(VISITS);
+  const [activeId, setActiveId] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/paramedical/map-visits", { headers: { Authorization: `Bearer ${tok()}` } })
+      .then((r) => r.json())
+      .then((d) => {
+        const list = Array.isArray(d) ? d : [];
+        setVisits(list);
+        setActiveId(list.find((v) => v.status === "current")?.id ?? null);
+      })
+      .catch(() => { });
+  }, []);
+
+  const totalKm = visits.reduce((sum, v) => sum + v.distFromPrev, 0);
+  const doneCount = visits.filter((v) => v.status === "done").length;
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -64,7 +73,7 @@ export default function MapPage() {
             </div>
             <div className="flex items-center gap-1.5 text-muted-foreground">
               <CheckCircle2 size={15} className="text-green-500" />
-              <span><strong className="text-foreground">{doneCount}/{VISITS.length}</strong> visites</span>
+              <span><strong className="text-foreground">{doneCount}/{visits.length}</strong> visites</span>
             </div>
           </div>
         </div>
@@ -104,17 +113,15 @@ export default function MapPage() {
                   className="absolute -translate-x-1/2 -translate-y-full"
                   style={{ left: m.x, top: m.y }}
                 >
-                  <div className={`relative flex items-center justify-center w-8 h-8 rounded-full border-2 shadow-md font-bold text-sm cursor-pointer transition-transform hover:scale-110 ${
-                    m.status === "done"    ? "bg-green-500 border-green-700 text-white" :
-                    m.status === "current" ? "bg-primary border-primary/80 text-white ring-4 ring-primary/30" :
-                                             "bg-white border-slate-400 text-slate-700"
-                  }`}>
+                  <div className={`relative flex items-center justify-center w-8 h-8 rounded-full border-2 shadow-md font-bold text-sm cursor-pointer transition-transform hover:scale-110 ${m.status === "done" ? "bg-green-500 border-green-700 text-white" :
+                      m.status === "current" ? "bg-primary border-primary/80 text-white ring-4 ring-primary/30" :
+                        "bg-white border-slate-400 text-slate-700"
+                    }`}>
                     {m.order}
                   </div>
                   {/* Arrow */}
-                  <div className={`absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-6 border-l-transparent border-r-transparent ${
-                    m.status === "done" ? "border-t-green-500" : m.status === "current" ? "border-t-primary" : "border-t-slate-400"
-                  }`} style={{ borderTopWidth: 6 }} />
+                  <div className={`absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-6 border-l-transparent border-r-transparent ${m.status === "done" ? "border-t-green-500" : m.status === "current" ? "border-t-primary" : "border-t-slate-400"
+                    }`} style={{ borderTopWidth: 6 }} />
                 </div>
               ))}
 
@@ -141,16 +148,14 @@ export default function MapPage() {
                   <button
                     key={v.id}
                     onClick={() => setActiveId(v.id)}
-                    className={`w-full text-left px-4 py-3.5 flex items-start gap-3 transition ${
-                      isActive ? "bg-primary/5" : "hover:bg-muted/40"
-                    }`}
+                    className={`w-full text-left px-4 py-3.5 flex items-start gap-3 transition ${isActive ? "bg-primary/5" : "hover:bg-muted/40"
+                      }`}
                   >
                     {/* Order badge */}
-                    <div className={`w-7 h-7 rounded-full border-2 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 ${cfg.ring} ${
-                      v.status === "done" ? "bg-green-500 text-white" :
-                      v.status === "current" ? "bg-primary text-white" :
-                      "bg-background text-muted-foreground"
-                    }`}>
+                    <div className={`w-7 h-7 rounded-full border-2 flex items-center justify-center text-xs font-bold shrink-0 mt-0.5 ${cfg.ring} ${v.status === "done" ? "bg-green-500 text-white" :
+                        v.status === "current" ? "bg-primary text-white" :
+                          "bg-background text-muted-foreground"
+                      }`}>
                       {v.order}
                     </div>
 

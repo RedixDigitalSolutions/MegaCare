@@ -1,11 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MedicalServiceDashboardSidebar } from "@/components/MedicalServiceDashboardSidebar";
 import { Plus, Search, X, Wrench, Package, CheckCircle2, AlertCircle, Edit2, Trash2 } from "lucide-react";
+
+const tok = () => localStorage.getItem("megacare_token") ?? "";
 
 type EqStatus = "Disponible" | "En utilisation" | "Maintenance";
 
 interface Equipment {
-  id: number;
+  id: string;
   name: string;
   type: string;
   serial: string;
@@ -14,16 +16,6 @@ interface Equipment {
   maintenanceDate: string;
   location: string;
 }
-
-const initialEquipment: Equipment[] = [
-  { id: 1, name: "Tensiomètre électronique", type: "Diagnostic", serial: "BP-1042", status: "Disponible", patient: "—", maintenanceDate: "2026-06-01", location: "Salle A" },
-  { id: 2, name: "Oxymètre de pouls", type: "Diagnostic", serial: "OX-5511", status: "En utilisation", patient: "Fatima Ben Ali", maintenanceDate: "2026-07-15", location: "Salle B" },
-  { id: 3, name: "Pompe à perfusion", type: "Thérapeutique", serial: "IV-2230", status: "En utilisation", patient: "Mohammed Gharbi", maintenanceDate: "2026-05-20", location: "Salle C" },
-  { id: 4, name: "Défibrillateur", type: "Urgence", serial: "DF-0087", status: "Disponible", patient: "—", maintenanceDate: "2026-04-10", location: "Couloir" },
-  { id: 5, name: "Nébuliseur", type: "Thérapeutique", serial: "NB-3317", status: "Maintenance", patient: "—", maintenanceDate: "2026-04-05", location: "Atelier" },
-  { id: 6, name: "ECG portable", type: "Diagnostic", serial: "EC-9980", status: "Disponible", patient: "—", maintenanceDate: "2026-08-01", location: "Salle A" },
-  { id: 7, name: "Glucomètre", type: "Diagnostic", serial: "GL-4423", status: "En utilisation", patient: "Sonia Trabelsi", maintenanceDate: "2026-09-01", location: "Salle B" },
-];
 
 type FilterKey = "Tous" | EqStatus;
 
@@ -36,13 +28,20 @@ const statusConfig: Record<EqStatus, { color: string; bg: string; icon: typeof C
 const emptyForm = { name: "", type: "", serial: "", status: "Disponible" as EqStatus, patient: "", maintenanceDate: "", location: "" };
 
 export default function EquipmentPage() {
-  const [items, setItems] = useState<Equipment[]>(initialEquipment);
+  const [items, setItems] = useState<Equipment[]>([]);
   const [filter, setFilter] = useState<FilterKey>("Tous");
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [editing, setEditing] = useState<Equipment | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [deleteTarget, setDeleteTarget] = useState<Equipment | null>(null);
+
+  useEffect(() => {
+    fetch("/api/medical-service/equipment", { headers: { Authorization: `Bearer ${tok()}` } })
+      .then(r => r.json())
+      .then(d => setItems(Array.isArray(d) ? d : []))
+      .catch(() => { });
+  }, []);
 
   const filtered = items.filter((i) => {
     const matchFilter = filter === "Tous" || i.status === filter;
@@ -63,17 +62,25 @@ export default function EquipmentPage() {
     setForm({ name: item.name, type: item.type, serial: item.serial, status: item.status, patient: item.patient, maintenanceDate: item.maintenanceDate, location: item.location });
     setShowModal(true);
   }
-  function saveForm() {
+  async function saveForm() {
     if (!form.name.trim() || !form.serial.trim()) return;
-    if (editing) {
-      setItems((prev) => prev.map((i) => i.id === editing.id ? { ...i, ...form } : i));
-    } else {
-      setItems((prev) => [...prev, { id: Date.now(), ...form }]);
-    }
+    const url = editing ? `/api/medical-service/equipment/${editing.id}` : "/api/medical-service/equipment";
+    const r = await fetch(url, {
+      method: editing ? "PUT" : "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok()}` },
+      body: JSON.stringify(form),
+    });
+    const data = await r.json();
+    if (editing) setItems(prev => prev.map(i => i.id === editing.id ? data : i));
+    else setItems(prev => [...prev, data]);
     setShowModal(false);
   }
-  function confirmDelete() {
-    if (deleteTarget) { setItems((prev) => prev.filter((i) => i.id !== deleteTarget.id)); setDeleteTarget(null); }
+  async function confirmDelete() {
+    if (deleteTarget) {
+      await fetch(`/api/medical-service/equipment/${deleteTarget.id}`, { method: "DELETE", headers: { Authorization: `Bearer ${tok()}` } });
+      setItems(prev => prev.filter(i => i.id !== deleteTarget.id));
+      setDeleteTarget(null);
+    }
   }
 
   return (
@@ -93,12 +100,14 @@ export default function EquipmentPage() {
         <main className="flex-1 overflow-y-auto p-6 space-y-6">
           {/* KPIs */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {kpis.map((k) => { const Icon = k.icon; return (
-              <div key={k.label} className="bg-card rounded-xl border border-border p-4 flex items-center gap-4">
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${k.bg}`}><Icon size={20} className={k.color} /></div>
-                <div><p className="text-2xl font-bold text-foreground">{k.value}</p><p className="text-xs text-muted-foreground">{k.label}</p></div>
-              </div>
-            ); })}
+            {kpis.map((k) => {
+              const Icon = k.icon; return (
+                <div key={k.label} className="bg-card rounded-xl border border-border p-4 flex items-center gap-4">
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${k.bg}`}><Icon size={20} className={k.color} /></div>
+                  <div><p className="text-2xl font-bold text-foreground">{k.value}</p><p className="text-xs text-muted-foreground">{k.label}</p></div>
+                </div>
+              );
+            })}
           </div>
 
           {/* Filters + Search */}

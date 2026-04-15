@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+﻿import { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -14,392 +14,36 @@ import {
   Package,
   Shield,
   Activity,
+  Loader2,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 export interface ParamedicalProduct {
-  id: number;
+  id: string;
   name: string;
   brand: string;
   category: string;
   price: number;
-  originalPrice?: number; // for promo display
+  originalPrice?: number;
   rating: number;
   reviews: number;
   inStock: boolean;
   stockQty: number;
-  prescription: boolean; // "Sur ordonnance"
+  prescription: boolean;
   imageUrl: string;
   shortDesc: string;
   deliveryDays: string;
 }
 
-// ─── Mock Products ─────────────────────────────────────────────────────────────
-const products: ParamedicalProduct[] = [
-  {
-    id: 1,
-    name: "Fauteuil roulant manuel pliant",
-    brand: "VERMEIREN",
-    category: "Orthopédie",
-    price: 580,
-    originalPrice: 720,
-    rating: 4.8,
-    reviews: 143,
-    inStock: true,
-    stockQty: 5,
-    prescription: false,
-    imageUrl:
-      "https://images.unsplash.com/photo-1609220136736-443140cffec6?w=400&fit=crop&q=80",
-    shortDesc: "Fauteuil léger aluminium, poids 12 kg, dossier rabattable",
-    deliveryDays: "3–5 jours",
-  },
-  {
-    id: 2,
-    name: "Tensiomètre électronique bras",
-    brand: "OMRON",
-    category: "Maintien à domicile",
-    price: 89,
-    originalPrice: 110,
-    rating: 4.9,
-    reviews: 512,
-    inStock: true,
-    stockQty: 30,
-    prescription: false,
-    imageUrl:
-      "https://images.unsplash.com/photo-1576671081837-49000212a370?w=400&fit=crop&q=80",
-    shortDesc: "Mesure tensiométrique automatique, mémoire 60 mesures",
-    deliveryDays: "24h",
-  },
-  {
-    id: 3,
-    name: "Glucomètre AccuChek Active",
-    brand: "ROCHE",
-    category: "Diabétologie",
-    price: 45,
-    rating: 4.7,
-    reviews: 328,
-    inStock: true,
-    stockQty: 20,
-    prescription: false,
-    imageUrl:
-      "https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=400&fit=crop&q=80",
-    shortDesc: "Lecteur de glycémie rapide, résultat en 5 secondes",
-    deliveryDays: "24h",
-  },
-  {
-    id: 4,
-    name: "Déambulateur 4 roues avec siège",
-    brand: "DRIVE MEDICAL",
-    category: "Maintien à domicile",
-    price: 210,
-    rating: 4.6,
-    reviews: 97,
-    inStock: true,
-    stockQty: 8,
-    prescription: false,
-    imageUrl:
-      "https://images.unsplash.com/photo-1631815589968-fdb09a223b1e?w=400&fit=crop&q=80",
-    shortDesc:
-      "Rollator léger aluminium, panier de rangement, hauteur réglable",
-    deliveryDays: "3–5 jours",
-  },
-  {
-    id: 5,
-    name: "Collier cervical souple",
-    brand: "THUASNE",
-    category: "Orthopédie",
-    price: 24,
-    rating: 4.5,
-    reviews: 215,
-    inStock: true,
-    stockQty: 50,
-    prescription: false,
-    imageUrl:
-      "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=400&fit=crop&q=80",
-    shortDesc: "Maintien cervical confort, mousse polyuréthane, taille M",
-    deliveryDays: "24h",
-  },
-  {
-    id: 6,
-    name: "Genouillère ligamentaire sport",
-    brand: "GIBAUD",
-    category: "Orthopédie",
-    price: 38,
-    originalPrice: 48,
-    rating: 4.7,
-    reviews: 176,
-    inStock: true,
-    stockQty: 25,
-    prescription: false,
-    imageUrl:
-      "https://images.unsplash.com/photo-1550572017-ea058ca87258?w=400&fit=crop&q=80",
-    shortDesc: "Genouillère renforcée, baleines bilatérales, taille S–XL",
-    deliveryDays: "48h",
-  },
-  {
-    id: 7,
-    name: "Oxymètre de pouls digital",
-    brand: "BEURER",
-    category: "Maintien à domicile",
-    price: 35,
-    rating: 4.8,
-    reviews: 389,
-    inStock: true,
-    stockQty: 40,
-    prescription: false,
-    imageUrl:
-      "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=400&fit=crop&q=80",
-    shortDesc: "Mesure SpO2 et fréquence cardiaque, écran LED, piles incluses",
-    deliveryDays: "24h",
-  },
-  {
-    id: 8,
-    name: "Pansements stériles complets 20 pcs",
-    brand: "HARTMANN",
-    category: "Soins & pansements",
-    price: 12,
-    rating: 4.6,
-    reviews: 254,
-    inStock: true,
-    stockQty: 100,
-    prescription: false,
-    imageUrl:
-      "https://images.unsplash.com/photo-1587854692152-cbe660dbde88?w=400&fit=crop&q=80",
-    shortDesc: "Pansements hypoallergéniques toutes tailles, emballage stérile",
-    deliveryDays: "24h",
-  },
-  {
-    id: 9,
-    name: "Compresses stériles non tissées 100 pcs",
-    brand: "HARTMANN",
-    category: "Soins & pansements",
-    price: 8.5,
-    rating: 4.7,
-    reviews: 198,
-    inStock: true,
-    stockQty: 80,
-    prescription: false,
-    imageUrl:
-      "https://images.unsplash.com/photo-1607619056574-7b8d3ee536b2?w=400&fit=crop&q=80",
-    shortDesc: "Compresses 10×10 cm, non pelucheuses, lot de 100",
-    deliveryDays: "24h",
-  },
-  {
-    id: 10,
-    name: "Thermomètre digital auriculaire",
-    brand: "BRAUN",
-    category: "Maintien à domicile",
-    price: 52,
-    originalPrice: 65,
-    rating: 4.9,
-    reviews: 643,
-    inStock: true,
-    stockQty: 18,
-    prescription: false,
-    imageUrl:
-      "https://images.unsplash.com/photo-1559757175-0eb30cd8c063?w=400&fit=crop&q=80",
-    shortDesc: "Mesure auriculaire en 1 seconde, 9 positions mémoire",
-    deliveryDays: "24h",
-  },
-  {
-    id: 11,
-    name: "Coussin anti-escarres rond",
-    brand: "THUASNE",
-    category: "Maintien à domicile",
-    price: 42,
-    rating: 4.5,
-    reviews: 88,
-    inStock: true,
-    stockQty: 12,
-    prescription: true,
-    imageUrl:
-      "https://images.unsplash.com/photo-1631549916768-4119b2e5f926?w=400&fit=crop&q=80",
-    shortDesc: "Mousse viscoélastique mémoire de forme, diamètre 40 cm",
-    deliveryDays: "48h",
-  },
-  {
-    id: 12,
-    name: "Semelles orthopédiques sport",
-    brand: "BAUERFEIND",
-    category: "Orthopédie",
-    price: 65,
-    rating: 4.6,
-    reviews: 134,
-    inStock: true,
-    stockQty: 30,
-    prescription: false,
-    imageUrl:
-      "https://images.unsplash.com/photo-1576671081837-49000212a370?w=400&fit=crop&q=80",
-    shortDesc: "Semelles gel sport, soutien voûte plantaire, taille 36–46",
-    deliveryDays: "48h",
-  },
-  {
-    id: 13,
-    name: "Bande de contention élastique",
-    brand: "SIGVARIS",
-    category: "Soins & pansements",
-    price: 15,
-    rating: 4.4,
-    reviews: 162,
-    inStock: true,
-    stockQty: 60,
-    prescription: false,
-    imageUrl:
-      "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=400&fit=crop&q=80",
-    shortDesc: "Bande Velpeau extensible 10 cm × 4 m, lot de 2",
-    deliveryDays: "24h",
-  },
-  {
-    id: 14,
-    name: "Bandelettes glycémie AccuChek ×50",
-    brand: "ROCHE",
-    category: "Diabétologie",
-    price: 32,
-    rating: 4.8,
-    reviews: 294,
-    inStock: true,
-    stockQty: 45,
-    prescription: false,
-    imageUrl:
-      "https://images.unsplash.com/photo-1550572017-ea058ca87258?w=400&fit=crop&q=80",
-    shortDesc: "Bandelettes réactives compatibles AccuChek Active, boîte 50",
-    deliveryDays: "24h",
-  },
-  {
-    id: 15,
-    name: "Autopiqueur lancettes ×100",
-    brand: "BD",
-    category: "Diabétologie",
-    price: 18,
-    rating: 4.6,
-    reviews: 211,
-    inStock: true,
-    stockQty: 70,
-    prescription: false,
-    imageUrl:
-      "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=400&fit=crop&q=80",
-    shortDesc: "Lancettes universelles 28G, indolores, lot de 100",
-    deliveryDays: "24h",
-  },
-  {
-    id: 16,
-    name: "Tire-lait électrique double pompe",
-    brand: "MEDELA",
-    category: "Matériel bébé",
-    price: 320,
-    originalPrice: 395,
-    rating: 4.9,
-    reviews: 328,
-    inStock: true,
-    stockQty: 6,
-    prescription: false,
-    imageUrl:
-      "https://images.unsplash.com/photo-1631815589968-fdb09a223b1e?w=400&fit=crop&q=80",
-    shortDesc: "Double pompe silencieuse, technologie 2-phase, mains libres",
-    deliveryDays: "3–5 jours",
-  },
-  {
-    id: 17,
-    name: "Ballon de rééducation 65 cm",
-    brand: "GYMNIC",
-    category: "Bien-être & rééducation",
-    price: 28,
-    rating: 4.7,
-    reviews: 187,
-    inStock: true,
-    stockQty: 22,
-    prescription: false,
-    imageUrl:
-      "https://images.unsplash.com/photo-1587854692152-cbe660dbde88?w=400&fit=crop&q=80",
-    shortDesc: "Ballon d'exercice anti-éclatement, 65 cm, pompe incluse",
-    deliveryDays: "48h",
-  },
-  {
-    id: 18,
-    name: "Bande élastique rééducation ×1.5 m",
-    brand: "THERA-BAND",
-    category: "Bien-être & rééducation",
-    price: 12,
-    rating: 4.5,
-    reviews: 246,
-    inStock: true,
-    stockQty: 55,
-    prescription: false,
-    imageUrl:
-      "https://images.unsplash.com/photo-1607619056574-7b8d3ee536b2?w=400&fit=crop&q=80",
-    shortDesc: "Bande latex résistance légère à forte, plusieurs niveaux",
-    deliveryDays: "24h",
-  },
-  {
-    id: 19,
-    name: "Béquilles réglables aluminium (paire)",
-    brand: "INVACARE",
-    category: "Orthopédie",
-    price: 75,
-    rating: 4.4,
-    reviews: 112,
-    inStock: false,
-    stockQty: 0,
-    prescription: false,
-    imageUrl:
-      "https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=400&fit=crop&q=80",
-    shortDesc: "Béquilles axillaires léger aluminium, hauteur 1.10–1.50 m",
-    deliveryDays: "7–10 jours",
-  },
-  {
-    id: 20,
-    name: "Nébuliseur à compresseur silencieux",
-    brand: "OMRON",
-    category: "Maintien à domicile",
-    price: 98,
-    originalPrice: 125,
-    rating: 4.8,
-    reviews: 174,
-    inStock: true,
-    stockQty: 10,
-    prescription: false,
-    imageUrl:
-      "https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=400&fit=crop&q=80",
-    shortDesc:
-      "Aérosol à compresseur < 45 dB, embout buccal + masques adulte & enfant",
-    deliveryDays: "48h",
-  },
-];
-
-// ─── Categories ───────────────────────────────────────────────────────────────
-const categories = [
-  { name: "Tous", icon: "🏥", count: products.length },
-  {
-    name: "Orthopédie",
-    icon: "🦴",
-    count: products.filter((p) => p.category === "Orthopédie").length,
-  },
-  {
-    name: "Maintien à domicile",
-    icon: "🏠",
-    count: products.filter((p) => p.category === "Maintien à domicile").length,
-  },
-  {
-    name: "Soins & pansements",
-    icon: "🩹",
-    count: products.filter((p) => p.category === "Soins & pansements").length,
-  },
-  {
-    name: "Diabétologie",
-    icon: "💉",
-    count: products.filter((p) => p.category === "Diabétologie").length,
-  },
-  {
-    name: "Bien-être & rééducation",
-    icon: "🏃",
-    count: products.filter((p) => p.category === "Bien-être & rééducation")
-      .length,
-  },
-  {
-    name: "Matériel bébé",
-    icon: "👶",
-    count: products.filter((p) => p.category === "Matériel bébé").length,
-  },
+// ─── Category meta (counts computed dynamically in component) ───────────────────
+const categoryMeta = [
+  { name: "Tous", icon: "🏥" },
+  { name: "Orthopédie", icon: "🦴" },
+  { name: "Maintien à domicile", icon: "🏠" },
+  { name: "Soins & pansements", icon: "🩹" },
+  { name: "Diabétologie", icon: "💉" },
+  { name: "Bien-être & rééducation", icon: "🏃" },
+  { name: "Matériel bébé", icon: "👶" },
 ];
 
 // ─── Hero category banners ─────────────────────────────────────────────────────
@@ -423,9 +67,9 @@ function ProductCard({
   const hasPromo = !!product.originalPrice;
   const promoPercent = hasPromo
     ? Math.round(
-        ((product.originalPrice! - product.price) / product.originalPrice!) *
-          100,
-      )
+      ((product.originalPrice! - product.price) / product.originalPrice!) *
+      100,
+    )
     : 0;
 
   return (
@@ -577,6 +221,30 @@ export default function ParamedicalPage() {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
+  const [products, setProducts] = useState<ParamedicalProduct[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    fetch("/api/public/paramedical-products")
+      .then((r) => r.json())
+      .then((data) => setProducts(Array.isArray(data) ? data : []))
+      .catch(() => setProducts([]))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const categories = useMemo(
+    () =>
+      categoryMeta.map((cat) => ({
+        ...cat,
+        count:
+          cat.name === "Tous"
+            ? products.length
+            : products.filter((p) => p.category === cat.name).length,
+      })),
+    [products],
+  );
+
   const [query, setQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Tous");
   const [priceMax, setPriceMax] = useState(700);
@@ -633,6 +301,7 @@ export default function ParamedicalPage() {
 
     return result;
   }, [
+    products,
     query,
     selectedCategory,
     priceMax,
@@ -661,21 +330,19 @@ export default function ParamedicalPage() {
           <button
             key={cat.name}
             onClick={() => setSelectedCategory(cat.name)}
-            className={`flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-sm transition-colors mb-1 ${
-              selectedCategory === cat.name
-                ? "bg-primary text-primary-foreground"
-                : "hover:bg-secondary/50 text-foreground/80"
-            }`}
+            className={`flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-sm transition-colors mb-1 ${selectedCategory === cat.name
+              ? "bg-primary text-primary-foreground"
+              : "hover:bg-secondary/50 text-foreground/80"
+              }`}
           >
             <span>
               {cat.icon} {cat.name}
             </span>
             <span
-              className={`text-xs px-1.5 py-0.5 rounded-full ${
-                selectedCategory === cat.name
-                  ? "bg-primary/20"
-                  : "bg-secondary text-muted-foreground"
-              }`}
+              className={`text-xs px-1.5 py-0.5 rounded-full ${selectedCategory === cat.name
+                ? "bg-primary/20"
+                : "bg-secondary text-muted-foreground"
+                }`}
             >
               {cat.count}
             </span>
@@ -712,11 +379,10 @@ export default function ParamedicalPage() {
             <button
               key={r}
               onClick={() => setMinRating(r)}
-              className={`px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-colors ${
-                minRating === r
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-secondary text-foreground/80 hover:bg-secondary/70"
-              }`}
+              className={`px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-colors ${minRating === r
+                ? "bg-primary text-primary-foreground"
+                : "bg-secondary text-foreground/80 hover:bg-secondary/70"
+                }`}
             >
               {r === 0 ? "Tous" : `${r}+ ★`}
             </button>
@@ -732,14 +398,12 @@ export default function ParamedicalPage() {
         <label className="flex items-center gap-2 cursor-pointer">
           <div
             onClick={() => setInStockOnly(!inStockOnly)}
-            className={`relative w-10 h-5 rounded-full transition-colors cursor-pointer ${
-              inStockOnly ? "bg-primary" : "bg-secondary"
-            }`}
+            className={`relative w-10 h-5 rounded-full transition-colors cursor-pointer ${inStockOnly ? "bg-primary" : "bg-secondary"
+              }`}
           >
             <div
-              className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${
-                inStockOnly ? "translate-x-5" : "translate-x-0.5"
-              }`}
+              className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${inStockOnly ? "translate-x-5" : "translate-x-0.5"
+                }`}
             />
           </div>
           <span className="text-sm text-foreground/80">
@@ -900,7 +564,11 @@ export default function ParamedicalPage() {
                 </select>
               </div>
 
-              {filtered.length === 0 ? (
+              {loading ? (
+                <div className="flex justify-center items-center py-24">
+                  <Loader2 size={40} className="animate-spin text-primary" />
+                </div>
+              ) : filtered.length === 0 ? (
                 <div className="bg-card rounded-xl border border-border p-12 text-center space-y-4">
                   <Package
                     size={48}

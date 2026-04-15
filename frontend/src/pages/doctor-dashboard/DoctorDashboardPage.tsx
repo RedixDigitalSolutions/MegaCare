@@ -33,7 +33,8 @@ export default function DoctorDashboardPage() {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
-        const data: Appointment[] = await res.json();
+        const json = await res.json();
+        const data: Appointment[] = Array.isArray(json) ? json : (json.data ?? []);
         setAllAppointments(data);
       }
     } catch {
@@ -370,13 +371,12 @@ export default function DoctorDashboardPage() {
                   {timeSlots.map((slot, idx) => (
                     <div
                       key={idx}
-                      className={`flex items-center gap-4 p-3 rounded-lg transition ${
-                        slot.status === "free"
+                      className={`flex items-center gap-4 p-3 rounded-lg transition ${slot.status === "free"
                           ? "bg-secondary/30 hover:bg-secondary"
                           : slot.status === "confirmed"
                             ? "bg-blue-50 border border-blue-200"
                             : "bg-orange-50 border border-orange-200"
-                      }`}
+                        }`}
                     >
                       <p className="w-16 font-mono font-bold text-foreground">
                         {slot.time}
@@ -390,11 +390,10 @@ export default function DoctorDashboardPage() {
                               {slot.patient}
                             </p>
                             <p
-                              className={`text-xs ${
-                                slot.status === "confirmed"
+                              className={`text-xs ${slot.status === "confirmed"
                                   ? "text-blue-700"
                                   : "text-orange-700"
-                              }`}
+                                }`}
                             >
                               {slot.status === "confirmed"
                                 ? "Confirmé"
@@ -528,11 +527,10 @@ export default function DoctorDashboardPage() {
                           </p>
                         </div>
                         <span
-                          className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                            a.status === "confirmed"
+                          className={`text-xs font-semibold px-2 py-0.5 rounded-full ${a.status === "confirmed"
                               ? "bg-blue-100 text-blue-700"
                               : "bg-orange-100 text-orange-700"
-                          }`}
+                            }`}
                         >
                           {a.status === "confirmed" ? "Confirmé" : "En attente"}
                         </span>
@@ -541,10 +539,10 @@ export default function DoctorDashboardPage() {
                   {allAppointments.filter(
                     (a) => a.date >= todayKey && a.status !== "rejected",
                   ).length === 0 && (
-                    <p className="text-sm text-muted-foreground">
-                      Aucun rendez-vous à venir
-                    </p>
-                  )}
+                      <p className="text-sm text-muted-foreground">
+                        Aucun rendez-vous à venir
+                      </p>
+                    )}
                 </div>
               </div>
             </div>

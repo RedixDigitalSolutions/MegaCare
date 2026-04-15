@@ -8,18 +8,63 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { PharmacyDashboardSidebar } from "@/components/PharmacyDashboardSidebar";
+
+interface PendingOrder {
+  id: string;
+  customer: string;
+  items: number;
+  total: number;
+  orderDate: string;
+  status: string;
+}
+interface LowStockProduct {
+  name: string;
+  current: number;
+  minimum: number;
+}
+interface TopSellingItem {
+  rank: number;
+  name: string;
+  sold: number;
+  revenue: number;
+}
+interface KpiData {
+  totalStock: number;
+  pendingOrdersCount: number;
+  revenue: number;
+  lowStockCount: number;
+  pendingOrders: PendingOrder[];
+  lowStockProducts: LowStockProduct[];
+  topSelling: TopSellingItem[];
+}
 
 export default function PharmacyDashboardPage() {
   const { user, isLoading, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const [kpiData, setKpiData] = useState<KpiData | null>(null);
+  const [loadingData, setLoadingData] = useState(true);
 
   useEffect(() => {
     if (!isLoading && (!isAuthenticated || !user || user.role !== "pharmacy")) {
       navigate("/login");
     }
   }, [isLoading, isAuthenticated, user, navigate]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !user || user.role !== "pharmacy") return;
+    const token = localStorage.getItem("megacare_token");
+    fetch("/api/pharmacy/kpis", {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        setKpiData(data);
+        setLoadingData(false);
+      })
+      .catch(() => setLoadingData(false));
+  }, [isAuthenticated, user]);
 
   if (isLoading || !isAuthenticated || !user || user.role !== "pharmacy")
     return null;
@@ -37,89 +82,41 @@ export default function PharmacyDashboardPage() {
     {
       icon: Package,
       title: "Stock Total",
-      value: "1,245",
-      subtitle: "+120 nouveaux produits",
+      value: loadingData ? "…" : kpiData?.totalStock.toLocaleString() ?? "0",
+      subtitle: "Produits en catalogue",
       color: "text-blue-500",
       bgColor: "bg-blue-50",
     },
     {
       icon: ShoppingCart,
       title: "Commandes en attente",
-      value: "28",
-      subtitle: "5 à traiter aujourd'hui",
+      value: loadingData ? "…" : kpiData?.pendingOrdersCount.toLocaleString() ?? "0",
+      subtitle: "À traiter",
       color: "text-orange-500",
       bgColor: "bg-orange-50",
     },
     {
       icon: TrendingUp,
       title: "Revenu ce mois",
-      value: "12,450 DT",
-      subtitle: "+18% vs mois dernier",
+      value: loadingData ? "…" : `${(kpiData?.revenue ?? 0).toLocaleString()} DT`,
+      subtitle: "Commandes complétées",
       color: "text-green-500",
       bgColor: "bg-green-50",
     },
     {
       icon: AlertCircle,
       title: "Alertes stock faible",
-      value: "8",
+      value: loadingData ? "…" : kpiData?.lowStockCount.toLocaleString() ?? "0",
       subtitle: "Produits sous le seuil",
       color: "text-red-500",
       bgColor: "bg-red-50",
     },
   ];
 
-  const pendingOrders = [
-    {
-      id: "CMD-P-001",
-      customer: "Fatima Ben Hamida",
-      items: 4,
-      total: 245.5,
-      orderDate: "Aujourd'hui 09:15",
-      status: "En attente",
-    },
-    {
-      id: "CMD-P-002",
-      customer: "Mohamed Karim",
-      items: 2,
-      total: 89.0,
-      orderDate: "Aujourd'hui 11:42",
-      status: "En préparation",
-    },
-    {
-      id: "CMD-P-003",
-      customer: "Aisha Mansouri",
-      items: 6,
-      total: 356.75,
-      orderDate: "Hier 15:30",
-      status: "Prête pour livraison",
-    },
-    {
-      id: "CMD-P-004",
-      customer: "Karim Belhaj",
-      items: 3,
-      total: 142.0,
-      orderDate: "Hier 17:00",
-      status: "En attente",
-    },
-  ];
-
-  const lowStockProducts = [
-    { name: "Aspirine 500mg", current: 12, minimum: 50 },
-    { name: "Ibuprofène 200mg", current: 8, minimum: 40 },
-    { name: "Amoxicilline 500mg", current: 15, minimum: 60 },
-    { name: "Vitamine C 1000mg", current: 22, minimum: 75 },
-    { name: "Sérum Physiologique", current: 18, minimum: 80 },
-    { name: "Cétirizine 10mg", current: 22, minimum: 60 },
-  ];
-
-  const topSelling = [
-    { rank: 1, name: "Paracétamol 500mg", sold: 342, revenue: 2568 },
-    { rank: 2, name: "Vitamine D 2000UI", sold: 256, revenue: 3840 },
-    { rank: 3, name: "Oméga-3 1000mg", sold: 189, revenue: 4725 },
-    { rank: 4, name: "Masques chirurgicaux", sold: 1245, revenue: 1245 },
-    { rank: 5, name: "Désinfectant 500ml", sold: 456, revenue: 2280 },
-  ];
-  const maxSold = Math.max(...topSelling.map((p) => p.sold));
+  const pendingOrders = kpiData?.pendingOrders ?? [];
+  const lowStockProducts = kpiData?.lowStockProducts ?? [];
+  const topSelling = kpiData?.topSelling ?? [];
+  const maxSold = topSelling.length > 0 ? Math.max(...topSelling.map((p) => p.sold)) : 1;
 
   const orderStatusCfg: Record<
     string,
@@ -283,21 +280,25 @@ export default function PharmacyDashboardPage() {
                     <p className="text-xs text-muted-foreground">
                       Produits actifs
                     </p>
-                    <p className="text-2xl font-bold text-primary">1,245</p>
+                    <p className="text-2xl font-bold text-primary">
+                      {loadingData ? "…" : (kpiData?.totalStock ?? 0).toLocaleString()}
+                    </p>
                   </div>
                   <div className="bg-white/70 rounded-xl p-4">
                     <p className="text-xs text-muted-foreground">
-                      Valeur du stock
+                      Revenu ce mois
                     </p>
                     <p className="text-2xl font-bold text-foreground">
-                      48,320 DT
+                      {loadingData ? "…" : `${(kpiData?.revenue ?? 0).toLocaleString()} DT`}
                     </p>
                   </div>
                   <div className="bg-white/70 rounded-xl p-4">
                     <p className="text-xs text-muted-foreground">
                       Alertes actives
                     </p>
-                    <p className="text-2xl font-bold text-red-600">8</p>
+                    <p className="text-2xl font-bold text-red-600">
+                      {loadingData ? "…" : (kpiData?.lowStockCount ?? 0)}
+                    </p>
                   </div>
                 </div>
                 <Link
@@ -329,15 +330,14 @@ export default function PharmacyDashboardPage() {
                     className="px-5 py-3 flex items-center gap-4"
                   >
                     <span
-                      className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-                        med.rank === 1
-                          ? "bg-yellow-100 text-yellow-700"
-                          : med.rank === 2
-                            ? "bg-gray-100 text-gray-600"
-                            : med.rank === 3
-                              ? "bg-orange-100 text-orange-700"
-                              : "bg-muted text-muted-foreground"
-                      }`}
+                      className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${med.rank === 1
+                        ? "bg-yellow-100 text-yellow-700"
+                        : med.rank === 2
+                          ? "bg-gray-100 text-gray-600"
+                          : med.rank === 3
+                            ? "bg-orange-100 text-orange-700"
+                            : "bg-muted text-muted-foreground"
+                        }`}
                     >
                       {med.rank}
                     </span>

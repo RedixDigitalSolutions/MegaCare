@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ParamedicalDashboardSidebar } from "@/components/ParamedicalDashboardSidebar";
 import {
   AlertTriangle,
@@ -14,7 +14,7 @@ import {
 type StockLevel = "ok" | "low" | "critical";
 
 interface Supply {
-  id: number;
+  id: string;
   name: string;
   category: string;
   current: number;
@@ -25,23 +25,14 @@ interface Supply {
 }
 
 const levelConfig: Record<StockLevel, { bar: string; badge: string; badgeText: string; threshold: string }> = {
-  ok:       { bar: "bg-green-500",  badge: "bg-green-100 text-green-700",   badgeText: "Stock OK",    threshold: "" },
-  low:      { bar: "bg-amber-400",  badge: "bg-amber-100 text-amber-700",   badgeText: "Stock faible",threshold: "" },
-  critical: { bar: "bg-red-500",    badge: "bg-red-100 text-red-700",       badgeText: "Critique",    threshold: "" },
+  ok: { bar: "bg-green-500", badge: "bg-green-100 text-green-700", badgeText: "Stock OK", threshold: "" },
+  low: { bar: "bg-amber-400", badge: "bg-amber-100 text-amber-700", badgeText: "Stock faible", threshold: "" },
+  critical: { bar: "bg-red-500", badge: "bg-red-100 text-red-700", badgeText: "Critique", threshold: "" },
 };
 
-const INITIAL: Supply[] = [
-  { id: 1,  name: "Pansements stériles",    category: "Wound care",   current: 45, max: 200, unit: "unités",   level: "ok",       ordered: false },
-  { id: 2,  name: "Seringues 10 ml",         category: "Injection",    current: 12, max: 100, unit: "unités",   level: "low",      ordered: false },
-  { id: 3,  name: "Cathéters IV 18G",        category: "Perfusion",    current: 3,  max: 50,  unit: "unités",   level: "critical", ordered: false },
-  { id: 4,  name: "Gants médicaux (boîtes)", category: "Protection",   current: 8,  max: 20,  unit: "boîtes",   level: "low",      ordered: false },
-  { id: 5,  name: "Compresses non-tissées",  category: "Wound care",   current: 120,max: 300, unit: "unités",   level: "ok",       ordered: false },
-  { id: 6,  name: "Alcool 70° (flacons)",    category: "Désinfection", current: 4,  max: 24,  unit: "flacons",  level: "low",      ordered: false },
-  { id: 7,  name: "Oxygène médical (L)",     category: "Respiratoire", current: 20, max: 200, unit: "L",        level: "critical", ordered: false },
-  { id: 8,  name: "Sparadrap (rouleaux)",    category: "Wound care",   current: 15, max: 30,  unit: "rouleaux", level: "ok",       ordered: false },
-  { id: 9,  name: "Poches perfusion 500 ml", category: "Perfusion",    current: 6,  max: 60,  unit: "poches",   level: "low",      ordered: false },
-  { id: 10, name: "Électrodes ECG",          category: "Monitoring",   current: 40, max: 100, unit: "unités",   level: "ok",       ordered: false },
-];
+const tok = () => localStorage.getItem("megacare_token") ?? "";
+
+const INITIAL: Supply[] = [];
 
 type FilterLevel = "all" | StockLevel;
 
@@ -58,24 +49,36 @@ export default function SuppliesPage() {
   const [modal, setModal] = useState<RequestModal | null>(null);
   const [toast, setToast] = useState("");
 
+  useEffect(() => {
+    fetch("/api/paramedical/supplies", { headers: { Authorization: `Bearer ${tok()}` } })
+      .then((r) => r.json())
+      .then((d) => setSupplies(Array.isArray(d) ? d : []))
+      .catch(() => { });
+  }, []);
+
   const filtered = supplies.filter((s) => {
     const matchFilter = filter === "all" || s.level === filter;
     const matchSearch = s.name.toLowerCase().includes(search.toLowerCase()) ||
-                        s.category.toLowerCase().includes(search.toLowerCase());
+      s.category.toLowerCase().includes(search.toLowerCase());
     return matchFilter && matchSearch;
   });
 
-  const lowCount    = supplies.filter((s) => s.level === "low").length;
-  const critCount   = supplies.filter((s) => s.level === "critical").length;
-  const orderedCount= supplies.filter((s) => s.ordered).length;
+  const lowCount = supplies.filter((s) => s.level === "low").length;
+  const critCount = supplies.filter((s) => s.level === "critical").length;
+  const orderedCount = supplies.filter((s) => s.ordered).length;
 
   const openRequest = (s: Supply) => setModal({ supply: s, qty: 1, note: "" });
 
-  const confirmRequest = () => {
+  const confirmRequest = async () => {
     if (!modal) return;
-    setSupplies((prev) =>
-      prev.map((s) => s.id === modal.supply.id ? { ...s, ordered: true } : s)
-    );
+    const r = await fetch(`/api/paramedical/supplies/${modal.supply.id}/order`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${tok()}` },
+    }).catch(() => null);
+    if (r && r.ok) {
+      const data = await r.json();
+      setSupplies((prev) => prev.map((s) => (s.id === modal.supply.id ? data : s)));
+    }
     setModal(null);
     setToast(`Demande de livraison envoyée pour : ${modal.supply.name}`);
     setTimeout(() => setToast(""), 3500);
@@ -109,9 +112,8 @@ export default function SuppliesPage() {
 
           {/* Low-stock banner */}
           {(critCount > 0 || lowCount > 0) && (
-            <div className={`rounded-xl border p-4 flex items-start gap-3 ${
-              critCount > 0 ? "bg-red-50 border-red-200" : "bg-amber-50 border-amber-200"
-            }`}>
+            <div className={`rounded-xl border p-4 flex items-start gap-3 ${critCount > 0 ? "bg-red-50 border-red-200" : "bg-amber-50 border-amber-200"
+              }`}>
               <AlertTriangle size={18} className={critCount > 0 ? "text-red-600 shrink-0 mt-0.5" : "text-amber-600 shrink-0 mt-0.5"} />
               <div>
                 <p className={`font-semibold text-sm ${critCount > 0 ? "text-red-800" : "text-amber-800"}`}>
@@ -129,10 +131,10 @@ export default function SuppliesPage() {
           {/* KPI row */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {[
-              { label: "Total articles",     value: supplies.length,                  color: "text-foreground" },
-              { label: "Stocks critiques",   value: critCount,                        color: "text-red-600" },
-              { label: "Stocks faibles",     value: lowCount,                         color: "text-amber-600" },
-              { label: "Commandes en cours", value: orderedCount,                     color: "text-primary" },
+              { label: "Total articles", value: supplies.length, color: "text-foreground" },
+              { label: "Stocks critiques", value: critCount, color: "text-red-600" },
+              { label: "Stocks faibles", value: lowCount, color: "text-amber-600" },
+              { label: "Commandes en cours", value: orderedCount, color: "text-primary" },
             ].map((k) => (
               <div key={k.label} className="bg-card border border-border rounded-xl px-4 py-3 text-center">
                 <p className={`text-2xl font-bold ${k.color}`}>{k.value}</p>
@@ -157,11 +159,10 @@ export default function SuppliesPage() {
               <button
                 key={f}
                 onClick={() => setFilter(f)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition ${
-                  filter === f
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition ${filter === f
                     ? "bg-primary text-primary-foreground border-primary"
                     : "bg-card border-border text-muted-foreground hover:border-primary/40"
-                }`}
+                  }`}
               >
                 {f === "all" ? "Tout" : f === "ok" ? "Stock OK" : f === "low" ? "Faible" : "Critique"}
               </button>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { LabDashboardSidebar } from "@/components/LabDashboardSidebar";
 import {
   Search,
@@ -13,7 +13,7 @@ import {
 type ResultStatus = "Normal" | "Élevé" | "Critique";
 
 interface LabResult {
-  id: number;
+  id: string;
   patient: string;
   testType: string;
   value: string;
@@ -24,85 +24,7 @@ interface LabResult {
   date: string;
 }
 
-const initialResults: LabResult[] = [
-  {
-    id: 1,
-    patient: "Mohammed Gharbi",
-    testType: "Glycémie",
-    value: "1.15",
-    unit: "g/L",
-    reference: "0.7–1.1",
-    status: "Élevé",
-    doctor: "Dr. Nour Belhadj",
-    date: "2026-04-05",
-  },
-  {
-    id: 2,
-    patient: "Sara Meddeb",
-    testType: "TSH",
-    value: "2.5",
-    unit: "mIU/L",
-    reference: "0.4–4.0",
-    status: "Normal",
-    doctor: "Dr. Nour Belhadj",
-    date: "2026-04-04",
-  },
-  {
-    id: 3,
-    patient: "Karim Smaoui",
-    testType: "Cholestérol total",
-    value: "6.8",
-    unit: "mmol/L",
-    reference: "< 5.0",
-    status: "Élevé",
-    doctor: "Dr. Sana Triki",
-    date: "2026-04-03",
-  },
-  {
-    id: 4,
-    patient: "Nida Khadija",
-    testType: "Créatinine",
-    value: "85",
-    unit: "µmol/L",
-    reference: "44–97",
-    status: "Normal",
-    doctor: "Dr. Karim Mansouri",
-    date: "2026-04-02",
-  },
-  {
-    id: 5,
-    patient: "Ali Ben Romdhane",
-    testType: "Bilirubine",
-    value: "15",
-    unit: "µmol/L",
-    reference: "< 17",
-    status: "Normal",
-    doctor: "Dr. Karim Mansouri",
-    date: "2026-04-01",
-  },
-  {
-    id: 6,
-    patient: "Fatima Ben Ali",
-    testType: "Numération sanguine",
-    value: "2.8",
-    unit: "T/µL",
-    reference: "4.5–5.9",
-    status: "Critique",
-    doctor: "Dr. Karim Mansouri",
-    date: "2026-04-05",
-  },
-  {
-    id: 7,
-    patient: "Ahmed Nasser",
-    testType: "Bilan lipidique",
-    value: "3.2",
-    unit: "g/L",
-    reference: "< 1.5",
-    status: "Critique",
-    doctor: "Dr. Sana Triki",
-    date: "2026-04-04",
-  },
-];
+
 
 const statusConfig: Record<
   ResultStatus,
@@ -129,7 +51,17 @@ const statusConfig: Record<
 };
 
 export default function LabResultsPage() {
-  const [results] = useState<LabResult[]>(initialResults);
+  const [results, setResults] = useState<LabResult[]>([]);
+
+  useEffect(() => {
+    const token = localStorage.getItem("megacare_token");
+    fetch("/api/lab/results", {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => r.json())
+      .then((json: any) => setResults(Array.isArray(json) ? json : (json.data ?? [])))
+      .catch(() => { });
+  }, []);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<"all" | ResultStatus>("all");
 

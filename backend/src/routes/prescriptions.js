@@ -6,10 +6,21 @@ const Prescription = require("../models/Prescription");
 
 // GET /api/prescriptions
 router.get("/", authMiddleware, async (req, res) => {
-  const result = await Prescription.find({
-    $or: [{ patientId: req.user.id }, { doctorId: req.user.id }],
-  }).lean();
-  res.json(result.map((p) => ({ ...p, id: p._id })));
+  const page = Math.max(1, parseInt(req.query.page) || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 20));
+  const skip = (page - 1) * limit;
+  const filter = { $or: [{ patientId: req.user.id }, { doctorId: req.user.id }] };
+  const [result, total] = await Promise.all([
+    Prescription.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+    Prescription.countDocuments(filter),
+  ]);
+  res.json({
+    data: result.map((p) => ({ ...p, id: p._id })),
+    total,
+    page,
+    limit,
+    pages: Math.ceil(total / limit),
+  });
 });
 
 // GET /api/prescriptions/:id

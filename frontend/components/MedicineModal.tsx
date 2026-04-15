@@ -14,7 +14,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 
 export interface Medicine {
-  id: number;
+  id: string | number;
   name: string;
   form: string;
   brand: string;
@@ -29,6 +29,7 @@ export interface Medicine {
   delivery: string;
   description: string;
   imageUrl?: string;
+  category?: string;
 }
 
 interface MedicineModalProps {
@@ -84,11 +85,10 @@ export function MedicineModal({
 
         {/* Hero Image */}
         <div
-          className={`relative h-56 flex items-center justify-center overflow-hidden ${
-            medicine.prescription
+          className={`relative h-56 flex items-center justify-center overflow-hidden ${medicine.prescription
               ? "bg-gradient-to-br from-orange-50 to-red-100"
               : "bg-gradient-to-br from-blue-50 to-indigo-100"
-          }`}
+            }`}
         >
           {medicine.imageUrl ? (
             <img
@@ -110,11 +110,10 @@ export function MedicineModal({
           {/* Prescription Badge */}
           <div className="absolute top-4 left-4">
             <span
-              className={`text-xs font-semibold px-3 py-1.5 rounded-full ${
-                medicine.prescription
+              className={`text-xs font-semibold px-3 py-1.5 rounded-full ${medicine.prescription
                   ? "bg-orange-500 text-white"
                   : "bg-green-500 text-white"
-              }`}
+                }`}
             >
               {medicine.prescription
                 ? "📋 Ordonnance requise"
@@ -160,13 +159,12 @@ export function MedicineModal({
                 </span>
               </div>
               <span
-                className={`text-sm font-bold ${
-                  medicine.available > 10
+                className={`text-sm font-bold ${medicine.available > 10
                     ? "text-green-600"
                     : medicine.available > 3
                       ? "text-yellow-600"
                       : "text-red-600"
-                }`}
+                  }`}
               >
                 {medicine.available > 0
                   ? `${medicine.available} unités dispo.`
@@ -244,11 +242,10 @@ export function MedicineModal({
             <button
               onClick={handleAddToCart}
               disabled={medicine.available === 0}
-              className={`flex items-center gap-2 px-5 py-3 rounded-xl font-semibold transition-all flex-shrink-0 ${
-                addedFeedback
+              className={`flex items-center gap-2 px-5 py-3 rounded-xl font-semibold transition-all flex-shrink-0 ${addedFeedback
                   ? "bg-green-500 text-white"
                   : "bg-primary text-primary-foreground hover:bg-primary/90 active:scale-95"
-              } disabled:opacity-50 disabled:cursor-not-allowed`}
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
             >
               {addedFeedback ? (
                 <>

@@ -100,10 +100,11 @@ export default function DoctorConsultationsPage() {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((r) => r.json())
-      .then((data) => {
-        if (Array.isArray(data)) setAppointments(data);
+      .then((j) => {
+        const data = Array.isArray(j) ? j : (j.data ?? []);
+        setAppointments(data);
       })
-      .catch(() => {});
+      .catch(() => { });
   }, [isAuthenticated]);
 
   if (isLoading || !isAuthenticated || !user || user.role !== "doctor")
@@ -151,15 +152,14 @@ export default function DoctorConsultationsPage() {
                   className="bg-card border border-border rounded-xl p-4 text-center"
                 >
                   <p
-                    className={`text-2xl font-bold ${
-                      tab === "Complétée"
-                        ? "text-green-600"
-                        : tab === "En attente"
-                          ? "text-orange-500"
-                          : tab === "Annulée"
-                            ? "text-red-500"
-                            : "text-foreground"
-                    }`}
+                    className={`text-2xl font-bold ${tab === "Terminée"
+                      ? "text-green-600"
+                      : tab === "En attente"
+                        ? "text-orange-500"
+                        : tab === "Annulée"
+                          ? "text-red-500"
+                          : "text-foreground"
+                      }`}
                   >
                     {countOf(tab)}
                   </p>
@@ -176,19 +176,17 @@ export default function DoctorConsultationsPage() {
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                    activeTab === tab
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-card border border-border text-foreground hover:bg-muted"
-                  }`}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition ${activeTab === tab
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-card border border-border text-foreground hover:bg-muted"
+                    }`}
                 >
                   {tab === "Toutes" ? "Toutes" : tab}
                   <span
-                    className={`ml-2 text-xs px-1.5 py-0.5 rounded-full ${
-                      activeTab === tab
-                        ? "bg-white/20 text-white"
-                        : "bg-muted text-muted-foreground"
-                    }`}
+                    className={`ml-2 text-xs px-1.5 py-0.5 rounded-full ${activeTab === tab
+                      ? "bg-white/20 text-white"
+                      : "bg-muted text-muted-foreground"
+                      }`}
                   >
                     {countOf(tab)}
                   </span>

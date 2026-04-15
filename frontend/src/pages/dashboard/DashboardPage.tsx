@@ -45,10 +45,6 @@ export default function DashboardPage() {
   const [doctorNames, setDoctorNames] = useState<Record<string, string>>({});
   const [dataLoading, setDataLoading] = useState(true);
 
-export default function DashboardPage() {
-  const { user, isLoading, isAuthenticated } = useAuth();
-  const navigate = useNavigate();
-
   useEffect(() => {
     if (!isLoading && !isAuthenticated) navigate("/login");
     if (!isLoading && user && user.role !== "patient") {
@@ -71,26 +67,28 @@ export default function DashboardPage() {
     const headers = { Authorization: `Bearer ${token}` };
 
     Promise.all([
-      fetch("/api/appointments", { headers }).then((r) => r.ok ? r.json() : []),
-      fetch("/api/prescriptions", { headers }).then((r) => r.ok ? r.json() : []),
+      fetch("/api/appointments", { headers }).then((r) => r.ok ? r.json().then((j: any) => Array.isArray(j) ? j : (j.data ?? [])) : []),
+      fetch("/api/prescriptions", { headers }).then((r) => r.ok ? r.json().then((j: any) => Array.isArray(j) ? j : (j.data ?? [])) : []),
     ])
       .then(async ([appts, rxs]) => {
-        setAppointments(appts);
-        setPrescriptions(rxs);
+        const apptList: AppointmentData[] = Array.isArray(appts) ? appts : (appts?.data ?? []);
+        const rxList: PrescriptionData[] = Array.isArray(rxs) ? rxs : (rxs?.data ?? []);
+        setAppointments(apptList);
+        setPrescriptions(rxList);
         // Resolve doctor names for appointments
-        const doctorIds = [...new Set(appts.map((a: AppointmentData) => a.doctorId))] as string[];
+        const doctorIds = [...new Set(apptList.map((a: AppointmentData) => a.doctorId))] as string[];
         const names: Record<string, string> = {};
         await Promise.all(
           doctorIds.map((id) =>
             fetch(`/api/users/${id}`, { headers })
               .then((r) => r.ok ? r.json() : null)
               .then((u) => { if (u) names[id] = `${u.firstName} ${u.lastName}`; })
-              .catch(() => {})
+              .catch(() => { })
           )
         );
         setDoctorNames(names);
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setDataLoading(false));
   }, [isAuthenticated, user]);
 
@@ -310,51 +308,51 @@ export default function DashboardPage() {
                 )}
               </div>
               {upcomingAppointments.length > 0 ? (
-              <div className="p-6 space-y-5">
-                <div className="flex items-start gap-4">
-                  <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                    <Stethoscope size={24} className="text-primary" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-foreground">
-                      Dr. {upcomingAppointments[0].doctor}
-                    </p>
-                    <p className="text-sm text-primary font-medium">
-                      {upcomingAppointments[0].specialty}
-                    </p>
-                    <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
-                      <span className="flex items-center gap-1.5">
-                        <Calendar size={12} />
-                        {upcomingAppointments[0].date}
-                      </span>
-                      <span className="flex items-center gap-1.5">
-                        <Clock size={12} />
-                        {upcomingAppointments[0].time}
-                      </span>
+                <div className="p-6 space-y-5">
+                  <div className="flex items-start gap-4">
+                    <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                      <Stethoscope size={24} className="text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-foreground">
+                        Dr. {upcomingAppointments[0].doctor}
+                      </p>
+                      <p className="text-sm text-primary font-medium">
+                        {upcomingAppointments[0].specialty}
+                      </p>
+                      <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
+                        <span className="flex items-center gap-1.5">
+                          <Calendar size={12} />
+                          {upcomingAppointments[0].date}
+                        </span>
+                        <span className="flex items-center gap-1.5">
+                          <Clock size={12} />
+                          {upcomingAppointments[0].time}
+                        </span>
+                      </div>
                     </div>
                   </div>
+                  <div className="flex gap-3">
+                    <button className="flex-1 py-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition text-sm font-semibold flex items-center justify-center gap-2">
+                      <Video size={14} />
+                      Rejoindre la salle
+                    </button>
+                    <button className="flex-1 py-2.5 border border-border text-foreground rounded-lg hover:bg-secondary transition text-sm font-medium">
+                      Voir détails
+                    </button>
+                  </div>
+                  <p className="text-xs text-center text-muted-foreground flex items-center justify-center gap-1.5">
+                    <Clock size={11} />
+                    Salle active 10 min avant le rendez-vous
+                  </p>
                 </div>
-                <div className="flex gap-3">
-                  <button className="flex-1 py-2.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition text-sm font-semibold flex items-center justify-center gap-2">
-                    <Video size={14} />
-                    Rejoindre la salle
-                  </button>
-                  <button className="flex-1 py-2.5 border border-border text-foreground rounded-lg hover:bg-secondary transition text-sm font-medium">
-                    Voir détails
-                  </button>
-                </div>
-                <p className="text-xs text-center text-muted-foreground flex items-center justify-center gap-1.5">
-                  <Clock size={11} />
-                  Salle active 10 min avant le rendez-vous
-                </p>
-              </div>
               ) : (
-              <div className="p-6 text-center text-muted-foreground">
-                <p className="text-sm">Aucun rendez-vous à venir</p>
-                <Link to="/dashboard/find-doctor" className="text-primary text-sm font-medium hover:underline mt-2 inline-block">
-                  Prendre un rendez-vous
-                </Link>
-              </div>
+                <div className="p-6 text-center text-muted-foreground">
+                  <p className="text-sm">Aucun rendez-vous à venir</p>
+                  <Link to="/dashboard/find-doctor" className="text-primary text-sm font-medium hover:underline mt-2 inline-block">
+                    Prendre un rendez-vous
+                  </Link>
+                </div>
               )}
             </div>
 
@@ -457,16 +455,14 @@ export default function DashboardPage() {
                 {upcomingAppointments.length > 0 ? upcomingAppointments.map((apt, index) => (
                   <div
                     key={apt.id}
-                    className={`flex items-center gap-3 p-3.5 rounded-xl border transition ${
-                      index === 0
-                        ? "bg-primary/5 border-primary/20"
-                        : "border-border hover:bg-secondary/30"
-                    }`}
+                    className={`flex items-center gap-3 p-3.5 rounded-xl border transition ${index === 0
+                      ? "bg-primary/5 border-primary/20"
+                      : "border-border hover:bg-secondary/30"
+                      }`}
                   >
                     <div
-                      className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
-                        index === 0 ? "bg-primary/10" : "bg-secondary"
-                      }`}
+                      className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${index === 0 ? "bg-primary/10" : "bg-secondary"
+                        }`}
                     >
                       <Stethoscope
                         size={15}
@@ -485,9 +481,8 @@ export default function DashboardPage() {
                     </div>
                     <div className="text-right shrink-0">
                       <p
-                        className={`text-xs font-semibold ${
-                          index === 0 ? "text-primary" : "text-muted-foreground"
-                        }`}
+                        className={`text-xs font-semibold ${index === 0 ? "text-primary" : "text-muted-foreground"
+                          }`}
                       >
                         {apt.date}
                       </p>

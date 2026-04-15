@@ -119,10 +119,11 @@ export default function LiveConsultationPage() {
     };
     fetch(`/api/messages/thread/${patientId}`, { headers })
       .then((res) => res.json())
-      .then((data) => {
-        if (Array.isArray(data)) setChatMessages(data);
+      .then((j) => {
+        const data = Array.isArray(j) ? j : (j.data ?? []);
+        setChatMessages(data);
       })
-      .catch(() => {});
+      .catch(() => { });
   }, [patientId]);
 
   // Socket.IO — receive messages
@@ -384,21 +385,19 @@ export default function LiveConsultationPage() {
                 <div className="absolute bottom-2 left-1/2 transform -translate-x-1/2 flex items-center gap-1.5 z-20">
                   <button
                     onClick={toggleCamera}
-                    className={`p-2 rounded-full transition ${
-                      cameraOn
+                    className={`p-2 rounded-full transition ${cameraOn
                         ? "bg-gray-700 text-white hover:bg-gray-600"
                         : "bg-red-500 text-white hover:bg-red-600"
-                    }`}
+                      }`}
                   >
                     {cameraOn ? <Video size={16} /> : <VideoOff size={16} />}
                   </button>
                   <button
                     onClick={toggleMic}
-                    className={`p-2 rounded-full transition ${
-                      micOn
+                    className={`p-2 rounded-full transition ${micOn
                         ? "bg-gray-700 text-white hover:bg-gray-600"
                         : "bg-red-500 text-white hover:bg-red-600"
-                    }`}
+                      }`}
                   >
                     {micOn ? <Mic size={16} /> : <MicOff size={16} />}
                   </button>
@@ -626,11 +625,10 @@ export default function LiveConsultationPage() {
                         className={`flex ${isMine ? "justify-end" : "justify-start"}`}
                       >
                         <div
-                          className={`max-w-[80%] rounded-xl px-3 py-2 text-sm ${
-                            isMine
+                          className={`max-w-[80%] rounded-xl px-3 py-2 text-sm ${isMine
                               ? "bg-primary text-primary-foreground rounded-br-sm"
                               : "bg-muted text-foreground rounded-bl-sm"
-                          }`}
+                            }`}
                         >
                           <p>{msg.content}</p>
                           <p

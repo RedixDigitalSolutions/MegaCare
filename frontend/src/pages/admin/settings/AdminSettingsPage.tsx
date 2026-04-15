@@ -25,6 +25,7 @@ export default function AdminSettingsPage() {
   );
   const [email] = useState(user?.email || "");
   const [profileSaved, setProfileSaved] = useState(false);
+  const [profileError, setProfileError] = useState("");
 
   // Password state
   const [currentPwd, setCurrentPwd] = useState("");
@@ -50,14 +51,35 @@ export default function AdminSettingsPage() {
     return null;
   }
 
-  const handleProfileSave = (e: React.FormEvent) => {
+  const handleProfileSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    // In a real app, call PATCH /api/admin/profile
-    setProfileSaved(true);
-    setTimeout(() => setProfileSaved(false), 3000);
+    setProfileError("");
+    const parts = displayName.trim().split(" ");
+    const firstName = parts[0] || "";
+    const lastName = parts.slice(1).join(" ") || "";
+    try {
+      const token = localStorage.getItem("megacare_token");
+      const res = await fetch("/api/auth/profile", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ firstName, lastName }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        setProfileError(data.message || "Erreur serveur");
+        return;
+      }
+      setProfileSaved(true);
+      setTimeout(() => setProfileSaved(false), 3000);
+    } catch {
+      setProfileError("Erreur réseau");
+    }
   };
 
-  const handlePasswordSave = (e: React.FormEvent) => {
+  const handlePasswordSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setPwdError("");
     if (!currentPwd || !newPwd || !confirmPwd) {
@@ -74,12 +96,29 @@ export default function AdminSettingsPage() {
       setPwdError("Les mots de passe ne correspondent pas.");
       return;
     }
-    // In a real app, call PATCH /api/admin/password
-    setPwdSaved(true);
-    setCurrentPwd("");
-    setNewPwd("");
-    setConfirmPwd("");
-    setTimeout(() => setPwdSaved(false), 3000);
+    try {
+      const token = localStorage.getItem("megacare_token");
+      const res = await fetch("/api/auth/change-password", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ currentPassword: currentPwd, newPassword: newPwd }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setPwdError(data.message || "Erreur serveur");
+        return;
+      }
+      setPwdSaved(true);
+      setCurrentPwd("");
+      setNewPwd("");
+      setConfirmPwd("");
+      setTimeout(() => setPwdSaved(false), 3000);
+    } catch {
+      setPwdError("Erreur réseau");
+    }
   };
 
   const Toggle = ({
@@ -92,14 +131,12 @@ export default function AdminSettingsPage() {
     <button
       type="button"
       onClick={() => onChange(!checked)}
-      className={`relative w-11 h-6 rounded-full transition-colors ${
-        checked ? "bg-primary" : "bg-muted-foreground/30"
-      }`}
+      className={`relative w-11 h-6 rounded-full transition-colors ${checked ? "bg-primary" : "bg-muted-foreground/30"
+        }`}
     >
       <span
-        className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
-          checked ? "translate-x-5" : "translate-x-0"
-        }`}
+        className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${checked ? "translate-x-5" : "translate-x-0"
+          }`}
       />
     </button>
   );
@@ -184,6 +221,12 @@ export default function AdminSettingsPage() {
                     <span className="flex items-center gap-1.5 text-sm text-emerald-600">
                       <CheckCircle size={14} />
                       Sauvegardé
+                    </span>
+                  )}
+                  {profileError && (
+                    <span className="flex items-center gap-1.5 text-sm text-destructive">
+                      <AlertCircle size={14} />
+                      {profileError}
                     </span>
                   )}
                 </div>

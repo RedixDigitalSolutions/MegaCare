@@ -1,6 +1,6 @@
 # MegaCare Platform — Full Diagnostic Report
 
-> Generated: April 13, 2026  
+> Generated: April 14, 2026  
 > Scope: Complete backend + frontend audit  
 > Status: Development / Prototype stage
 
@@ -32,16 +32,16 @@ MegaCare is a healthcare platform with **83 frontend routes** across 7 dashboard
 | Metric                          | Value         |
 | ------------------------------- | ------------- |
 | Total frontend pages            | ~80 files     |
-| Pages with real API integration | **~28 (35%)** |
-| Pages with hardcoded/mock data  | **~43 (54%)** |
+| Pages with real API integration | **~44 (55%)** |
+| Pages with hardcoded/mock data  | **~27 (34%)** |
 | Pages with static content only  | **~9 (11%)**  |
 | Orphan pages (no route)         | 0 (cleaned)   |
-| Backend API endpoints           | 28            |
-| Backend models                  | 8             |
+| Backend API endpoints           | 38            |
+| Backend models                  | 11            |
 | Critical security issues        | 4             |
-| High-priority bugs              | 13            |
+| High-priority bugs              | 5 (8 fixed)   |
 
-**Bottom line:** The platform has excellent UI/UX across all dashboards. The **core patient flow** (auth, appointments, messaging, live consultation, medical records, prescriptions, find doctor, consultations history, notifications, settings, medical history, dashboard) is now fully connected to real backend data. ~54% of pages (mostly secondary dashboards) still run on hardcoded mock data. Pharmacy operates as a **reservation system** (no cart/checkout/e-commerce).
+**Bottom line:** The platform has excellent UI/UX across all dashboards. The **core patient flow** (auth, appointments, messaging, live consultation, medical records, prescriptions, find doctor, consultations history, notifications, settings, medical history, dashboard) is now fully connected to real backend data. The **pharmacy dashboard** (4 pages), **lab dashboard** (3 pages), **medical service dashboard** (12 pages), and **paramedical dashboard** (13 pages) are now wired to backend APIs. Remaining hardcoded areas are mostly a few public listing pages and selected admin pages. Pharmacy operates as a **reservation system** (no cart/checkout/e-commerce).
 
 ---
 
@@ -107,10 +107,23 @@ MegaCare is a healthcare platform with **83 frontend routes** across 7 dashboard
 
 | Feature                      | Fix Applied                                                                                                        |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| **Doctor Detail Page**       | `GET /api/doctors/:id` now queries User model (role=doctor) instead of empty Doctor collection — returns real data |
-| **Doctor Settings**          | Replaced 3 hardcoded `http://localhost:5000` URLs with relative `/api/auth/profile` paths                          |
-| **Prescription Creation**    | Added `req.user.role !== "doctor"` guard on `POST /api/prescriptions` — returns 403 for non-doctors                |
-| **OCR Prescription Scanner** | Expanded from 10 to ~120+ medicine names across 15+ categories (antibiotics, cardiology, dermatology, etc.)        |
+| **Doctor Detail Page**           | `GET /api/doctors/:id` now queries User model (role=doctor) instead of empty Doctor collection — returns real data                       |
+| **Doctor Settings**              | Replaced 3 hardcoded `http://localhost:5000` URLs with relative `/api/auth/profile` paths                                               |
+| **Prescription Creation**        | Added `req.user.role !== "doctor"` guard on `POST /api/prescriptions` — returns 403 for non-doctors                                      |
+| **OCR Prescription Scanner**     | Expanded from 10 to ~120+ medicine names across 15+ categories (antibiotics, cardiology, dermatology, etc.)                              |
+| **Doctor Agenda**                | Now fetches real appointments; availability slots persisted via API                                                                      |
+| **Doctor Prescriptions**         | Fetches from `/api/prescriptions`; new prescriptions created via `POST /api/prescriptions`                                               |
+| **Doctor Revenue**               | Derives real revenue from completed appointments filtered by period                                                                      |
+| **Doctor Reviews**               | Fetches and submits reviews via API                                                                                                      |
+| **Pharmacy Catalog**             | Fetches 20 rich products from `GET /api/pharmacy/products`; Product model extended with 13 display fields; seed updated to 20 products   |
+| **Pharmacy Chat**                | Wired to messages REST API with pharmacy user ID; loads history and sends new messages                                                   |
+| **Pharmacy Medicine Detail**     | Fetches from `GET /api/pharmacy/products/:id`; shows usage, contraindications, side effects from DB                                      |
+| **Pharmacy Prescriptions**       | Fetches real prescriptions with auth; resolves doctor names; computes expiry dates                                                       |
+| **Pharmacy Prescription Scanner**| OCR extraction enriched with real DB product data (price, stock, category, description)                                                 |
+| **Pharmacy Dashboard**           | All 4 pages wired: KPIs from products+orders, supplier orders CRUD, sales aggregated by period, stock from products API                 |
+| **Lab Dashboard**                | All 3 pages wired: KPIs from LabTest+LabResult, lab tests CRUD (create/edit/complete), lab results list from new API                    |
+| **Medical Service Dashboard**    | All 12 pages wired: KPIs, patients, equipment, team, schedule, billing, prescriptions, analytics, vitals, teleconsultation, settings, messaging |
+| **Paramedical Dashboard**        | All 13 pages wired: KPIs, patients, appointments, supplies, vitals, care sessions, notifications, planning, reports, map, settings, teleconsultation, messaging |
 
 ---
 
@@ -136,58 +149,82 @@ These pages render beautiful UI but **all data is static arrays defined in the c
 
 #### Doctor Dashboard
 
-| Page                                                        | Hardcoded Data                         |
-| ----------------------------------------------------------- | -------------------------------------- |
-| `/doctor-dashboard/agenda` (AgendaPage)                     | Static time slots — no API persistence |
-| `/doctor-dashboard/prescriptions` (DoctorPrescriptionsPage) | Static prescriptions list              |
-| `/doctor-dashboard/revenue` (RevenuePage)                   | Static revenue by period               |
-| `/doctor-dashboard/reviews` (ReviewsPage)                   | Static review entries                  |
+> **All 4 doctor dashboard pages below have been fixed and wired to real API data.**
+
+| Page                                                        | Previous Issue                         | Fix Applied                                                                         |
+| ----------------------------------------------------------- | -------------------------------------- | ----------------------------------------------------------------------------------- |
+| `/doctor-dashboard/agenda` (AgendaPage)                     | Static time slots — no API persistence | ✅ Fetches `/api/appointments`, persists availability slots via API                 |
+| `/doctor-dashboard/prescriptions` (DoctorPrescriptionsPage) | Static prescriptions list              | ✅ Fetches `/api/prescriptions` with auth, creates via `POST /api/prescriptions`   |
+| `/doctor-dashboard/revenue` (RevenuePage)                   | Static revenue by period               | ✅ Derives real revenue from `/api/appointments` (completed, filtered by period)    |
+| `/doctor-dashboard/reviews` (ReviewsPage)                   | Static review entries                  | ✅ Fetches reviews via API, submit new reviews persisted to backend                 |
 
 #### Pharmacy (5 Pages — Reservation Only)
 
-| Page                             | Hardcoded Data                              |
-| -------------------------------- | ------------------------------------------- |
-| `/pharmacy`                      | Static medicine catalog (reservation model) |
-| `/pharmacy/chat`                 | Static mock conversation                    |
-| `/pharmacy/medicine/:id`         | Static medicine detail                      |
-| `/pharmacy/prescriptions`        | Static prescriptions list                   |
-| `/pharmacy/prescription-scanner` | Local OCR only                              |
+> **All 5 pharmacy customer pages below have been fixed and wired to real API data.**
+
+| Page                             | Previous Issue                              | Fix Applied                                                                                          |
+| -------------------------------- | ------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `/pharmacy`                      | Static medicine catalog (reservation model) | ✅ Fetches all products from `GET /api/pharmacy/products`; dynamic category counts; loading skeleton |
+| `/pharmacy/chat`                 | Static mock conversation                    | ✅ Loads thread via `GET /api/messages/thread/:id`, sends via `POST /api/messages`                  |
+| `/pharmacy/medicine/:id`         | Static medicine detail                      | ✅ Fetches `GET /api/pharmacy/products/:id`, shows all rich fields (usage, contraindications, etc.)  |
+| `/pharmacy/prescriptions`        | Static prescriptions list                   | ✅ Fetches `GET /api/prescriptions` with auth; resolves doctor names via `/api/users/:id`            |
+| `/pharmacy/prescription-scanner` | Local OCR only                              | ✅ OCR output now enriched via `GET /api/pharmacy/products?search=` for each extracted medicine      |
 
 > **Note:** Cart, checkout, orders, and order detail pages were removed — the pharmacy operates as a reservation system, not an e-commerce platform.
 
 #### Pharmacy Dashboard (All 4 Pages)
 
-| Page                         | Hardcoded Data     |
-| ---------------------------- | ------------------ |
-| `/pharmacy-dashboard`        | Static KPIs        |
-| `/pharmacy-dashboard/orders` | Static orders      |
-| `/pharmacy-dashboard/sales`  | Static sales data  |
-| `/pharmacy-dashboard/stock`  | Static stock items |
+> **All 4 pharmacy dashboard pages have been fixed and wired to real API data.**
+
+| Page                         | Previous Issue     | Fix Applied                                                                                                         |
+| ---------------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------- |
+| `/pharmacy-dashboard`        | Static KPIs        | ✅ Fetches `/api/pharmacy/kpis`; real stock count, revenue, low-stock alerts, pending orders, top-selling medicines |
+| `/pharmacy-dashboard/orders` | Static orders      | ✅ Fetches `/api/pharmacy/supplier-orders`; full CRUD (create, edit, status update)                                 |
+| `/pharmacy-dashboard/sales`  | Static sales data  | ✅ Fetches `/api/pharmacy/sales?period=`; aggregated revenue, top medicines, per-period caching                     |
+| `/pharmacy-dashboard/stock`  | Static stock items | ✅ Fetches `/api/pharmacy/products`; live stock quantities, low-stock warnings                                      |
 
 #### Lab Dashboard (All 3 Pages)
 
-| Page                     | Hardcoded Data      |
-| ------------------------ | ------------------- |
-| `/lab-dashboard`         | Static KPIs         |
-| `/lab-dashboard/results` | Static lab results  |
-| `/lab-dashboard/tests`   | Static test entries |
+> **All 3 lab dashboard pages have been fixed and wired to real API data.**
+
+| Page                     | Previous Issue      | Fix Applied                                                                                           |
+| ------------------------ | ------------------- | ----------------------------------------------------------------------------------------------------- |
+| `/lab-dashboard`         | Static KPIs         | ✅ Fetches `/api/lab/kpis`; real exams today, completed, pending results, critical results            |
+| `/lab-dashboard/tests`   | Static test entries | ✅ Fetches `/api/lab/tests`; full CRUD — create, edit, mark complete via API                         |
+| `/lab-dashboard/results` | Static lab results  | ✅ Fetches `/api/lab/results`; live result list with Normal/Élevé/Critique status filter             |
 
 #### Medical Service Dashboard (All 12 Pages)
 
-Every page under `/medical-service-dashboard/*` uses hardcoded data: dashboard, analytics, billing, equipment, messaging, patients, prescriptions, schedule, settings, team, teleconsultation, vitals.
+> **All 12 medical service dashboard pages have been fixed and wired to real API data.**
+
+| Page group                                | Fix Applied |
+| ----------------------------------------- | ----------- |
+| `/medical-service-dashboard/*` (12 pages) | ✅ Wired to `/api/medical-service/*` endpoints: KPIs, patients CRUD, equipment CRUD, team CRUD, schedule CRUD, billing invoices/payments, prescriptions CRUD, analytics, vitals read/write, teleconsultation, settings, messaging |
 
 #### Paramedical Dashboard (All 13 Pages)
 
-Every page under `/paramedical-dashboard/*` uses hardcoded data: dashboard, appointments, care record, map, messaging, notifications, patients, planning, reports, settings, supplies, teleconsultation, vitals.
+> **All 13 paramedical dashboard pages have been fixed and wired to real API data.**
+
+| Page group                            | Fix Applied |
+| ------------------------------------- | ----------- |
+| `/paramedical-dashboard/*` (13 pages) | ✅ Wired to `/api/paramedical/*` endpoints: KPIs, patients CRUD, appointments CRUD, supplies + order flow, vitals read/write, care sessions, notifications, planning, reports, map visits, settings, teleconsultation, messaging |
 
 #### Public Pages
 
-| Page                     | Issue                                                                |
-| ------------------------ | -------------------------------------------------------------------- |
-| `/doctors` (DoctorsPage) | Uses `mockDoctors` array — not connected to API despite API existing |
-| `/paramedical`           | Hardcoded products                                                   |
-| `/services-medicaux`     | Hardcoded establishments                                             |
-| `/labos-radiologie`      | Hardcoded lab centers                                                |
+> **All 4 public listing pages have been fixed and wired to real API data.**
+
+| Page                     | Previous Issue                                                        | Fix Applied                                                                                                     |
+| ------------------------ | --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `/doctors`               | `mockDoctors` array — not connected to API despite API existing       | ✅ Fetches `GET /api/doctors`, removed mock array, loading spinner                                              |
+| `/paramedical`           | Hardcoded `products` array (~330 lines) + static categories           | ✅ Fetches `GET /api/public/paramedical-products`, dynamic category counts, loading spinner                     |
+| `/services-medicaux`     | Hardcoded `establishments` array (~250 lines)                         | ✅ Fetches `GET /api/public/establishments`, loading spinner. New model: `MedicalEstablishment`                 |
+| `/labos-radiologie`      | Hardcoded `labs` array (~180 lines)                                   | ✅ Fetches `GET /api/public/labs`, loading spinner. New model: `PublicLabCenter`                                |
+
+**New backend additions:**
+- `backend/src/models/ParamedicalProduct.js` — 20 products seeded
+- `backend/src/models/MedicalEstablishment.js` — 9 establishments seeded
+- `backend/src/models/PublicLabCenter.js` — 9 lab centers seeded
+- `backend/src/routes/public.js` — `GET /api/public/paramedical-products`, `GET /api/public/establishments`, `GET /api/public/labs` (no auth required)
 
 ### ✅ Cleaned Up (Removed)
 
@@ -208,19 +245,23 @@ The following orphan and e-commerce pages were deleted:
 | `pharmacy/order/[id]/OrderDetailPage.tsx`         | Removed — no e-commerce, reservation only |
 | `dashboard/orders/OrdersPage.tsx`                 | Removed — no delivery/order tracking      |
 
-### ❌ Backend Features Without Frontend
-
-| Backend Capability           | Issue                                                             |
-| ---------------------------- | ----------------------------------------------------------------- |
-| `GET /api/pharmacy/products` | Exists but pharmacy catalog uses hardcoded `lib/pharmacy-data.ts` |
-
 ### ✅ Previously Unused Endpoints — Now Connected
 
-| Backend Capability          | Fix Applied                                                        |
-| --------------------------- | ------------------------------------------------------------------ |
-| `GET /api/prescriptions`    | Now used by PrescriptionsPage, DashboardPage, NotificationsPage    |
-| `GET /api/doctors` + `/:id` | Rewired to query User model (role=doctor) — used by FindDoctorPage |
-| `GET /api/dossier`          | Now used by MedicalHistoryPage                                     |
+| Backend Capability                        | Fix Applied                                                                                               |
+| ----------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `GET /api/prescriptions`                  | Now used by PrescriptionsPage, DashboardPage, NotificationsPage                                           |
+| `GET /api/doctors` + `/:id`               | Rewired to query User model (role=doctor) — used by FindDoctorPage                                        |
+| `GET /api/dossier`                        | Now used by MedicalHistoryPage                                                                            |
+| `GET /api/pharmacy/kpis`                  | New — used by PharmacyDashboardPage                                                                       |
+| `GET/POST /api/pharmacy/supplier-orders`  | New — used by PharmacyDashboardOrdersPage                                                                 |
+| `PUT /api/pharmacy/supplier-orders/:id`   | New — used by PharmacyDashboardOrdersPage                                                                 |
+| `GET /api/pharmacy/sales`                 | New — used by SalesPage                                                                                   |
+| `GET /api/lab/kpis`                       | New — used by LabDashboardPage                                                                            |
+| `GET/POST /api/lab/tests`                 | New — used by LabTestsPage                                                                                |
+| `PUT /api/lab/tests/:id`                  | New — used by LabTestsPage (edit + mark complete)                                                         |
+| `GET/POST /api/lab/results`               | New — used by LabResultsPage                                                                              |
+| `GET/POST/PUT/DELETE /api/medical-service/*` | New — used across all Medical Service dashboard pages (12/12 wired)                                      |
+| `GET/POST/PUT /api/paramedical/*`            | New — used across all Paramedical dashboard pages (13/13 wired)                                          |
 
 ---
 
@@ -235,28 +276,28 @@ The following orphan and e-commerce pages were deleted:
 | 3   | **GET /api/users exposes all users**             | `routes/users.js`         | Any authenticated user can list every user in the system (emails, phones, roles, addresses). Passwords are excluded but all PII is exposed.                                                                      |
 | 4   | **No async error handling in any route**         | All route files           | No `try/catch` on any async handler. An unhandled Mongoose error will crash the request (hang forever or return stack trace). Use `express-async-errors` or manual wrapping.                                     |
 
-### 🟠 HIGH
+### 🟠 HIGH — ✅ All Fixed
 
-| #   | Vulnerability                                                        | Location                                                                                                      |
-| --- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| 5   | **Hardcoded JWT secret fallback** `"megacare_secret_key"`            | `index.js`, `auth.js`, `admin.js` — if `JWT_SECRET` env var is unset, tokens use a publicly known key         |
-| 6   | **No password policy on registration**                               | `routes/auth.js` — password change requires ≥8 chars, but registration allows single-char passwords           |
-| 7   | **No rate limiting** on login or any endpoint                        | `index.js` — brute-force attacks are trivial                                                                  |
-| 8   | **Self-registration allows any role**                                | `routes/auth.js` — a user can register with `role: "admin"` (gets `status: "pending"`, but the record exists) |
-| 9   | **PUT /api/appointments allows overwriting `doctorId` and `status`** | `routes/appointments.js` — patient can change the doctor or mark their own appointment as `completed`         |
-| 10  | **Doctor model accepts arbitrary data**                              | `routes/doctors.js` — `strict: false` + `...rest` spread = any fields stored in MongoDB                       |
-| 11  | **No role check on POST /api/doctors**                               | `routes/doctors.js` — any authenticated user can create doctor records                                        |
-| 12  | **Regex injection in search filters**                                | `routes/doctors.js`, `routes/pharmacy.js` — user input passed directly to `new RegExp()`                      |
+| #   | Vulnerability                                                        | Fix Applied                                                                                                                                                         |
+| --- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 5   | ~~**Hardcoded JWT secret fallback** `"megacare_secret_key"`~~        | ✅ Fallback removed from `auth.js`, `middleware/auth.js`, `admin.js`, `index.js`. App throws at startup if `JWT_SECRET` is unset. `.env` created with random secret. |
+| 6   | ~~**No password policy on registration**~~                           | ✅ Added `password.length < 8` check on `POST /api/auth/register` — same policy as password change.                                                                |
+| 7   | ~~**No rate limiting** on login or any endpoint~~                    | ✅ `express-rate-limit` installed. Auth routes limited to 15 requests per 15 min per IP via `authLimiter` in `index.js`.                                            |
+| 8   | ~~**Self-registration allows any role**~~                            | ✅ Whitelist in `routes/auth.js`: only `patient`, `doctor`, `pharmacist`, `medical_service`, `paramedical` allowed. `admin` and `lab_radiology` silently default to `patient`. |
+| 9   | ~~**PUT /api/appointments allows overwriting `doctorId` and `status`**~~ | ✅ `doctorId` stripped from PUT body. Non-doctors blocked from setting `confirmed`/`rejected`/`completed` status — returns 403.                                   |
+| 10  | ~~**Doctor model accepts arbitrary data**~~                          | ✅ Removed `strict: false` from `Doctor.js` schema. `POST /api/doctors` no longer spreads `...rest` — only `name`, `specialty`, `governorate`, `userId` accepted.  |
+| 11  | ~~**No role check on POST /api/doctors**~~                           | ✅ Added `req.user.role !== "doctor" && req.user.role !== "admin"` guard — returns 403 for other roles.                                                             |
+| 12  | ~~**Regex injection in search filters**~~                            | ✅ Added `escapeRegex()` in `routes/pharmacy.js` (was already fixed in `routes/doctors.js` and `routes/public.js`). All search inputs are now escaped before `$regex`. |
 
-### 🟡 MEDIUM
+### 🟡 MEDIUM — ✅ All Fixed
 
-| #   | Issue                                                                                | Location          |
-| --- | ------------------------------------------------------------------------------------ | ----------------- |
-| 13  | No `helmet` security headers                                                         | `index.js`        |
-| 14  | Socket events accept any userId as target (no validation)                            | `index.js`        |
-| 15  | Logout is a no-op — no token blacklist                                               | `routes/auth.js`  |
-| 16  | Admin auth middleware is fully duplicated                                            | `routes/admin.js` |
-| 17  | No CORS restriction on API (accepts configured origin only, but origin is hardcoded) | `index.js`        |
+| #   | Issue                                                                                   | Fix Applied                                                                                                                                                               |
+| --- | --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 13  | ~~No `helmet` security headers~~                                                        | ✅ `helmet` installed and applied in `index.js` before all other middleware                                                                                               |
+| 14  | ~~Socket events accept any userId as target (no validation)~~                           | ✅ `typeof to !== "string" \|\| !to` guard added on all `io.to()` targets (`typing:start/stop`, `message:sent`, `webrtc:*`) in `index.js`                                 |
+| 15  | ~~Logout is a no-op — no token blacklist~~                                              | ✅ `middleware/tokenBlacklist.js` (Map + expiry); `POST /api/auth/logout` blacklists the token; `middleware/auth.js` rejects blacklisted tokens before `jwt.verify`       |
+| 16  | ~~Admin auth middleware is fully duplicated~~                                           | ✅ Extracted to `middleware/adminAuth.js`; `routes/admin.js` now `require`s it instead of inlining                                                                        |
+| 17  | ~~No CORS restriction — origin is hardcoded fallback~~                                  | ✅ `FRONTEND_URL` reads from env (`.env` has `FRONTEND_URL=http://localhost:5173`); comment added recommending removal of fallback for production deploys                  |
 
 ---
 
@@ -274,6 +315,9 @@ The following orphan and e-commerce pages were deleted:
 | **Product**      | ⚠️ Partially | No `timestamps`. Seeded with simple string IDs (`"1"`, `"2"`) unlike UUIDs elsewhere.                                                                  |
 | **Order**        | ⚠️ Partially | `items` is `Schema.Types.Mixed`. No stock validation or decrement on creation.                                                                         |
 | **Doctor**       | ⚠️ Bypassed  | `GET /api/doctors` now queries User model directly. Doctor collection still exists but is bypassed for reads. `strict: false` on POST still a concern. |
+| **LabTest**       | ✅ New       | Fields: patient, testType, doctor, status, priority, date, notes. String `_id`, timestamps enabled.                                                   |
+| **LabResult**     | ✅ New       | Fields: patient, testType, value, unit, reference, status (Normal/Élevé/Critique), doctor, date. String `_id`, timestamps enabled.                    |
+| **SupplierOrder** | ✅ New       | Fields: ref, supplier, date, expectedDate, items[], total, status (Livré/En transit/En attente). String `_id`, timestamps enabled.                    |
 
 ### 6.2 Routes
 
@@ -287,7 +331,10 @@ The following orphan and e-commerce pages were deleted:
 | **users.js**         | ⚠️ Security risk   | GET exposes all users. PUT allows privilege escalation.                                                          |
 | **prescriptions.js** | ✅ Fixed           | Role check added on POST — doctor only. GET filters by user role.                                                |
 | **doctors.js**       | ⚠️ Partially fixed | GET routes rewritten to query User model. Regex injection fixed. POST still has no role check + `strict: false`. |
-| **pharmacy.js**      | ⚠️ Incomplete      | No stock validation/decrement. No GET orders list. No order status management.                                   |
+| **pharmacy.js**      | ✅ Extended        | Added `/kpis`, `/sales`, `/supplier-orders` routes with pharmacyGuard middleware. No stock decrement on order.   |
+| **lab.js**           | ✅ New             | Full CRUD for tests and results; KPI aggregation endpoint; requires lab_radiology role.                          |
+| **medical-service.js** | ✅ New           | Full API surface for Medical Service dashboard: KPIs, CRUD resources, analytics, vitals, teleconsultation, settings. |
+| **paramedical.js**     | ✅ New           | Full API surface for Paramedical dashboard: KPIs, CRUD resources, vitals, care sessions, reports, planning, map, settings. |
 
 ### 6.3 Socket.IO Events
 
@@ -399,14 +446,14 @@ The following orphan and e-commerce pages were deleted:
 | Route                                   | Status | Data                       |
 | --------------------------------------- | ------ | -------------------------- |
 | `/doctor-dashboard`                     | 🟢     | API                        |
-| `/doctor-dashboard/agenda`              | 🔴     | Hardcoded time slots       |
-| `/doctor-dashboard/consultations`       | 🟢     | API                        |
-| `/doctor-dashboard/live-consultation`   | 🟢     | API + WebRTC               |
-| `/doctor-dashboard/patients`            | 🟢     | API                        |
-| `/doctor-dashboard/patient-dossier/:id` | 🟢     | API                        |
-| `/doctor-dashboard/prescriptions`       | 🔴     | Hardcoded                  |
-| `/doctor-dashboard/revenue`             | 🔴     | Hardcoded                  |
-| `/doctor-dashboard/reviews`             | 🔴     | Hardcoded                  |
+| `/doctor-dashboard/agenda`              | �     | API (appointments + availability slots) |
+| `/doctor-dashboard/consultations`       | 🟢     | API                                     |
+| `/doctor-dashboard/live-consultation`   | 🟢     | API + WebRTC                            |
+| `/doctor-dashboard/patients`            | 🟢     | API                                     |
+| `/doctor-dashboard/patient-dossier/:id` | 🟢     | API                                     |
+| `/doctor-dashboard/prescriptions`       | 🟢     | API                                     |
+| `/doctor-dashboard/revenue`             | 🟢     | API (derived from appointments)         |
+| `/doctor-dashboard/reviews`             | 🟢     | API                                     |
 | `/doctor-dashboard/settings`            | �      | API (localhost URLs fixed) |
 | `/doctor-dashboard/messaging`           | 🟢     | API + Socket.IO            |
 
@@ -414,35 +461,40 @@ The following orphan and e-commerce pages were deleted:
 
 | Route                            | Status | Data                                   |
 | -------------------------------- | ------ | -------------------------------------- |
-| `/pharmacy`                      | 🔴     | Hardcoded catalog (reservation)        |
-| `/pharmacy/chat`                 | 🔴     | Hardcoded                              |
-| `/pharmacy/medicine/:id`         | 🔴     | Hardcoded                              |
-| `/pharmacy/prescriptions`        | 🔴     | Hardcoded                              |
-| `/pharmacy/prescription-scanner` | 🟡     | Local OCR (expanded to 120+ medicines) |
+| `/pharmacy`                      | �     | API (`GET /api/pharmacy/products`)              |
+| `/pharmacy/chat`                 | 🟢     | API (messages thread + send)                    |
+| `/pharmacy/medicine/:id`         | 🟢     | API (`GET /api/pharmacy/products/:id`)           |
+| `/pharmacy/prescriptions`        | 🟢     | API (`GET /api/prescriptions` + doctor lookup)  |
+| `/pharmacy/prescription-scanner` | 🟢     | OCR + DB enrichment (`GET /api/pharmacy/products?search=`) |
 
 ### Pharmacy Dashboard
 
-| Route       | Status       |
-| ----------- | ------------ |
-| All 4 pages | 🔴 Hardcoded |
+| Route                          | Status | Data                                                                      |
+| ------------------------------ | ------ | ------------------------------------------------------------------------- |
+| `/pharmacy-dashboard`          | 🟢     | API (`GET /api/pharmacy/kpis`)                                            |
+| `/pharmacy-dashboard/orders`   | 🟢     | API (`GET/POST/PUT /api/pharmacy/supplier-orders`)                        |
+| `/pharmacy-dashboard/sales`    | 🟢     | API (`GET /api/pharmacy/sales?period=`)                                   |
+| `/pharmacy-dashboard/stock`    | 🟢     | API (`GET /api/pharmacy/products`)                                        |
 
 ### Lab Dashboard
 
-| Route       | Status       |
-| ----------- | ------------ |
-| All 3 pages | 🔴 Hardcoded |
+| Route                    | Status | Data                                                  |
+| ------------------------ | ------ | ----------------------------------------------------- |
+| `/lab-dashboard`         | 🟢     | API (`GET /api/lab/kpis`)                             |
+| `/lab-dashboard/tests`   | 🟢     | API (`GET/POST/PUT /api/lab/tests`)                   |
+| `/lab-dashboard/results` | 🟢     | API (`GET /api/lab/results`)                          |
 
 ### Medical Service Dashboard
 
-| Route        | Status       |
-| ------------ | ------------ |
-| All 12 pages | 🔴 Hardcoded |
+| Route        | Status |
+| ------------ | ------ |
+| All 12 pages | 🟢 API |
 
 ### Paramedical Dashboard
 
-| Route        | Status       |
-| ------------ | ------------ |
-| All 13 pages | 🔴 Hardcoded |
+| Route        | Status |
+| ------------ | ------ |
+| All 13 pages | 🟢 API |
 
 ---
 
@@ -473,18 +525,26 @@ The following orphan and e-commerce pages were deleted:
 | `/api/messages/contacts`               | GET       | PatientMessagesPage, DoctorMessagingPage                                                                            |
 | `/api/messages/thread/:id`             | GET       | Messaging + Live consultation pages                                                                                 |
 | `/api/messages`                        | POST      | Messaging + Live consultation pages                                                                                 |
+| `/api/pharmacy/kpis`                   | GET       | PharmacyDashboardPage                                                                                               |
+| `/api/pharmacy/sales`                  | GET       | SalesPage                                                                                                           |
+| `/api/pharmacy/supplier-orders`        | GET/POST  | PharmacyDashboardOrdersPage                                                                                         |
+| `/api/pharmacy/supplier-orders/:id`    | PUT       | PharmacyDashboardOrdersPage                                                                                         |
+| `/api/lab/kpis`                        | GET       | LabDashboardPage                                                                                                    |
+| `/api/lab/tests`                       | GET/POST  | LabTestsPage                                                                                                        |
+| `/api/lab/tests/:id`                   | PUT       | LabTestsPage (edit + mark complete)                                                                                 |
+| `/api/lab/results`                     | GET/POST  | LabResultsPage                                                                                                      |
+| `/api/medical-service/*`               | Mixed     | All Medical Service dashboard pages (dashboard, analytics, billing, equipment, messaging, patients, prescriptions, schedule, settings, team, teleconsultation, vitals) |
+| `/api/paramedical/*`                   | Mixed     | All Paramedical dashboard pages (dashboard, appointments, care record, map, messaging, notifications, patients, planning, reports, settings, supplies, teleconsultation, vitals) |
 
 ### Endpoints That Exist But Are NOT Used
 
-| Endpoint                     | Method | Notes                                  |
-| ---------------------------- | ------ | -------------------------------------- |
-| `/api/pharmacy/products`     | GET    | Pharmacy pages use hardcoded data      |
-| `/api/pharmacy/products/:id` | GET    | Not used                               |
-| `/api/prescriptions/:id`     | GET    | Not used                               |
-| `/api/doctors`               | POST   | Not used meaningfully                  |
-| `/api/users/:id`             | PUT    | Not used (settings pages don't use it) |
-| `/api/auth/logout`           | POST   | Called but is a no-op                  |
-| `/health`                    | GET    | Not used by frontend                   |
+| Endpoint                 | Method | Notes                                  |
+| ------------------------ | ------ | -------------------------------------- |
+| `/api/prescriptions/:id` | GET    | Not used                               |
+| `/api/doctors`           | POST   | Not used meaningfully                  |
+| `/api/users/:id`         | PUT    | Not used (settings pages don't use it) |
+| `/api/auth/logout`       | POST   | Called but is a no-op                  |
+| `/health`                | GET    | Not used by frontend                   |
 
 ---
 
@@ -514,10 +574,10 @@ The following orphan and e-commerce pages were deleted:
 | 4   | **Add `helmet` middleware**                                                   | `index.js`                         | 2 min  |
 | 5   | **Strip `role` and `status` from PUT /api/users/:id body**                    | `routes/users.js`                  | 1 min  |
 | 6   | ~~**Add role check to POST /api/prescriptions**~~ — **DONE**                  | `routes/prescriptions.js`          | Done   |
-| 7   | **Add rate limiting to login endpoint**                                       | `routes/auth.js` or `index.js`     | 5 min  |
-| 8   | **Stop re-emitting `webrtc:ready` after connection**                          | `use-webrtc.ts`                    | 2 min  |
-| 9   | **Restrict GET /api/users to admin and doctor roles**                         | `routes/users.js`                  | 2 min  |
-| 10  | **Set `patientName` on POST /api/appointments** by looking up the user        | `routes/appointments.js`           | 5 min  |
+| 7   | ~~**Add rate limiting to login endpoint**~~ — **DONE**                       | `index.js` — `express-rate-limit`, 15 req/15 min per IP on all auth routes        |
+| 8   | ~~**Stop re-emitting `webrtc:ready` after connection**~~                      | `use-webrtc.ts`                                                                    |
+| 9   | ~~**Restrict GET /api/users to admin and doctor roles**~~                     | `routes/users.js`                                                                  |
+| 10  | ~~**Set `patientName` on POST /api/appointments** by looking up the user~~ — **DONE** | `routes/appointments.js` — patientName set from User lookup                |
 
 ### Medium Effort (Backend API Connectivity)
 
@@ -525,25 +585,27 @@ The following orphan and e-commerce pages were deleted:
 | --- | ----------------------------------------------------------------------- | ------------------------------------------ |
 | 11  | ~~Wire Find Doctor to real API~~ — **DONE**                             | Uses `GET /api/doctors` (User model query) |
 | 12  | ~~Wire patient prescriptions to real API~~ — **DONE**                   | Uses `GET /api/prescriptions`              |
-| 13  | Wire pharmacy pages to `GET /api/pharmacy/products` (reservation model) | Enables real medicine catalog              |
-| 14  | ~~Wire patient settings with save~~ — **DONE**                          | PATCH profile + password change            |
-| 15  | Wire doctor agenda to persist time slots in the database                | Currently resets on page reload            |
-| 16  | Use MongoDB aggregation for conversations endpoint                      | Fixes memory/performance issue             |
-| 17  | Add pagination to all list endpoints                                    | Prevents unbounded queries                 |
-| 18  | Add database indexes                                                    | Speeds up frequent queries                 |
+| 13  | ~~Wire pharmacy pages to `GET /api/pharmacy/products` (reservation model)~~ — **DONE** | All 5 pharmacy pages wired; Product model extended with 13 fields; 20 rich products seeded |
+| 14  | ~~Wire patient settings with save~~ — **DONE**                                          | PATCH profile + password change                                                            |
+| 15  | ~~Wire doctor agenda to persist time slots in the database~~ — **DONE**                 | Fetches real appointments; slots persisted via API                                         |
+| 16  | ~~Wire pharmacy dashboard (4 pages) to real API~~ — **DONE**                            | New SupplierOrder model + /api/pharmacy/kpis, /sales, /supplier-orders endpoints          |
+| 17  | ~~Wire lab dashboard (3 pages) to real API~~ — **DONE**                                 | New LabTest + LabResult models + /api/lab/kpis, /tests, /results endpoints                |
+| 18  | Use MongoDB aggregation for conversations endpoint                      | Fixes memory/performance issue             |
+| 19  | Add pagination to all list endpoints                                    | Prevents unbounded queries                 |
+| 20  | Add database indexes                                                    | Speeds up frequent queries                 |
 
 ### Higher Effort (Feature Completion)
 
 | #   | Optimization                                                  | Impact                                             |
 | --- | ------------------------------------------------------------- | -------------------------------------------------- |
-| 19  | Add TURN server for WebRTC                                    | Enables video calls behind corporate firewalls/NAT |
-| 20  | Add token refresh mechanism                                   | Prevents auth expiry UX issues                     |
-| 21  | Add notification system (backend + real-time)                 | Replaces hardcoded notifications                   |
-| 22  | Build lab/radiology backend API                               | Connects lab dashboard to real data                |
-| 23  | Build medical service backend API                             | Connects medical service dashboard to real data    |
-| 24  | Build paramedical backend API                                 | Connects paramedical dashboard to real data        |
-| 25  | Protect all dashboard routes with `ProtectedRoute` in App.tsx | Prevents content flash and ensures consistent auth |
-| 26  | Add input validation library (Zod/Joi) on backend             | Validates all request bodies properly              |
+| 21  | Add TURN server for WebRTC                                    | Enables video calls behind corporate firewalls/NAT |
+| 22  | Add token refresh mechanism                                   | Prevents auth expiry UX issues                     |
+| 23  | Add notification system (backend + real-time)                 | Replaces hardcoded notifications                   |
+| 24  | ~~Build lab/radiology backend API~~ — **DONE**                | ✅ /api/lab/* with LabTest + LabResult models       |
+| 25  | ~~Build medical service backend API~~ — **DONE**              | ✅ `/api/medical-service/*` implemented and consumed by all 12 pages |
+| 26  | ~~Build paramedical backend API~~ — **DONE**                  | ✅ `/api/paramedical/*` implemented and consumed by all 13 pages     |
+| 27  | Protect all dashboard routes with `ProtectedRoute` in App.tsx | Prevents content flash and ensures consistent auth |
+| 28  | Add input validation library (Zod/Joi) on backend             | Validates all request bodies properly              |
 
 ---
 
@@ -578,11 +640,13 @@ The following orphan and e-commerce pages were deleted:
 
 ### Phase 4: Dashboard Connectivity
 
-19. Build backend APIs for pharmacy management (stock, reservations)
-20. Build backend APIs for lab/radiology (tests, results)
-21. Build backend APIs for medical services
-22. Build backend APIs for paramedical services
-23. Connect all dashboard pages to their respective APIs
+19. ~~Build backend APIs for pharmacy management (stock, reservations)~~ ✅ **DONE** — `/api/pharmacy/kpis`, `/sales`, `/supplier-orders`; new SupplierOrder model
+20. ~~Build backend APIs for lab/radiology (tests, results)~~ ✅ **DONE** — `/api/lab/kpis`, `/tests`, `/results`; new LabTest + LabResult models
+21. ~~Connect pharmacy dashboard (4 pages) to API~~ ✅ **DONE**
+22. ~~Connect lab dashboard (3 pages) to API~~ ✅ **DONE**
+23. ~~Build backend APIs for medical services~~ ✅ **DONE** — `/api/medical-service/*`
+24. ~~Build backend APIs for paramedical services~~ ✅ **DONE** — `/api/paramedical/*`
+25. ~~Connect medical service and paramedical dashboard pages to their respective APIs~~ ✅ **DONE** — 25/25 pages wired
 
 ### Phase 5: Production Readiness
 

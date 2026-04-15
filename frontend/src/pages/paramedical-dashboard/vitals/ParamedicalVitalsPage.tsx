@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ParamedicalDashboardSidebar } from "@/components/ParamedicalDashboardSidebar";
 import {
   Activity,
@@ -24,12 +24,12 @@ interface ThresholdRule {
 }
 
 const THRESHOLDS: Record<VitalKey, ThresholdRule> = {
-  sbp:     { low: 90,   high: 140,  critHigh: 180, critLow: 80 },
-  dbp:     { low: 60,   high: 90,   critHigh: 110, critLow: 50 },
-  hr:      { low: 50,   high: 100,  critHigh: 130, critLow: 40 },
-  temp:    { low: 36.0, high: 37.5, critHigh: 39.5, critLow: 35.0 },
-  spo2:    { low: 95,   critLow: 90 },
-  glucose: { low: 70,   high: 140,  critHigh: 250, critLow: 55 },
+  sbp: { low: 90, high: 140, critHigh: 180, critLow: 80 },
+  dbp: { low: 60, high: 90, critHigh: 110, critLow: 50 },
+  hr: { low: 50, high: 100, critHigh: 130, critLow: 40 },
+  temp: { low: 36.0, high: 37.5, critHigh: 39.5, critLow: 35.0 },
+  spo2: { low: 95, critLow: 90 },
+  glucose: { low: 70, high: 140, critHigh: 250, critLow: 55 },
 };
 
 const getStatus = (key: VitalKey, val: number): "normal" | "warning" | "critical" => {
@@ -40,47 +40,93 @@ const getStatus = (key: VitalKey, val: number): "normal" | "warning" | "critical
 };
 
 const statusStyle = {
-  normal:   { text: "text-green-600",  bg: "bg-green-50",  border: "border-green-200",  label: "Normal" },
-  warning:  { text: "text-amber-600",  bg: "bg-amber-50",  border: "border-amber-200",  label: "Anormal" },
-  critical: { text: "text-red-600",    bg: "bg-red-50",    border: "border-red-200",    label: "Critique" },
+  normal: { text: "text-green-600", bg: "bg-green-50", border: "border-green-200", label: "Normal" },
+  warning: { text: "text-amber-600", bg: "bg-amber-50", border: "border-amber-200", label: "Anormal" },
+  critical: { text: "text-red-600", bg: "bg-red-50", border: "border-red-200", label: "Critique" },
 };
 
 /* ── Patients ── */
 interface PatientVitals {
-  id: number;
+  id: string;
   name: string;
   age: number;
   condition: string;
   lastEntry: string;
 }
 
-const PATIENTS: PatientVitals[] = [
-  { id: 1, name: "Fatima Ben Ali",   age: 65, condition: "Suivi post-op",        lastEntry: "Aujourd'hui 09:00" },
-  { id: 2, name: "Mohammed Gharbi",  age: 72, condition: "Rééducation",           lastEntry: "Hier 14:30" },
-  { id: 3, name: "Leila Mansouri",   age: 58, condition: "Plaies chroniques",     lastEntry: "Aujourd'hui 11:00" },
-  { id: 4, name: "Ahmed Nasser",     age: 80, condition: "Douleurs articulaires", lastEntry: "Il y a 2 jours" },
-  { id: 5, name: "Sara Meddeb",      age: 52, condition: "Post-fracture",         lastEntry: "Il y a 3 jours" },
-];
+const tok = () => localStorage.getItem("megacare_token") ?? "";
+
+const PATIENTS: PatientVitals[] = [];
 
 const EMPTY_FORM = { sbp: "", dbp: "", hr: "", temp: "", spo2: "", glucose: "" };
 type FormValues = typeof EMPTY_FORM;
 
 /* ── Field definitions ── */
 const FIELDS: { key: VitalKey; label: string; unit: string; icon: typeof Heart; placeholder: string; step: string }[] = [
-  { key: "sbp",     label: "Pression systolique",  unit: "mmHg",  icon: Activity,    placeholder: "ex: 120",  step: "1"   },
-  { key: "dbp",     label: "Pression diastolique", unit: "mmHg",  icon: Activity,    placeholder: "ex: 80",   step: "1"   },
-  { key: "hr",      label: "Fréquence cardiaque",  unit: "bpm",   icon: Heart,       placeholder: "ex: 72",   step: "1"   },
-  { key: "temp",    label: "Température",          unit: "°C",    icon: Thermometer, placeholder: "ex: 36.8", step: "0.1" },
-  { key: "spo2",    label: "SpO₂",                 unit: "%",     icon: Wind,        placeholder: "ex: 98",   step: "1"   },
-  { key: "glucose", label: "Glycémie",             unit: "mg/dL", icon: Droplets,    placeholder: "ex: 95",   step: "1"   },
+  { key: "sbp", label: "Pression systolique", unit: "mmHg", icon: Activity, placeholder: "ex: 120", step: "1" },
+  { key: "dbp", label: "Pression diastolique", unit: "mmHg", icon: Activity, placeholder: "ex: 80", step: "1" },
+  { key: "hr", label: "Fréquence cardiaque", unit: "bpm", icon: Heart, placeholder: "ex: 72", step: "1" },
+  { key: "temp", label: "Température", unit: "°C", icon: Thermometer, placeholder: "ex: 36.8", step: "0.1" },
+  { key: "spo2", label: "SpO₂", unit: "%", icon: Wind, placeholder: "ex: 98", step: "1" },
+  { key: "glucose", label: "Glycémie", unit: "mg/dL", icon: Droplets, placeholder: "ex: 95", step: "1" },
 ];
 
 export default function ParamedicalVitalsPage() {
-  const [selectedId, setSelectedId] = useState(1);
+  const [patients, setPatients] = useState<PatientVitals[]>(PATIENTS);
+  const [selectedId, setSelectedId] = useState("");
   const [form, setForm] = useState<FormValues>(EMPTY_FORM);
   const [saved, setSaved] = useState(false);
 
-  const patient = PATIENTS.find((p) => p.id === selectedId)!;
+  useEffect(() => {
+    fetch("/api/paramedical/patients", { headers: { Authorization: `Bearer ${tok()}` } })
+      .then((r) => r.json())
+      .then((d) => {
+        const list = Array.isArray(d)
+          ? d.map((p) => ({
+            id: p.id,
+            name: p.name,
+            age: p.age,
+            condition: p.condition,
+            lastEntry: p.nextAppointment || "",
+          }))
+          : [];
+        setPatients(list);
+        if (list.length) setSelectedId(list[0].id);
+      })
+      .catch(() => { });
+  }, []);
+
+  useEffect(() => {
+    if (!selectedId) return;
+    fetch(`/api/paramedical/vitals/${selectedId}`, { headers: { Authorization: `Bearer ${tok()}` } })
+      .then((r) => r.json())
+      .then((d) => {
+        const latest = Array.isArray(d) && d.length ? d[0] : null;
+        if (!latest) {
+          setForm(EMPTY_FORM);
+          return;
+        }
+        setForm({
+          sbp: latest.sbp != null ? String(latest.sbp) : "",
+          dbp: latest.dbp != null ? String(latest.dbp) : "",
+          hr: latest.hr != null ? String(latest.hr) : "",
+          temp: latest.temp != null ? String(latest.temp) : "",
+          spo2: latest.spo2 != null ? String(latest.spo2) : "",
+          glucose: latest.glucose != null ? String(latest.glucose) : "",
+        });
+      })
+      .catch(() => { });
+  }, [selectedId]);
+
+  const patient = patients.find((p) => p.id === selectedId) || null;
+  if (!patient) {
+    return (
+      <div className="flex min-h-screen bg-background">
+        <ParamedicalDashboardSidebar />
+        <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">Chargement...</div>
+      </div>
+    );
+  }
 
   const getVal = (key: VitalKey) => {
     const val = parseFloat(form[key]);
@@ -97,7 +143,21 @@ export default function ParamedicalVitalsPage() {
     return v !== null && getStatus(f.key, v) === "critical";
   });
 
-  const handleSave = () => {
+  const handleSave = async () => {
+    await fetch("/api/paramedical/vitals", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok()}` },
+      body: JSON.stringify({
+        patientId: selectedId,
+        patientName: patient.name,
+        sbp: form.sbp || undefined,
+        dbp: form.dbp || undefined,
+        hr: form.hr || undefined,
+        temp: form.temp || undefined,
+        spo2: form.spo2 || undefined,
+        glucose: form.glucose || undefined,
+      }),
+    }).catch(() => { });
     setSaved(true);
     setTimeout(() => {
       setForm(EMPTY_FORM);
@@ -126,15 +186,14 @@ export default function ParamedicalVitalsPage() {
             {/* ── Left: patient list ── */}
             <div className="lg:w-64 shrink-0 space-y-2">
               <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">Patients</h2>
-              {PATIENTS.map((p) => (
+              {patients.map((p) => (
                 <button
                   key={p.id}
                   onClick={() => { setSelectedId(p.id); setForm(EMPTY_FORM); setSaved(false); }}
-                  className={`w-full text-left p-3 rounded-xl border transition ${
-                    selectedId === p.id
+                  className={`w-full text-left p-3 rounded-xl border transition ${selectedId === p.id
                       ? "border-primary bg-primary/5"
                       : "border-border bg-card hover:border-primary/40"
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center gap-2">
                     <UserCircle2 size={16} className={selectedId === p.id ? "text-primary" : "text-muted-foreground"} />
@@ -186,9 +245,8 @@ export default function ParamedicalVitalsPage() {
                   return (
                     <div
                       key={f.key}
-                      className={`bg-card rounded-xl border p-4 transition ${
-                        style ? `${style.border} ${style.bg}` : "border-border"
-                      }`}
+                      className={`bg-card rounded-xl border p-4 transition ${style ? `${style.border} ${style.bg}` : "border-border"
+                        }`}
                     >
                       <div className="flex items-center justify-between mb-2">
                         <label className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
@@ -218,11 +276,11 @@ export default function ParamedicalVitalsPage() {
                       <p className="text-xs text-muted-foreground mt-1.5">
                         Normal : {
                           f.key === "sbp" ? "90–140" :
-                          f.key === "dbp" ? "60–90" :
-                          f.key === "hr"  ? "50–100" :
-                          f.key === "temp" ? "36–37.5" :
-                          f.key === "spo2" ? "≥95" :
-                          "70–140"
+                            f.key === "dbp" ? "60–90" :
+                              f.key === "hr" ? "50–100" :
+                                f.key === "temp" ? "36–37.5" :
+                                  f.key === "spo2" ? "≥95" :
+                                    "70–140"
                         } {f.unit}
                       </p>
                     </div>

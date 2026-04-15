@@ -143,82 +143,82 @@ export default function App() {
       <Route path="/labos-radiologie/:id" element={<LaboDetailPage />} />
 
       {/* Admin */}
-      <Route path="/admin" element={<AdminPage />} />
-      <Route path="/admin/users" element={<AdminUsersPage />} />
-      <Route path="/admin/pending" element={<AdminPendingPage />} />
-      <Route path="/admin/suspended" element={<AdminSuspendedPage />} />
-      <Route path="/admin/stats" element={<AdminStatsPage />} />
-      <Route path="/admin/settings" element={<AdminSettingsPage />} />
+      <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><AdminPage /></ProtectedRoute>} />
+      <Route path="/admin/users" element={<ProtectedRoute requiredRole="admin"><AdminUsersPage /></ProtectedRoute>} />
+      <Route path="/admin/pending" element={<ProtectedRoute requiredRole="admin"><AdminPendingPage /></ProtectedRoute>} />
+      <Route path="/admin/suspended" element={<ProtectedRoute requiredRole="admin"><AdminSuspendedPage /></ProtectedRoute>} />
+      <Route path="/admin/stats" element={<ProtectedRoute requiredRole="admin"><AdminStatsPage /></ProtectedRoute>} />
+      <Route path="/admin/settings" element={<ProtectedRoute requiredRole="admin"><AdminSettingsPage /></ProtectedRoute>} />
 
       {/* Patient dashboard */}
-      <Route path="/dashboard" element={<DashboardPage />} />
+      <Route path="/dashboard" element={<ProtectedRoute requiredRole="patient"><DashboardPage /></ProtectedRoute>} />
       <Route
         path="/dashboard/appointments"
-        element={<DashboardAppointmentsPage />}
+        element={<ProtectedRoute requiredRole="patient"><DashboardAppointmentsPage /></ProtectedRoute>}
       />
       <Route
         path="/dashboard/consultations"
-        element={<DashboardConsultationsPage />}
+        element={<ProtectedRoute requiredRole="patient"><DashboardConsultationsPage /></ProtectedRoute>}
       />
       <Route
         path="/dashboard/live-consultation"
-        element={<PatientLiveConsultationPage />}
+        element={<ProtectedRoute requiredRole="patient"><PatientLiveConsultationPage /></ProtectedRoute>}
       />
       <Route
         path="/dashboard/find-doctor"
-        element={<DashboardFindDoctorPage />}
+        element={<ProtectedRoute requiredRole="patient"><DashboardFindDoctorPage /></ProtectedRoute>}
       />
       <Route
         path="/dashboard/medical-history"
-        element={<DashboardMedicalHistoryPage />}
+        element={<ProtectedRoute requiredRole="patient"><DashboardMedicalHistoryPage /></ProtectedRoute>}
       />
       <Route
         path="/dashboard/medical-records"
-        element={<DashboardMedicalRecordsPage />}
+        element={<ProtectedRoute requiredRole="patient"><DashboardMedicalRecordsPage /></ProtectedRoute>}
       />
       <Route
         path="/dashboard/notifications"
-        element={<DashboardNotificationsPage />}
+        element={<ProtectedRoute requiredRole="patient"><DashboardNotificationsPage /></ProtectedRoute>}
       />
       <Route
         path="/dashboard/prescriptions"
-        element={<DashboardPrescriptionsPage />}
+        element={<ProtectedRoute requiredRole="patient"><DashboardPrescriptionsPage /></ProtectedRoute>}
       />
-      <Route path="/dashboard/settings" element={<DashboardSettingsPage />} />
-      <Route path="/dashboard/messages" element={<DashboardMessagesPage />} />
+      <Route path="/dashboard/settings" element={<ProtectedRoute requiredRole="patient"><DashboardSettingsPage /></ProtectedRoute>} />
+      <Route path="/dashboard/messages" element={<ProtectedRoute requiredRole="patient"><DashboardMessagesPage /></ProtectedRoute>} />
 
       {/* Doctor dashboard */}
-      <Route path="/doctor-dashboard" element={<DoctorDashboardPage />} />
-      <Route path="/doctor-dashboard/agenda" element={<DoctorAgendaPage />} />
+      <Route path="/doctor-dashboard" element={<ProtectedRoute requiredRole="doctor"><DoctorDashboardPage /></ProtectedRoute>} />
+      <Route path="/doctor-dashboard/agenda" element={<ProtectedRoute requiredRole="doctor"><DoctorAgendaPage /></ProtectedRoute>} />
       <Route
         path="/doctor-dashboard/consultations"
-        element={<DoctorConsultationsPage />}
+        element={<ProtectedRoute requiredRole="doctor"><DoctorConsultationsPage /></ProtectedRoute>}
       />
       <Route
         path="/doctor-dashboard/live-consultation"
-        element={<LiveConsultationPage />}
+        element={<ProtectedRoute requiredRole="doctor"><LiveConsultationPage /></ProtectedRoute>}
       />
       <Route
         path="/doctor-dashboard/patients"
-        element={<DoctorPatientsPage />}
+        element={<ProtectedRoute requiredRole="doctor"><DoctorPatientsPage /></ProtectedRoute>}
       />
       <Route
         path="/doctor-dashboard/prescriptions"
-        element={<DoctorPrescriptionsPage />}
+        element={<ProtectedRoute requiredRole="doctor"><DoctorPrescriptionsPage /></ProtectedRoute>}
       />
-      <Route path="/doctor-dashboard/revenue" element={<DoctorRevenuePage />} />
-      <Route path="/doctor-dashboard/reviews" element={<DoctorReviewsPage />} />
+      <Route path="/doctor-dashboard/revenue" element={<ProtectedRoute requiredRole="doctor"><DoctorRevenuePage /></ProtectedRoute>} />
+      <Route path="/doctor-dashboard/reviews" element={<ProtectedRoute requiredRole="doctor"><DoctorReviewsPage /></ProtectedRoute>} />
       <Route
         path="/doctor-dashboard/settings"
-        element={<DoctorSettingsPage />}
+        element={<ProtectedRoute requiredRole="doctor"><DoctorSettingsPage /></ProtectedRoute>}
       />
       <Route
         path="/doctor-dashboard/messaging"
-        element={<DoctorMessagingPage />}
+        element={<ProtectedRoute requiredRole="doctor"><DoctorMessagingPage /></ProtectedRoute>}
       />
       <Route
         path="/doctor-dashboard/patient-dossier/:patientId"
-        element={<PatientDossierPage />}
+        element={<ProtectedRoute requiredRole="doctor"><PatientDossierPage /></ProtectedRoute>}
       />
 
       {/* Pharmacy (reservation only — no cart/checkout/orders) */}
@@ -238,22 +238,22 @@ export default function App() {
       />
 
       {/* Pharmacy dashboard */}
-      <Route path="/pharmacy-dashboard" element={<PharmacyDashboardPage />} />
+      <Route path="/pharmacy-dashboard" element={<ProtectedRoute requiredRole="pharmacy"><PharmacyDashboardPage /></ProtectedRoute>} />
       <Route
         path="/pharmacy-dashboard/orders"
-        element={<PharmacyDashboardOrdersPage />}
+        element={<ProtectedRoute requiredRole="pharmacy"><PharmacyDashboardOrdersPage /></ProtectedRoute>}
       />
       <Route
         path="/pharmacy-dashboard/sales"
-        element={<PharmacyDashboardSalesPage />}
+        element={<ProtectedRoute requiredRole="pharmacy"><PharmacyDashboardSalesPage /></ProtectedRoute>}
       />
       <Route
         path="/pharmacy-dashboard/stock"
-        element={<PharmacyDashboardStockPage />}
+        element={<ProtectedRoute requiredRole="pharmacy"><PharmacyDashboardStockPage /></ProtectedRoute>}
       />
 
       {/* Lab dashboard */}
-      <Route path="/lab-dashboard" element={<LabDashboardPage />} />
+      <Route path="/lab-dashboard" element={<ProtectedRoute requiredRole="lab_radiology"><LabDashboardPage /></ProtectedRoute>} />
       <Route
         path="/lab-dashboard/results"
         element={
@@ -274,51 +274,51 @@ export default function App() {
       {/* Medical service dashboard */}
       <Route
         path="/medical-service-dashboard"
-        element={<MedicalServiceDashboardPage />}
+        element={<ProtectedRoute requiredRole="medical_service"><MedicalServiceDashboardPage /></ProtectedRoute>}
       />
       <Route
         path="/medical-service-dashboard/analytics"
-        element={<MedicalServiceAnalyticsPage />}
+        element={<ProtectedRoute requiredRole="medical_service"><MedicalServiceAnalyticsPage /></ProtectedRoute>}
       />
       <Route
         path="/medical-service-dashboard/billing"
-        element={<MedicalServiceBillingPage />}
+        element={<ProtectedRoute requiredRole="medical_service"><MedicalServiceBillingPage /></ProtectedRoute>}
       />
       <Route
         path="/medical-service-dashboard/equipment"
-        element={<MedicalServiceEquipmentPage />}
+        element={<ProtectedRoute requiredRole="medical_service"><MedicalServiceEquipmentPage /></ProtectedRoute>}
       />
       <Route
         path="/medical-service-dashboard/messaging"
-        element={<MedicalServiceMessagingPage />}
+        element={<ProtectedRoute requiredRole="medical_service"><MedicalServiceMessagingPage /></ProtectedRoute>}
       />
       <Route
         path="/medical-service-dashboard/patients"
-        element={<MedicalServicePatientsPage />}
+        element={<ProtectedRoute requiredRole="medical_service"><MedicalServicePatientsPage /></ProtectedRoute>}
       />
       <Route
         path="/medical-service-dashboard/prescriptions"
-        element={<MedicalServicePrescriptionsPage />}
+        element={<ProtectedRoute requiredRole="medical_service"><MedicalServicePrescriptionsPage /></ProtectedRoute>}
       />
       <Route
         path="/medical-service-dashboard/schedule"
-        element={<MedicalServiceSchedulePage />}
+        element={<ProtectedRoute requiredRole="medical_service"><MedicalServiceSchedulePage /></ProtectedRoute>}
       />
       <Route
         path="/medical-service-dashboard/settings"
-        element={<MedicalServiceSettingsPage />}
+        element={<ProtectedRoute requiredRole="medical_service"><MedicalServiceSettingsPage /></ProtectedRoute>}
       />
       <Route
         path="/medical-service-dashboard/team"
-        element={<MedicalServiceTeamPage />}
+        element={<ProtectedRoute requiredRole="medical_service"><MedicalServiceTeamPage /></ProtectedRoute>}
       />
       <Route
         path="/medical-service-dashboard/teleconsultation"
-        element={<MedicalServiceTeleconsultationPage />}
+        element={<ProtectedRoute requiredRole="medical_service"><MedicalServiceTeleconsultationPage /></ProtectedRoute>}
       />
       <Route
         path="/medical-service-dashboard/vitals"
-        element={<MedicalServiceVitalsPage />}
+        element={<ProtectedRoute requiredRole="medical_service"><MedicalServiceVitalsPage /></ProtectedRoute>}
       />
 
       {/* Paramedical dashboard */}

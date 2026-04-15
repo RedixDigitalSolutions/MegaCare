@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ParamedicalDashboardSidebar } from "@/components/ParamedicalDashboardSidebar";
 import {
   MapPin,
@@ -14,7 +14,7 @@ import {
 type VisitStatus = "done" | "in_progress" | "pending";
 
 interface Visit {
-  id: number;
+  id: string;
   order: number;
   patientName: string;
   time: string;
@@ -25,37 +25,11 @@ interface Visit {
   duration: number;
 }
 
-const weekDays = ["Lun 6 Avr", "Mar 7 Avr", "Mer 8 Avr", "Jeu 9 Avr", "Ven 10 Avr"];
+const tok = () => localStorage.getItem("megacare_token") ?? "";
 
-const weeklyData: Record<string, Visit[]> = {
-  "Lun 6 Avr": [
-    { id: 1, order: 1, patientName: "Mme Khaled", time: "08:00", address: "45 Rue de la Paix, Tunis", type: "Pansement", status: "done", distance: 2.3, duration: 30 },
-    { id: 2, order: 2, patientName: "M. Ali Ben", time: "09:30", address: "78 Avenue Bourguiba, Tunis", type: "Injection", status: "done", distance: 3.5, duration: 20 },
-    { id: 3, order: 3, patientName: "Mme Fatima Zahra", time: "11:00", address: "120 Rue Mohamed V, La Marsa", type: "Perfusion", status: "in_progress", distance: 5.2, duration: 45 },
-    { id: 4, order: 4, patientName: "M. Riadh", time: "13:30", address: "33 Rue des Fleurs, Ariana", type: "Kinésithérapie", status: "pending", distance: 7.1, duration: 60 },
-    { id: 5, order: 5, patientName: "Mme Leïla Karmous", time: "15:00", address: "99 Rue Al-Jazira, Sfax", type: "Prise de sang", status: "pending", distance: 12.0, duration: 25 },
-    { id: 6, order: 6, patientName: "M. Hassan", time: "16:30", address: "55 Rue de Carthage, Tunis", type: "Pansement", status: "pending", distance: 4.5, duration: 30 },
-  ],
-  "Mar 7 Avr": [
-    { id: 7, order: 1, patientName: "Mme Sara Meddeb", time: "08:30", address: "12 Rue de la République, Tunis", type: "Soins infirmiers", status: "pending", distance: 3.0, duration: 40 },
-    { id: 8, order: 2, patientName: "M. Fouad Trabelsi", time: "10:00", address: "67 Boulevard 7 Novembre, Sfax", type: "Rééducation", status: "pending", distance: 6.2, duration: 60 },
-    { id: 9, order: 3, patientName: "Mme Nour Chaabane", time: "14:00", address: "8 Rue Ibn Khaldoun, Bizerte", type: "Pansement", status: "pending", distance: 9.5, duration: 25 },
-  ],
-  "Mer 8 Avr": [
-    { id: 10, order: 1, patientName: "M. Karim Smaoui", time: "09:00", address: "21 Rue des Roses, Nabeul", type: "Injection", status: "pending", distance: 2.8, duration: 20 },
-    { id: 11, order: 2, patientName: "Mme Amira Ben Slama", time: "11:30", address: "44 Rue de la Liberté, Sousse", type: "Perfusion", status: "pending", distance: 5.6, duration: 50 },
-  ],
-  "Jeu 9 Avr": [
-    { id: 12, order: 1, patientName: "M. Sami Rekik", time: "08:00", address: "31 Rue du Lac, Tunis", type: "Kinésithérapie", status: "pending", distance: 4.1, duration: 60 },
-    { id: 13, order: 2, patientName: "Mme Rim Hajji", time: "10:30", address: "76 Avenue de France, Tunis", type: "Soins infirmiers", status: "pending", distance: 3.3, duration: 35 },
-    { id: 14, order: 3, patientName: "M. Adel Ben Youssef", time: "14:00", address: "58 Rue Istanbul, Tunis", type: "Prise de sang", status: "pending", distance: 5.0, duration: 20 },
-    { id: 15, order: 4, patientName: "Mme Olfa Hamdi", time: "16:00", address: "11 Rue de Madrid, Tunis", type: "Pansement", status: "pending", distance: 2.7, duration: 30 },
-  ],
-  "Ven 10 Avr": [
-    { id: 16, order: 1, patientName: "M. Walid Saidi", time: "08:30", address: "99 Rue de Marseille, Tunis", type: "Massage thérapeutique", status: "pending", distance: 6.0, duration: 60 },
-    { id: 17, order: 2, patientName: "Mme Besma Chebbi", time: "11:00", address: "25 Avenue de l'Environnement, Sfax", type: "Injection", status: "pending", distance: 4.4, duration: 20 },
-  ],
-};
+const weekDays: string[] = [];
+
+const weeklyData: Record<string, Visit[]> = {};
 
 const statusConfig: Record<VisitStatus, { label: string; icon: typeof CheckCircle2; className: string; cardClass: string }> = {
   done: { label: "Terminée", icon: CheckCircle2, className: "text-green-500", cardClass: "border-green-200 bg-green-50/40" },
@@ -65,15 +39,29 @@ const statusConfig: Record<VisitStatus, { label: string; icon: typeof CheckCircl
 
 export default function ParamedicalPlanningPage() {
   const [view, setView] = useState<"daily" | "weekly">("daily");
-  const [selectedDay, setSelectedDay] = useState(weekDays[0]);
+  const [selectedDay, setSelectedDay] = useState("");
   const [visits, setVisits] = useState(weeklyData);
+
+  useEffect(() => {
+    fetch("/api/paramedical/planning", { headers: { Authorization: `Bearer ${tok()}` } })
+      .then((r) => r.json())
+      .then((d) => {
+        const data = d && typeof d === "object" ? d : {};
+        setVisits(data);
+        const keys = Object.keys(data);
+        if (keys.length) setSelectedDay(keys[0]);
+      })
+      .catch(() => { });
+  }, []);
+
+  const dayKeys = Object.keys(visits);
 
   const dayVisits = visits[selectedDay] ?? [];
   const totalKm = dayVisits.reduce((sum, v) => sum + v.distance, 0);
   const totalMinutes = dayVisits.reduce((sum, v) => sum + v.duration, 0);
   const doneCount = dayVisits.filter((v) => v.status === "done").length;
 
-  const cycleStatus = (day: string, id: number) => {
+  const cycleStatus = (day: string, id: string) => {
     const cycle: Record<VisitStatus, VisitStatus> = { pending: "in_progress", in_progress: "done", done: "pending" };
     setVisits((prev) => ({
       ...prev,
@@ -99,9 +87,8 @@ export default function ParamedicalPlanningPage() {
                 <button
                   key={v}
                   onClick={() => setView(v)}
-                  className={`px-4 py-1.5 rounded-md text-sm font-medium transition ${
-                    view === v ? "bg-card shadow text-foreground" : "text-muted-foreground hover:text-foreground"
-                  }`}
+                  className={`px-4 py-1.5 rounded-md text-sm font-medium transition ${view === v ? "bg-card shadow text-foreground" : "text-muted-foreground hover:text-foreground"
+                    }`}
                 >
                   {v === "daily" ? "Journalier" : "Hebdomadaire"}
                 </button>
@@ -115,18 +102,17 @@ export default function ParamedicalPlanningPage() {
             <>
               {/* Day selector */}
               <div className="flex gap-2 overflow-x-auto pb-1">
-                {weekDays.map((day) => {
+                {dayKeys.map((day) => {
                   const dayV = visits[day] ?? [];
                   const doneCt = dayV.filter((v) => v.status === "done").length;
                   return (
                     <button
                       key={day}
                       onClick={() => setSelectedDay(day)}
-                      className={`px-4 py-2 rounded-xl border text-sm font-medium whitespace-nowrap transition shrink-0 ${
-                        selectedDay === day
+                      className={`px-4 py-2 rounded-xl border text-sm font-medium whitespace-nowrap transition shrink-0 ${selectedDay === day
                           ? "border-primary bg-primary/5 text-primary"
                           : "border-border bg-card hover:border-primary/40 text-foreground"
-                      }`}
+                        }`}
                     >
                       <span>{day}</span>
                       <span className="ml-2 text-xs text-muted-foreground">{doneCt}/{dayV.length}</span>
@@ -205,7 +191,7 @@ export default function ParamedicalPlanningPage() {
 
           {view === "weekly" && (
             <div className="space-y-4">
-              {weekDays.map((day) => {
+              {dayKeys.map((day) => {
                 const dayV = visits[day] ?? [];
                 const doneCt = dayV.filter((v) => v.status === "done").length;
                 const kmTotal = dayV.reduce((s, v) => s + v.distance, 0);

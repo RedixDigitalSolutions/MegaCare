@@ -25,6 +25,16 @@ interface PrescriptionData {
   createdAt: string;
 }
 
+interface UIPrescription {
+  id: string;
+  doctor: string;
+  date: string;
+  expiryDate: string;
+  status: "active" | "expired";
+  medicines: { name: string; dosage?: string; duration?: string }[];
+  notes?: string;
+}
+
 const statusConfig = {
   active: {
     label: "Active",
@@ -42,7 +52,7 @@ export default function PrescriptionsPage() {
   const { user, isLoading, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [prescriptions, setPrescriptions] = useState<any[]>([]);
+  const [prescriptions, setPrescriptions] = useState<UIPrescription[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -59,6 +69,7 @@ export default function PrescriptionsPage() {
 
     fetch("/api/prescriptions", { headers })
       .then((r) => (r.ok ? r.json() : []))
+      .then((j: any) => Array.isArray(j) ? j : (j.data ?? []))
       .then(async (rxs: PrescriptionData[]) => {
         // Resolve doctor names
         const doctorIds = [...new Set(rxs.map((r) => r.doctorId))];
@@ -70,7 +81,7 @@ export default function PrescriptionsPage() {
               .then((u) => {
                 if (u) names[id] = `Dr. ${u.firstName} ${u.lastName}`;
               })
-              .catch(() => {}),
+              .catch(() => { }),
           ),
         );
 
@@ -95,12 +106,13 @@ export default function PrescriptionsPage() {
               }),
               status: isExpired ? "expired" : "active",
               medicines: rx.medicines || [],
+              notes: "",
             };
           }),
         );
         if (rxs.length > 0) setExpandedId(rxs[0].id);
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setLoading(false));
   }, [isAuthenticated, user]);
 

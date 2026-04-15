@@ -8,7 +8,7 @@ export function useSocket(): Socket | null {
     const token = localStorage.getItem("megacare_token");
     if (!token) return;
 
-    const s = io("http://localhost:5000", {
+    const s = io(import.meta.env.VITE_SOCKET_URL ?? "", {
       auth: { token },
     });
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MedicalServiceDashboardSidebar } from "@/components/MedicalServiceDashboardSidebar";
 import { Building2, Bell, Shield, Save, Eye, EyeOff, AlertTriangle } from "lucide-react";
 
@@ -21,20 +21,14 @@ interface Notifs {
   maintenance: boolean;
 }
 
-const initialService: ServiceInfo = {
-  name: "Service Soins à Domicile — Tunis Nord",
-  address: "12 Rue de la Santé, Les Berges du Lac, 1053 Tunis",
-  phone: "+216 71 123 456",
-  email: "soins.domicile@megacare.tn",
-  director: "Pr. Amira Khelil",
-  capacity: "30",
-  type: "Soins infirmiers à domicile",
-};
+const tok = () => localStorage.getItem("megacare_token") ?? "";
+
+const emptyService: ServiceInfo = { name: "", address: "", phone: "", email: "", director: "", capacity: "", type: "" };
 
 export default function MedicalServiceSettingsPage() {
-  const [service, setService] = useState<ServiceInfo>(initialService);
+  const [service, setService] = useState<ServiceInfo>(emptyService);
   const [editingService, setEditingService] = useState(false);
-  const [serviceForm, setServiceForm] = useState<ServiceInfo>(initialService);
+  const [serviceForm, setServiceForm] = useState<ServiceInfo>(emptyService);
 
   const [notifs, setNotifs] = useState<Notifs>({
     newPatient: true,
@@ -45,22 +39,44 @@ export default function MedicalServiceSettingsPage() {
     maintenance: false,
   });
 
+  useEffect(() => {
+    fetch("/api/medical-service/settings", { headers: { Authorization: `Bearer ${tok()}` } })
+      .then(r => r.json())
+      .then(d => {
+        if (d) {
+          setService({ name: d.name || "", address: d.address || "", phone: d.phone || "", email: d.email || "", director: d.director || "", capacity: String(d.capacity || ""), type: d.serviceType || "" });
+          if (d.notifs) setNotifs(d.notifs);
+        }
+      })
+      .catch(() => { });
+  }, []);
+
   const [pwForm, setPwForm] = useState({ current: "", next: "", confirm: "" });
   const [showPw, setShowPw] = useState(false);
   const [twoFA, setTwoFA] = useState(false);
   const [savedMsg, setSavedMsg] = useState("");
 
-  function saveService() {
+  async function saveService() {
+    await fetch("/api/medical-service/settings", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok()}` },
+      body: JSON.stringify({ address: serviceForm.address, director: serviceForm.director, capacity: serviceForm.capacity, serviceType: serviceForm.type, notifs }),
+    }).catch(() => { });
     setService(serviceForm);
     setEditingService(false);
     flash("Informations du service enregistrées.");
   }
 
-  function savePassword() {
+  async function savePassword() {
     if (!pwForm.current || !pwForm.next) return;
     if (pwForm.next !== pwForm.confirm) { flash("Les mots de passe ne correspondent pas."); return; }
-    setPwForm({ current: "", next: "", confirm: "" });
-    flash("Mot de passe mis à jour.");
+    const r = await fetch("/api/auth/change-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok()}` },
+      body: JSON.stringify({ currentPassword: pwForm.current, newPassword: pwForm.next }),
+    }).catch(() => null);
+    if (r && r.ok) { setPwForm({ current: "", next: "", confirm: "" }); flash("Mot de passe mis à jour."); }
+    else { flash("Erreur lors de la mise à jour du mot de passe."); }
   }
 
   function flash(msg: string) {

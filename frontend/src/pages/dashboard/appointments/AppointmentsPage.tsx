@@ -37,6 +37,7 @@ export default function AppointmentsPage() {
 
     fetch("/api/appointments", { headers })
       .then((r) => r.json())
+      .then((j: any) => Array.isArray(j) ? j : (j.data ?? []))
       .then((data: Appointment[]) => {
         setAppointments(data);
         // Fetch doctor names
@@ -52,10 +53,10 @@ export default function AppointmentsPage() {
                 }));
               }
             })
-            .catch(() => {});
+            .catch(() => { });
         });
       })
-      .catch(() => {});
+      .catch(() => { });
   }, [isAuthenticated]);
 
   if (isLoading || !isAuthenticated || !user) {
@@ -176,11 +177,10 @@ export default function AppointmentsPage() {
                   <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
-                    className={`px-4 py-3 font-medium border-b-2 transition ${
-                      activeTab === tab
-                        ? "border-primary text-primary"
-                        : "border-transparent text-muted-foreground hover:text-foreground"
-                    }`}
+                    className={`px-4 py-3 font-medium border-b-2 transition ${activeTab === tab
+                      ? "border-primary text-primary"
+                      : "border-transparent text-muted-foreground hover:text-foreground"
+                      }`}
                   >
                     {label} ({count})
                   </button>
@@ -239,7 +239,6 @@ export default function AppointmentsPage() {
                     <div className="flex flex-wrap gap-2">
                       {(apt.status === "confirmed" ||
                         apt.status === "pending") &&
-                        apt.status !== "completed" &&
                         apt.date >= today && (
                           <>
                             <button

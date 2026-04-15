@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ParamedicalDashboardSidebar } from "@/components/ParamedicalDashboardSidebar";
 import {
   CheckCircle2,
@@ -13,15 +13,9 @@ import {
   User,
 } from "lucide-react";
 
-const PATIENTS = [
-  "Fatima Ben Ali",
-  "Mohammed Gharbi",
-  "Leila Mansouri",
-  "Ahmed Nasser",
-  "Sara Meddeb",
-  "Riadh Karmous",
-  "Nour Chaabane",
-];
+const tok = () => localStorage.getItem("megacare_token") ?? "";
+
+const PATIENTS: string[] = [];
 
 const CARE_TYPES = [
   "Pansement",
@@ -37,7 +31,7 @@ const CARE_TYPES = [
 ];
 
 interface Session {
-  id: number;
+  id: string;
   patient: string;
   careType: string;
   notes: string;
@@ -46,15 +40,13 @@ interface Session {
   time: string;
 }
 
-const recentSessions: Session[] = [
-  { id: 1, patient: "Fatima Ben Ali", careType: "Pansement", notes: "Plaie en bonne voie de cicatrisation.", photos: 2, signed: true, time: "Il y a 1h" },
-  { id: 2, patient: "Mohammed Gharbi", careType: "Kinésithérapie", notes: "Amélioration de la mobilité de l'épaule.", photos: 0, signed: true, time: "Il y a 3h" },
-  { id: 3, patient: "Leila Mansouri", careType: "Injection", notes: "Injection réalisée sans incident.", photos: 0, signed: false, time: "Il y a 4h" },
-];
+const recentSessions: Session[] = [];
 
 const emptyForm = { patient: "", careType: "", notes: "" };
 
 export default function CareRecordPage() {
+  const [patients, setPatients] = useState<string[]>(PATIENTS);
+  const [sessions, setSessions] = useState<Session[]>(recentSessions);
   const [form, setForm] = useState(emptyForm);
   const [photos, setPhotos] = useState<File[]>([]);
   const [signed, setSigned] = useState(false);
@@ -63,6 +55,31 @@ export default function CareRecordPage() {
   const [submitted, setSubmitted] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const lastPos = useRef<{ x: number; y: number } | null>(null);
+
+  useEffect(() => {
+    fetch("/api/paramedical/patients", { headers: { Authorization: `Bearer ${tok()}` } })
+      .then((r) => r.json())
+      .then((d) => setPatients(Array.isArray(d) ? d.map((p) => p.name) : []))
+      .catch(() => { });
+
+    fetch("/api/paramedical/care-sessions", { headers: { Authorization: `Bearer ${tok()}` } })
+      .then((r) => r.json())
+      .then((d) => {
+        const list = Array.isArray(d)
+          ? d.map((s) => ({
+            id: s.id,
+            patient: s.patient,
+            careType: s.careType,
+            notes: s.notes,
+            photos: s.photos || 0,
+            signed: !!s.signed,
+            time: `${s.date || ""} ${s.time || ""}`.trim(),
+          }))
+          : [];
+        setSessions(list);
+      })
+      .catch(() => { });
+  }, []);
 
   /* ---------- canvas drawing ---------- */
   const getPos = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
@@ -120,8 +137,34 @@ export default function CareRecordPage() {
   /* ---------- submit ---------- */
   const canSubmit = form.patient && form.careType && form.notes.trim().length >= 10 && signed;
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!canSubmit) return;
+    const r = await fetch("/api/paramedical/care-sessions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok()}` },
+      body: JSON.stringify({
+        patient: form.patient,
+        careType: form.careType,
+        notes: form.notes,
+        photos: photos.length,
+        signed,
+      }),
+    }).catch(() => null);
+    if (r && r.ok) {
+      const data = await r.json();
+      setSessions((prev) => [
+        {
+          id: data.id,
+          patient: data.patient,
+          careType: data.careType,
+          notes: data.notes,
+          photos: data.photos || 0,
+          signed: !!data.signed,
+          time: `${data.date || ""} ${data.time || ""}`.trim(),
+        },
+        ...prev,
+      ]);
+    }
     setSubmitted(true);
     setTimeout(() => {
       setForm(emptyForm);
@@ -178,7 +221,7 @@ export default function CareRecordPage() {
                         className="w-full appearance-none px-3 py-2.5 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 pr-8"
                       >
                         <option value="">— Sélectionner —</option>
-                        {PATIENTS.map((p) => <option key={p}>{p}</option>)}
+                        {patients.map((p) => <option key={p}>{p}</option>)}
                       </select>
                       <ChevronDown size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
                     </div>
@@ -313,7 +356,7 @@ export default function CareRecordPage() {
                 </h2>
               </div>
               <div className="divide-y divide-border">
-                {recentSessions.map((s) => (
+                {sessions.map((s) => (
                   <div key={s.id} className="flex items-center gap-4 px-6 py-3.5">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">

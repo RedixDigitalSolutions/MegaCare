@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ParamedicalDashboardSidebar } from "@/components/ParamedicalDashboardSidebar";
 import {
   Plus,
@@ -17,7 +17,7 @@ type AppStatus = "Confirmé" | "En attente" | "Annulé";
 type Location = "Domicile" | "Cabinet";
 
 interface Appointment {
-  id: number;
+  id: string;
   patient: string;
   type: string;
   date: string;
@@ -27,15 +27,9 @@ interface Appointment {
   notes?: string;
 }
 
-const initialAppointments: Appointment[] = [
-  { id: 1, patient: "Fatima Ben Ali", type: "Soins infirmiers", date: "2026-04-05", time: "09:00", location: "Domicile", status: "Confirmé" },
-  { id: 2, patient: "Mohammed Gharbi", type: "Kinésithérapie", date: "2026-04-05", time: "11:00", location: "Cabinet", status: "Confirmé" },
-  { id: 3, patient: "Leila Mansouri", type: "Pansement", date: "2026-04-05", time: "14:30", location: "Domicile", status: "Confirmé" },
-  { id: 4, patient: "Ahmed Nasser", type: "Injection", date: "2026-04-06", time: "09:30", location: "Domicile", status: "En attente" },
-  { id: 5, patient: "Sara Meddeb", type: "Massage thérapeutique", date: "2026-04-06", time: "15:00", location: "Cabinet", status: "Confirmé" },
-  { id: 6, patient: "Riadh Karmous", type: "Prise de sang", date: "2026-04-07", time: "08:00", location: "Domicile", status: "En attente" },
-  { id: 7, patient: "Nour Chaabane", type: "Perfusion", date: "2026-04-07", time: "10:00", location: "Domicile", status: "Annulé" },
-];
+const tok = () => localStorage.getItem("megacare_token") ?? "";
+
+const initialAppointments: Appointment[] = [];
 
 const statusColors: Record<AppStatus, string> = {
   "Confirmé": "bg-green-100 text-green-700",
@@ -58,8 +52,15 @@ export default function ParamedicalAppointmentsPage() {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<AppStatus | "Tous">("Tous");
   const [showModal, setShowModal] = useState(false);
-  const [editId, setEditId] = useState<number | null>(null);
+  const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
+
+  useEffect(() => {
+    fetch("/api/paramedical/appointments", { headers: { Authorization: `Bearer ${tok()}` } })
+      .then((r) => r.json())
+      .then((d) => setAppointments(Array.isArray(d) ? d : []))
+      .catch(() => { });
+  }, []);
 
   const filtered = appointments.filter((a) => {
     const matchSearch =
@@ -81,15 +82,28 @@ export default function ParamedicalAppointmentsPage() {
     setShowModal(true);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!form.patient || !form.date || !form.time) return;
     if (editId !== null) {
-      setAppointments((prev) =>
-        prev.map((a) => (a.id === editId ? { ...a, ...form } : a))
-      );
+      const r = await fetch(`/api/paramedical/appointments/${editId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok()}` },
+        body: JSON.stringify(form),
+      }).catch(() => null);
+      if (r && r.ok) {
+        const data = await r.json();
+        setAppointments((prev) => prev.map((a) => (a.id === editId ? data : a)));
+      }
     } else {
-      const newId = Math.max(0, ...appointments.map((a) => a.id)) + 1;
-      setAppointments((prev) => [...prev, { id: newId, ...form }]);
+      const r = await fetch("/api/paramedical/appointments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok()}` },
+        body: JSON.stringify(form),
+      }).catch(() => null);
+      if (r && r.ok) {
+        const data = await r.json();
+        setAppointments((prev) => [...prev, data]);
+      }
     }
     setShowModal(false);
   };
@@ -132,11 +146,10 @@ export default function ParamedicalAppointmentsPage() {
               <button
                 key={s}
                 onClick={() => setFilterStatus(s)}
-                className={`rounded-xl border p-3 text-left transition ${
-                  filterStatus === s
+                className={`rounded-xl border p-3 text-left transition ${filterStatus === s
                     ? "border-primary bg-primary/5"
                     : "border-border bg-card hover:border-primary/40"
-                }`}
+                  }`}
               >
                 <p className="text-xl font-bold text-foreground">{statusCounts[s]}</p>
                 <p className="text-xs text-muted-foreground mt-0.5">{s}</p>

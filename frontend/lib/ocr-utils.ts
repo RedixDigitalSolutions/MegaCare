@@ -252,12 +252,6 @@ const medicineVariations: Record<string, string[]> = {
   Finastéride: ["finastéride", "finasteride", "chibro-proscar", "propecia"],
 
   // ── Autres fréquents ──
-  Métoclopramide: [
-    "métoclopramide",
-    "metoclopramide",
-    "primpéran",
-    "primperan",
-  ],
   Phloroglucinol: ["phloroglucinol", "spasfon"],
   Thiocolchicoside: ["thiocolchicoside", "coltramyl", "miorel"],
   Héparine: ["héparine", "heparine", "lovenox", "énoxaparine", "enoxaparine"],

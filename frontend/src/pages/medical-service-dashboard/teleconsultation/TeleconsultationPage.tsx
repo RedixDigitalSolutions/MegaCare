@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MedicalServiceDashboardSidebar } from "@/components/MedicalServiceDashboardSidebar";
 import {
   Video, Clock, CheckCircle2, History, Phone, Calendar,
@@ -9,32 +9,39 @@ import {
 type Tab = "upcoming" | "completed" | "history";
 
 interface Appointment {
-  id: number;
+  id: string;
   patient: string;
   doctor: string;
   date: string;
   time: string;
   duration: string;
   type: string;
-  tab: Tab;
+  status: string;
   notes: string;
 }
 
-const appointments: Appointment[] = [
-  { id: 1, patient: "Fatima Ben Ali", doctor: "Dr. Karim Mansouri", date: "2026-04-05", time: "10:00", duration: "30min", type: "Suivi post-op", tab: "upcoming", notes: "Contrôle cicatrisation" },
-  { id: 2, patient: "Mohammed Gharbi", doctor: "Dr. Nour Belhadj", date: "2026-04-05", time: "11:30", duration: "20min", type: "Diabète", tab: "upcoming", notes: "Ajustement glycémie" },
-  { id: 3, patient: "Sonia Trabelsi", doctor: "Dr. Sana Triki", date: "2026-04-06", time: "09:00", duration: "45min", type: "Kinésithérapie", tab: "upcoming", notes: "Séance rééducation" },
-  { id: 4, patient: "Leila Mansouri", doctor: "Dr. Karim Mansouri", date: "2026-04-04", time: "14:00", duration: "30min", type: "Oncologie", tab: "completed", notes: "Résultats biopsie" },
-  { id: 5, patient: "Ahmed Nasser", doctor: "Dr. Sana Triki", date: "2026-04-03", time: "10:30", duration: "20min", type: "Soins palliatifs", tab: "completed", notes: "Évaluation douleur" },
-  { id: 6, patient: "Youssef Hamdi", doctor: "Dr. Nour Belhadj", date: "2026-03-28", time: "09:00", duration: "30min", type: "Plaies", tab: "history", notes: "Bilan cicatrisation" },
-  { id: 7, patient: "Fatima Ben Ali", doctor: "Dr. Karim Mansouri", date: "2026-03-15", time: "11:00", duration: "20min", type: "Post-op", tab: "history", notes: "Premier contrôle" },
-  { id: 8, patient: "Mohammed Gharbi", doctor: "Dr. Nour Belhadj", date: "2026-03-01", time: "14:00", duration: "30min", type: "Diabète", tab: "history", notes: "Bilan mensuel" },
-];
+const tok = () => localStorage.getItem("megacare_token") ?? "";
+
+function statusToTab(status: string): Tab {
+  if (status === "Planifié" || status === "En cours") return "upcoming";
+  if (status === "Complété") return "completed";
+  return "history";
+}
+
+const appointments: Appointment[] = [];
 
 export default function TeleconsultationPage() {
   const [activeTab, setActiveTab] = useState<Tab>("upcoming");
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
 
-  const filtered = appointments.filter((a) => a.tab === activeTab);
+  useEffect(() => {
+    fetch("/api/medical-service/teleconsultation", { headers: { Authorization: `Bearer ${tok()}` } })
+      .then(r => r.json())
+      .then(d => setAppointments(Array.isArray(d) ? d : []))
+      .catch(() => { });
+  }, []);
+
+  const filtered = appointments.filter((a) => statusToTab(a.status) === activeTab);
 
   const kpis = [
     { label: "Consultations ce mois", value: "18", icon: Video, color: "text-blue-500", bg: "bg-blue-50" },
@@ -81,14 +88,13 @@ export default function TeleconsultationPage() {
           <div className="flex gap-1 bg-muted/40 p-1 rounded-xl w-fit">
             {tabs.map((t) => {
               const Icon = t.icon;
-              const count = appointments.filter((a) => a.tab === t.key).length;
+              const count = appointments.filter((a) => statusToTab(a.status) === t.key).length;
               return (
                 <button
                   key={t.key}
                   onClick={() => setActiveTab(t.key)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${
-                    activeTab === t.key ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
-                  }`}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${activeTab === t.key ? "bg-card shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground"
+                    }`}
                 >
                   <Icon size={15} />
                   {t.label}
@@ -116,19 +122,19 @@ export default function TeleconsultationPage() {
                   {a.notes && <p className="italic text-foreground/60">"{a.notes}"</p>}
                 </div>
 
-                {a.tab === "upcoming" && (
+                {statusToTab(a.status) === "upcoming" && (
                   <button className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition text-sm font-medium">
                     <Video size={15} />
                     Démarrer la consultation
                   </button>
                 )}
-                {a.tab === "completed" && (
+                {statusToTab(a.status) === "completed" && (
                   <div className="flex items-center gap-2 text-xs text-green-600 font-medium">
                     <CheckCircle2 size={14} />
                     Consultation terminée
                   </div>
                 )}
-                {a.tab === "history" && (
+                {statusToTab(a.status) === "history" && (
                   <button className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-muted text-foreground rounded-lg hover:bg-muted/80 transition text-sm font-medium">
                     <Phone size={15} />
                     Voir le compte rendu

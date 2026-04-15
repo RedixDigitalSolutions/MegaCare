@@ -1,5 +1,7 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
+const tok = () => localStorage.getItem("megacare_token") ?? "";
 import { MedicalServiceDashboardSidebar } from "@/components/MedicalServiceDashboardSidebar";
 import {
   Search,
@@ -16,7 +18,7 @@ import {
 type HospStatus = "En cours" | "Suspendu" | "Terminé";
 
 interface Patient {
-  id: number;
+  id: string;
   name: string;
   age: number;
   condition: string;
@@ -26,14 +28,7 @@ interface Patient {
   phone: string;
 }
 
-const initialPatients: Patient[] = [
-  { id: 1, name: "Fatima Ben Ali", age: 65, condition: "Suivi post-opératoire", status: "En cours", startDate: "2026-01-15", nurse: "Samir Khalifa", phone: "22 123 456" },
-  { id: 2, name: "Mohammed Gharbi", age: 78, condition: "Rééducation cardiaque", status: "En cours", startDate: "2026-01-20", nurse: "Nadia Fayed", phone: "98 234 567" },
-  { id: 3, name: "Leila Mansouri", age: 72, condition: "Traitement diabète", status: "Suspendu", startDate: "2025-12-01", nurse: "Ali Ben Mahmoud", phone: "55 345 678" },
-  { id: 4, name: "Ahmed Nasser", age: 85, condition: "Soins palliatifs", status: "En cours", startDate: "2025-11-10", nurse: "Hassan Abidi", phone: "77 456 789" },
-  { id: 5, name: "Sonia Trabelsi", age: 58, condition: "Convalescence fracture", status: "En cours", startDate: "2026-02-05", nurse: "Fatma Krichene", phone: "50 567 890" },
-  { id: 6, name: "Youssef Hamdi", age: 70, condition: "Soins plaies", status: "Terminé", startDate: "2025-10-01", nurse: "Samir Khalifa", phone: "23 678 901" },
-];
+
 
 const statusConfig: Record<HospStatus, { label: string; bg: string; text: string; icon: typeof CheckCircle2 }> = {
   "En cours": { label: "En cours", bg: "bg-green-100", text: "text-green-700", icon: CheckCircle2 },
@@ -44,13 +39,20 @@ const statusConfig: Record<HospStatus, { label: string; bg: string; text: string
 const emptyForm = { name: "", age: "", condition: "", status: "En cours" as HospStatus, startDate: "", nurse: "", phone: "" };
 
 export default function MedicalServicePatientsPage() {
-  const [patients, setPatients] = useState<Patient[]>(initialPatients);
+  const [patients, setPatients] = useState<Patient[]>([]);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<"all" | HospStatus>("all");
   const [showModal, setShowModal] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
-  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/medical-service/patients", { headers: { Authorization: `Bearer ${tok()}` } })
+      .then(r => r.json())
+      .then(d => setPatients(Array.isArray(d) ? d : []))
+      .catch(() => { });
+  }, []);
 
   const filtered = patients.filter((p) => {
     const matchSearch =
@@ -72,25 +74,25 @@ export default function MedicalServicePatientsPage() {
     setShowModal(true);
   };
 
-  const savePatient = () => {
+  const savePatient = async () => {
     if (!form.name.trim() || !form.condition.trim()) return;
-    if (editingId !== null) {
-      setPatients((prev) =>
-        prev.map((p) =>
-          p.id === editingId
-            ? { ...p, name: form.name, age: Number(form.age), condition: form.condition, status: form.status, startDate: form.startDate, nurse: form.nurse, phone: form.phone }
-            : p
-        )
-      );
-    } else {
-      const newId = Math.max(0, ...patients.map((p) => p.id)) + 1;
-      setPatients((prev) => [...prev, { id: newId, name: form.name, age: Number(form.age), condition: form.condition, status: form.status, startDate: form.startDate || new Date().toISOString().slice(0, 10), nurse: form.nurse, phone: form.phone }]);
-    }
+    const url = editingId ? `/api/medical-service/patients/${editingId}` : "/api/medical-service/patients";
+    const r = await fetch(url, {
+      method: editingId ? "PUT" : "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok()}` },
+      body: JSON.stringify({ ...form, age: Number(form.age) }),
+    });
+    const data = await r.json();
+    if (editingId) setPatients(prev => prev.map(p => p.id === editingId ? data : p));
+    else setPatients(prev => [...prev, data]);
     setShowModal(false);
   };
 
-  const confirmDelete = () => {
-    if (deleteId !== null) setPatients((prev) => prev.filter((p) => p.id !== deleteId));
+  const confirmDelete = async () => {
+    if (deleteId !== null) {
+      await fetch(`/api/medical-service/patients/${deleteId}`, { method: "DELETE", headers: { Authorization: `Bearer ${tok()}` } });
+      setPatients(prev => prev.filter(p => p.id !== deleteId));
+    }
     setDeleteId(null);
   };
 
@@ -157,9 +159,8 @@ export default function MedicalServicePatientsPage() {
                 <button
                   key={s}
                   onClick={() => setFilterStatus(s)}
-                  className={`px-3 py-2 rounded-lg text-xs font-medium transition ${
-                    filterStatus === s ? "bg-primary text-primary-foreground" : "bg-card border border-border text-muted-foreground hover:bg-muted"
-                  }`}
+                  className={`px-3 py-2 rounded-lg text-xs font-medium transition ${filterStatus === s ? "bg-primary text-primary-foreground" : "bg-card border border-border text-muted-foreground hover:bg-muted"
+                    }`}
                 >
                   {s === "all" ? "Tous" : s}
                 </button>

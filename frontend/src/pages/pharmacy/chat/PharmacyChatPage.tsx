@@ -1,61 +1,80 @@
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Send, MessageCircle, Clock, CircleCheckBig } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+
+const PHARMACY_USER_ID = "00000000-0000-0000-0000-000000000009";
+
+interface ChatMessage {
+  id: string;
+  sender: "patient" | "pharmacist";
+  name?: string;
+  text: string;
+  time: string;
+  read: boolean;
+}
 
 export default function ChatPage() {
-  const [messages, setMessages] = useState([
-    {
-      id: 1,
-      sender: "pharmacist",
-      name: "Pharmacien El Amal",
-      text: "Bonjour! Comment puis-je vous aider?",
-      time: "14:30",
-      read: true,
-    },
-    {
-      id: 2,
-      sender: "patient",
-      text: "Bonjour, je voulais demander si l'Amoxicilline peut être prise avec du lait?",
-      time: "14:32",
-      read: true,
-    },
-    {
-      id: 3,
-      sender: "pharmacist",
-      name: "Pharmacien El Amal",
-      text: "Bonne question! L'Amoxicilline peut être prise avec ou sans nourriture, mais évitez les produits laitiers 2 heures avant et après la prise pour une meilleure absorption.",
-      time: "14:35",
-      read: true,
-    },
-    {
-      id: 4,
-      sender: "patient",
-      text: "Merci beaucoup pour le conseil!",
-      time: "14:36",
-      read: true,
-    },
-  ]);
+  const { user } = useAuth();
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState("");
+  const [loading, setLoading] = useState(true);
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const token = localStorage.getItem("megacare_token");
 
-  const handleSendMessage = () => {
-    if (inputValue.trim()) {
-      setMessages([
-        ...messages,
-        {
-          id: messages.length + 1,
-          sender: "patient",
-          text: inputValue,
-          time: new Date().toLocaleTimeString("fr-FR", {
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
-          read: true,
-        },
-      ]);
-      setInputValue("");
-    }
+  useEffect(() => {
+    if (!token) { setLoading(false); return; }
+    fetch(`/api/messages/thread/${PHARMACY_USER_ID}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => r.ok ? r.json() : [])
+      .then((data: any[]) => {
+        setMessages(
+          data.map((m) => ({
+            id: m._id,
+            sender: m.senderId === user?.id ? "patient" : "pharmacist",
+            name: m.senderId !== user?.id ? "Pharmacien" : undefined,
+            text: m.content,
+            time: new Date(m.createdAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
+            read: true,
+          })),
+        );
+      })
+      .catch(() => { })
+      .finally(() => setLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const handleSendMessage = async () => {
+    if (!inputValue.trim() || !token) return;
+    const content = inputValue.trim();
+    setInputValue("");
+    try {
+      const res = await fetch("/api/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ recipientId: PHARMACY_USER_ID, content }),
+      });
+      if (res.ok) {
+        const m = await res.json();
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: m._id,
+            sender: "patient",
+            text: m.content,
+            time: new Date(m.createdAt).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
+            read: true,
+          },
+        ]);
+      }
+    } catch { /* ignore */ }
   };
 
   return (
@@ -83,35 +102,49 @@ export default function ChatPage() {
 
           {/* Messages Area */}
           <div className="flex-1 overflow-y-auto p-6 space-y-4">
-            {messages.map((msg) => (
-              <div
-                key={msg.id}
-                className={`flex ${msg.sender === "patient" ? "justify-end" : "justify-start"}`}
-              >
+            {!token ? (
+              <div className="flex items-center justify-center h-full text-muted-foreground">
+                Connectez-vous pour chatter avec la pharmacie
+              </div>
+            ) : loading ? (
+              <div className="flex items-center justify-center h-full text-muted-foreground">
+                Chargement des messages...
+              </div>
+            ) : messages.length === 0 ? (
+              <div className="flex items-center justify-center h-full text-muted-foreground">
+                Aucun message. Posez votre première question!
+              </div>
+            ) : (
+              messages.map((msg) => (
                 <div
-                  className={`max-w-sm p-4 rounded-lg space-y-1 ${
-                    msg.sender === "patient"
+                  key={msg.id}
+                  className={`flex ${msg.sender === "patient" ? "justify-end" : "justify-start"}`}
+                >
+                  <div
+                    className={`max-w-sm p-4 rounded-lg space-y-1 ${msg.sender === "patient"
                       ? "bg-primary text-primary-foreground"
                       : "bg-secondary text-foreground"
-                  }`}
-                >
-                  {msg.sender === "pharmacist" && (
-                    <p className="text-xs font-semibold opacity-75">
-                      {msg.name}
-                    </p>
-                  )}
-                  <p className="text-sm leading-relaxed">{msg.text}</p>
-                  <div
-                    className={`text-xs flex items-center gap-1 ${msg.sender === "patient" ? "justify-end" : ""}`}
+                      }`}
                   >
-                    {msg.time}
-                    {msg.sender === "patient" && msg.read && (
-                      <CircleCheckBig size={12} />
+                    {msg.sender === "pharmacist" && (
+                      <p className="text-xs font-semibold opacity-75">
+                        {msg.name}
+                      </p>
                     )}
+                    <p className="text-sm leading-relaxed">{msg.text}</p>
+                    <div
+                      className={`text-xs flex items-center gap-1 ${msg.sender === "patient" ? "justify-end" : ""}`}
+                    >
+                      {msg.time}
+                      {msg.sender === "patient" && msg.read && (
+                        <CircleCheckBig size={12} />
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
+            <div ref={bottomRef} />
           </div>
 
           {/* Input Area */}

@@ -1,5 +1,7 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+
+const tok = () => localStorage.getItem("megacare_token") ?? "";
 import { MedicalServiceDashboardSidebar } from "@/components/MedicalServiceDashboardSidebar";
 import {
   Search,
@@ -17,7 +19,7 @@ type MemberStatus = "Actif" | "En pause" | "Absent";
 type MemberRole = "Infirmier" | "Infirmière" | "Aide-soignant" | "Aide-soignante" | "Thérapeute" | "Kinésithérapeute";
 
 interface TeamMember {
-  id: number;
+  id: string;
   name: string;
   role: MemberRole;
   status: MemberStatus;
@@ -27,14 +29,7 @@ interface TeamMember {
   specialty: string;
 }
 
-const initialTeam: TeamMember[] = [
-  { id: 1, name: "Samir Khalifa", role: "Infirmier", status: "Actif", patients: 4, phone: "22 111 222", email: "s.khalifa@megacare.tn", specialty: "Soins intensifs" },
-  { id: 2, name: "Nadia Fayed", role: "Infirmière", status: "Actif", patients: 5, phone: "98 222 333", email: "n.fayed@megacare.tn", specialty: "Cardiologie" },
-  { id: 3, name: "Ali Ben Mahmoud", role: "Aide-soignant", status: "Actif", patients: 3, phone: "55 333 444", email: "a.benmahmoud@megacare.tn", specialty: "Soins généraux" },
-  { id: 4, name: "Fatma Krichene", role: "Infirmière", status: "En pause", patients: 0, phone: "50 444 555", email: "f.krichene@megacare.tn", specialty: "Pédiatrie" },
-  { id: 5, name: "Hassan Abidi", role: "Thérapeute", status: "Actif", patients: 2, phone: "77 555 666", email: "h.abidi@megacare.tn", specialty: "Rééducation" },
-  { id: 6, name: "Hana Riahi", role: "Kinésithérapeute", status: "Actif", patients: 3, phone: "23 666 777", email: "h.riahi@megacare.tn", specialty: "Orthopédie" },
-];
+
 
 const statusConfig: Record<MemberStatus, { bg: string; text: string; dot: string }> = {
   "Actif": { bg: "bg-green-100", text: "text-green-700", dot: "bg-green-500" },
@@ -54,14 +49,21 @@ const roleColors: Record<string, string> = {
 const emptyForm = { name: "", role: "Infirmier" as MemberRole, status: "Actif" as MemberStatus, patients: "0", phone: "", email: "", specialty: "" };
 
 export default function TeamPage() {
-  const [team, setTeam] = useState<TeamMember[]>(initialTeam);
+  const [team, setTeam] = useState<TeamMember[]>([]);
   const [search, setSearch] = useState("");
   const [filterRole, setFilterRole] = useState("all");
   const [showModal, setShowModal] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(emptyForm);
   const [detailMember, setDetailMember] = useState<TeamMember | null>(null);
-  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/medical-service/team", { headers: { Authorization: `Bearer ${tok()}` } })
+      .then(r => r.json())
+      .then(d => setTeam(Array.isArray(d) ? d : []))
+      .catch(() => { });
+  }, []);
 
   const roles = ["all", "Infirmier/ière", "Aide-soignant(e)", "Thérapeute", "Kinésithérapeute"];
 
@@ -82,19 +84,25 @@ export default function TeamPage() {
     setDetailMember(null);
   };
 
-  const saveMember = () => {
+  const saveMember = async () => {
     if (!form.name.trim()) return;
-    if (editingId !== null) {
-      setTeam((prev) => prev.map((m) => m.id === editingId ? { ...m, ...form, patients: Number(form.patients) } : m));
-    } else {
-      const newId = Math.max(0, ...team.map((m) => m.id)) + 1;
-      setTeam((prev) => [...prev, { id: newId, ...form, patients: Number(form.patients) }]);
-    }
+    const url = editingId ? `/api/medical-service/team/${editingId}` : "/api/medical-service/team";
+    const r = await fetch(url, {
+      method: editingId ? "PUT" : "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok()}` },
+      body: JSON.stringify({ ...form, patients: Number(form.patients) }),
+    });
+    const data = await r.json();
+    if (editingId) setTeam(prev => prev.map(m => m.id === editingId ? data : m));
+    else setTeam(prev => [...prev, data]);
     setShowModal(false);
   };
 
-  const confirmDelete = () => {
-    if (deleteId !== null) setTeam((prev) => prev.filter((m) => m.id !== deleteId));
+  const confirmDelete = async () => {
+    if (deleteId !== null) {
+      await fetch(`/api/medical-service/team/${deleteId}`, { method: "DELETE", headers: { Authorization: `Bearer ${tok()}` } });
+      setTeam(prev => prev.filter(m => m.id !== deleteId));
+    }
     setDeleteId(null);
     setDetailMember(null);
   };
@@ -161,9 +169,8 @@ export default function TeamPage() {
                 <button
                   key={r}
                   onClick={() => setFilterRole(r)}
-                  className={`px-3 py-2 rounded-lg text-xs font-medium transition ${
-                    filterRole === r ? "bg-primary text-primary-foreground" : "bg-card border border-border text-muted-foreground hover:bg-muted"
-                  }`}
+                  className={`px-3 py-2 rounded-lg text-xs font-medium transition ${filterRole === r ? "bg-primary text-primary-foreground" : "bg-card border border-border text-muted-foreground hover:bg-muted"
+                    }`}
                 >
                   {r === "all" ? "Tous" : r}
                 </button>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { DoctorDashboardSidebar } from "@/components/DoctorDashboardSidebar";
@@ -34,7 +34,13 @@ const TIME_SLOTS = [
 ];
 
 type SlotStatus = "confirmed" | "pending";
-type SlotData = { status: SlotStatus; patient: string };
+
+interface SlotData {
+  status: SlotStatus;
+  patient: string;
+  appointmentId?: string;
+}
+
 type AgendaMap = Record<string, Record<string, SlotData>>;
 
 function dateKey(d: Date): string {
@@ -53,51 +59,25 @@ function getWeekDays(weekOffset: number): Date[] {
   });
 }
 
-function buildInitialAgenda(): AgendaMap {
-  const days = getWeekDays(0);
-  const map: AgendaMap = {};
-  const seeds: [number, string, string, SlotStatus][] = [
-    [0, "09:00", "Fatima B.", "confirmed"],
-    [0, "10:00", "Mohamed K.", "pending"],
-    [1, "08:30", "Aisha H.", "confirmed"],
-    [1, "14:00", "Salim D.", "confirmed"],
-    [2, "09:30", "Layla M.", "pending"],
-    [3, "11:00", "Youssef T.", "confirmed"],
-    [3, "15:00", "Nadia B.", "confirmed"],
-    [4, "09:00", "Hatem R.", "confirmed"],
-    [4, "10:30", "Sonia K.", "pending"],
-  ];
-  seeds.forEach(([di, time, patient, status]) => {
-    if (days[di]) {
-      const key = dateKey(days[di]);
-      if (!map[key]) map[key] = {};
-      map[key][time] = { status, patient };
-    }
-  });
-  return map;
-}
+const LOCAL_SLOTS_KEY = "megacare_doctor_local_slots";
 
-const AGENDA_STORAGE_KEY = "megacare_doctor_agenda";
-
-function loadAgenda(): AgendaMap {
+function loadLocalSlots(): AgendaMap {
   try {
-    const stored = localStorage.getItem(AGENDA_STORAGE_KEY);
-    if (stored) return JSON.parse(stored);
+    const s = localStorage.getItem(LOCAL_SLOTS_KEY);
+    if (s) return JSON.parse(s);
   } catch {
     /* ignore */
   }
-  return buildInitialAgenda();
-}
-
-function saveAgenda(agenda: AgendaMap) {
-  localStorage.setItem(AGENDA_STORAGE_KEY, JSON.stringify(agenda));
+  return {};
 }
 
 export default function DoctorAgendaPage() {
   const { user, isLoading, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [weekOffset, setWeekOffset] = useState(0);
-  const [agenda, setAgenda] = useState<AgendaMap>(loadAgenda);
+  const [apiSlots, setApiSlots] = useState<AgendaMap>({});
+  const [localSlots, setLocalSlots] = useState<AgendaMap>(loadLocalSlots);
+  const [dataLoading, setDataLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [newSlot, setNewSlot] = useState({ date: "", time: "", patient: "" });
   const [detailSlot, setDetailSlot] = useState<{
@@ -105,9 +85,45 @@ export default function DoctorAgendaPage() {
     time: string;
   } | null>(null);
 
+  const fetchAppointments = useCallback(async () => {
+    const token = localStorage.getItem("megacare_token");
+    if (!token) { setDataLoading(false); return; }
+    setDataLoading(true);
+    try {
+      const res = await fetch("/api/appointments", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const json = await res.json();
+        const appts = Array.isArray(json) ? json : (json.data ?? []);
+        const map: AgendaMap = {};
+        for (const a of appts) {
+          if (!a.date || !a.time) continue;
+          if (a.status === "rejected" || a.status === "cancelled") continue;
+          if (!map[a.date]) map[a.date] = {};
+          const status: SlotStatus =
+            a.status === "confirmed" || a.status === "completed"
+              ? "confirmed"
+              : "pending";
+          map[a.date][a.time] = {
+            status,
+            patient: a.patientName || "Patient",
+            appointmentId: String(a.id || a._id),
+          };
+        }
+        setApiSlots(map);
+      }
+    } catch {
+      /* ignore */
+    }
+    setDataLoading(false);
+  }, []);
+
   useEffect(() => {
-    saveAgenda(agenda);
-  }, [agenda]);
+    if (!isLoading && isAuthenticated && user?.role === "doctor") {
+      fetchAppointments();
+    }
+  }, [isLoading, isAuthenticated, user, fetchAppointments]);
 
   useEffect(() => {
     if (!isLoading && (!isAuthenticated || !user || user.role !== "doctor")) {
@@ -115,8 +131,24 @@ export default function DoctorAgendaPage() {
     }
   }, [isLoading, isAuthenticated, user, navigate]);
 
+  useEffect(() => {
+    localStorage.setItem(LOCAL_SLOTS_KEY, JSON.stringify(localSlots));
+  }, [localSlots]);
+
   if (isLoading || !isAuthenticated || !user || user.role !== "doctor")
     return null;
+
+  // Merge: API slots take priority over local for same date+time
+  const agenda: AgendaMap = {};
+  for (const [dk, slots] of Object.entries(localSlots)) {
+    agenda[dk] = { ...slots };
+  }
+  for (const [dk, slots] of Object.entries(apiSlots)) {
+    if (!agenda[dk]) agenda[dk] = {};
+    for (const [time, slot] of Object.entries(slots)) {
+      agenda[dk][time] = slot;
+    }
+  }
 
   const weekDays = getWeekDays(weekOffset);
   const todayStr = dateKey(new Date());
@@ -143,7 +175,7 @@ export default function DoctorAgendaPage() {
 
   const addSlot = () => {
     if (!newSlot.date || !newSlot.time || !newSlot.patient.trim()) return;
-    setAgenda((prev) => ({
+    setLocalSlots((prev) => ({
       ...prev,
       [newSlot.date]: {
         ...(prev[newSlot.date] || {}),
@@ -158,8 +190,10 @@ export default function DoctorAgendaPage() {
   };
 
   const removeSlot = (dk: string, time: string) => {
-    setAgenda((prev) => {
-      const updated = { ...prev, [dk]: { ...prev[dk] } };
+    const slot = agenda[dk]?.[time];
+    if (slot?.appointmentId) return; // API appointments managed via confirm/reject
+    setLocalSlots((prev) => {
+      const updated = { ...prev, [dk]: { ...(prev[dk] || {}) } };
       delete updated[dk][time];
       if (Object.keys(updated[dk]).length === 0) delete updated[dk];
       return updated;
@@ -167,19 +201,51 @@ export default function DoctorAgendaPage() {
     setDetailSlot(null);
   };
 
-  const confirmSlot = (dk: string, time: string) => {
-    setAgenda((prev) => ({
-      ...prev,
-      [dk]: {
-        ...prev[dk],
-        [time]: { ...prev[dk][time], status: "confirmed" },
-      },
-    }));
+  const confirmSlot = async (dk: string, time: string) => {
+    const slot = agenda[dk]?.[time];
+    if (slot?.appointmentId) {
+      const token = localStorage.getItem("megacare_token");
+      await fetch(`/api/appointments/${slot.appointmentId}/status`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ status: "confirmed" }),
+      });
+      await fetchAppointments();
+    } else {
+      setLocalSlots((prev) => ({
+        ...prev,
+        [dk]: {
+          ...(prev[dk] || {}),
+          [time]: {
+            ...(prev[dk]?.[time] || { patient: "" }),
+            status: "confirmed",
+          },
+        },
+      }));
+    }
     setDetailSlot(null);
   };
 
-  const rejectSlot = (dk: string, time: string) => {
-    removeSlot(dk, time);
+  const rejectSlot = async (dk: string, time: string) => {
+    const slot = agenda[dk]?.[time];
+    if (slot?.appointmentId) {
+      const token = localStorage.getItem("megacare_token");
+      await fetch(`/api/appointments/${slot.appointmentId}/status`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ status: "rejected" }),
+      });
+      await fetchAppointments();
+    } else {
+      removeSlot(dk, time);
+    }
+    setDetailSlot(null);
   };
 
   const detailData =
@@ -218,32 +284,40 @@ export default function DoctorAgendaPage() {
 
           <div className="p-6 space-y-5">
             {/* Stats row */}
-            <div className="grid grid-cols-3 gap-4">
-              <div className="bg-card border border-border rounded-xl p-4 text-center">
-                <p className="text-2xl font-bold text-foreground">
-                  {allSlots.length}
-                </p>
-                <p className="text-sm text-muted-foreground mt-0.5">
-                  Créneaux actifs
-                </p>
+            {dataLoading ? (
+              <div className="grid grid-cols-3 gap-4">
+                {[0, 1, 2].map((i) => (
+                  <div key={i} className="bg-card border border-border rounded-xl p-4 animate-pulse h-20" />
+                ))}
               </div>
-              <div className="bg-card border border-border rounded-xl p-4 text-center">
-                <p className="text-2xl font-bold text-blue-600">
-                  {confirmedCount}
-                </p>
-                <p className="text-sm text-muted-foreground mt-0.5">
-                  Confirmés
-                </p>
+            ) : (
+              <div className="grid grid-cols-3 gap-4">
+                <div className="bg-card border border-border rounded-xl p-4 text-center">
+                  <p className="text-2xl font-bold text-foreground">
+                    {allSlots.length}
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-0.5">
+                    Créneaux actifs
+                  </p>
+                </div>
+                <div className="bg-card border border-border rounded-xl p-4 text-center">
+                  <p className="text-2xl font-bold text-blue-600">
+                    {confirmedCount}
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-0.5">
+                    Confirmés
+                  </p>
+                </div>
+                <div className="bg-card border border-border rounded-xl p-4 text-center">
+                  <p className="text-2xl font-bold text-orange-500">
+                    {pendingCount}
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-0.5">
+                    En attente
+                  </p>
+                </div>
               </div>
-              <div className="bg-card border border-border rounded-xl p-4 text-center">
-                <p className="text-2xl font-bold text-orange-500">
-                  {pendingCount}
-                </p>
-                <p className="text-sm text-muted-foreground mt-0.5">
-                  En attente
-                </p>
-              </div>
-            </div>
+            )}
 
             {/* Week Navigation */}
             <div className="flex items-center justify-between bg-card border border-border rounded-xl px-5 py-3">
@@ -285,23 +359,20 @@ export default function DoctorAgendaPage() {
                       return (
                         <div
                           key={i}
-                          className={`p-3 text-center border-r border-border last:border-r-0 ${
-                            isToday ? "bg-primary/10" : ""
-                          }`}
+                          className={`p-3 text-center border-r border-border last:border-r-0 ${isToday ? "bg-primary/10" : ""
+                            }`}
                         >
                           <p
-                            className={`text-xs font-semibold uppercase tracking-wide ${
-                              isToday ? "text-primary" : "text-muted-foreground"
-                            }`}
+                            className={`text-xs font-semibold uppercase tracking-wide ${isToday ? "text-primary" : "text-muted-foreground"
+                              }`}
                           >
                             {day.toLocaleDateString("fr-FR", {
                               weekday: "short",
                             })}
                           </p>
                           <p
-                            className={`text-base font-bold mt-0.5 ${
-                              isToday ? "text-primary" : "text-foreground"
-                            }`}
+                            className={`text-base font-bold mt-0.5 ${isToday ? "text-primary" : "text-foreground"
+                              }`}
                           >
                             {day.getDate()}
                           </p>
@@ -334,9 +405,8 @@ export default function DoctorAgendaPage() {
                             <button
                               key={di}
                               onClick={() => openAddModal(dk, time)}
-                              className={`h-11 border-r border-border last:border-r-0 transition hover:bg-primary/5 group ${
-                                isToday ? "bg-primary/[0.03]" : ""
-                              }`}
+                              className={`h-11 border-r border-border last:border-r-0 transition hover:bg-primary/5 group ${isToday ? "bg-primary/[0.03]" : ""
+                                }`}
                               title={`Ajouter ${time}`}
                             >
                               <Plus
@@ -351,35 +421,35 @@ export default function DoctorAgendaPage() {
                           <div
                             key={di}
                             onClick={() => setDetailSlot({ dk, time })}
-                            className={`h-11 border-r border-border last:border-r-0 px-1.5 flex items-center gap-1 cursor-pointer hover:brightness-95 transition ${
-                              slot.status === "confirmed"
-                                ? "bg-blue-50 border-l-2 border-l-blue-400"
-                                : "bg-orange-50 border-l-2 border-l-orange-400"
-                            }`}
+                            className={`h-11 border-r border-border last:border-r-0 px-1.5 flex items-center gap-1 cursor-pointer hover:brightness-95 transition ${slot.status === "confirmed"
+                              ? "bg-blue-50 border-l-2 border-l-blue-400"
+                              : "bg-orange-50 border-l-2 border-l-orange-400"
+                              }`}
                           >
                             <span
-                              className={`flex-1 text-xs font-medium truncate ${
-                                slot.status === "confirmed"
-                                  ? "text-blue-700"
-                                  : "text-orange-700"
-                              }`}
+                              className={`flex-1 text-xs font-medium truncate ${slot.status === "confirmed"
+                                ? "text-blue-700"
+                                : "text-orange-700"
+                                }`}
                             >
                               {slot.patient}
                             </span>
-                            <button
-                              onClick={() => removeSlot(dk, time)}
-                              className="shrink-0 p-0.5 rounded opacity-0 hover:opacity-100 hover:bg-black/10 transition"
-                              title="Supprimer ce créneau"
-                            >
-                              <X
-                                size={10}
-                                className={
-                                  slot.status === "confirmed"
-                                    ? "text-blue-600"
-                                    : "text-orange-600"
-                                }
-                              />
-                            </button>
+                            {!slot.appointmentId && (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); removeSlot(dk, time); }}
+                                className="shrink-0 p-0.5 rounded opacity-0 hover:opacity-100 hover:bg-black/10 transition"
+                                title="Supprimer ce créneau"
+                              >
+                                <X
+                                  size={10}
+                                  className={
+                                    slot.status === "confirmed"
+                                      ? "text-blue-600"
+                                      : "text-orange-600"
+                                  }
+                                />
+                              </button>
+                            )}
                           </div>
                         );
                       })}
@@ -401,7 +471,7 @@ export default function DoctorAgendaPage() {
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 rounded border border-dashed border-muted-foreground/30" />
-                <span>Libre — cliquer pour ajouter</span>
+                <span>Libre — cliquer pour ajouter une note</span>
               </div>
             </div>
           </div>
@@ -463,11 +533,11 @@ export default function DoctorAgendaPage() {
               </div>
               <div>
                 <label className="block text-sm font-medium text-foreground mb-1.5">
-                  Nom du patient
+                  Note
                 </label>
                 <input
                   type="text"
-                  placeholder="Ex: Fatima B."
+                  placeholder="Ex: Réservé · Pause déjeuner"
                   value={newSlot.patient}
                   onChange={(e) =>
                     setNewSlot((s) => ({ ...s, patient: e.target.value }))
@@ -542,11 +612,10 @@ export default function DoctorAgendaPage() {
               <div className="flex items-center gap-2">
                 <span className="text-sm text-muted-foreground">Statut :</span>
                 <span
-                  className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
-                    detailData.status === "confirmed"
-                      ? "bg-blue-100 text-blue-700"
-                      : "bg-orange-100 text-orange-700"
-                  }`}
+                  className={`text-xs font-semibold px-2.5 py-1 rounded-full ${detailData.status === "confirmed"
+                    ? "bg-blue-100 text-blue-700"
+                    : "bg-orange-100 text-orange-700"
+                    }`}
                 >
                   {detailData.status === "confirmed"
                     ? "Confirmé"
@@ -573,13 +642,20 @@ export default function DoctorAgendaPage() {
                     Confirmer
                   </button>
                 </>
+              ) : detailData.appointmentId ? (
+                <button
+                  onClick={() => setDetailSlot(null)}
+                  className="flex-1 px-4 py-2.5 border border-border text-foreground rounded-lg hover:bg-muted transition font-medium"
+                >
+                  Fermer
+                </button>
               ) : (
                 <button
                   onClick={() => removeSlot(detailSlot.dk, detailSlot.time)}
                   className="flex-1 px-4 py-2.5 border border-red-200 text-red-600 rounded-lg hover:bg-red-50 transition font-medium flex items-center justify-center gap-2"
                 >
                   <X size={16} />
-                  Supprimer le créneau
+                  Supprimer la note
                 </button>
               )}
             </div>

@@ -49,7 +49,7 @@ export default function DoctorProfilePage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
-  const [activeTab, setActiveTab] = useState<"about" | "schedule" | "reviews">(
+  const [activeTab, setActiveTab] = useState<"about" | "schedule">(
     "about",
   );
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -259,17 +259,6 @@ export default function DoctorProfilePage() {
                   {/* Stats */}
                   <div className="flex flex-wrap gap-6 py-4 border-y border-border">
                     <div className="flex items-center gap-2">
-                      <Star className="w-5 h-5 fill-accent text-accent" />
-                      <div>
-                        <p className="font-semibold text-foreground">
-                          {doctor.rating}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          ({doctor.reviews} avis)
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
                       <Award className="w-5 h-5 text-primary" />
                       <div>
                         <p className="font-semibold text-foreground">
@@ -337,11 +326,11 @@ export default function DoctorProfilePage() {
           {/* Tabs */}
           <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="border-b border-border flex gap-8 sticky top-16 bg-background z-10">
-              {["about", "schedule", "reviews"].map((tab) => (
+              {["about", "schedule"].map((tab) => (
                 <button
                   key={tab}
                   onClick={() =>
-                    setActiveTab(tab as "about" | "schedule" | "reviews")
+                    setActiveTab(tab as "about" | "schedule")
                   }
                   className={`py-4 font-medium capitalize transition border-b-2 ${
                     activeTab === tab
@@ -351,9 +340,7 @@ export default function DoctorProfilePage() {
                 >
                   {tab === "about"
                     ? "À propos"
-                    : tab === "schedule"
-                      ? "Disponibilités"
-                      : "Avis"}
+                    : "Disponibilités"}
                 </button>
               ))}
             </div>
@@ -760,44 +747,6 @@ export default function DoctorProfilePage() {
                 </div>
               )}
 
-              {/* Reviews Tab */}
-              {activeTab === "reviews" && (
-                <div className="space-y-4">
-                  {reviews.map((review, idx) => (
-                    <div
-                      key={idx}
-                      className="bg-card rounded-xl border border-border p-6 space-y-3"
-                    >
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <p className="font-semibold text-foreground">
-                            {review.author}
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            {review.date}
-                          </p>
-                        </div>
-                        <div className="flex gap-1">
-                          {[...Array(5)].map((_, i) => (
-                            <Star
-                              key={i}
-                              size={18}
-                              className={
-                                i < review.rating
-                                  ? "fill-accent text-accent"
-                                  : "text-border"
-                              }
-                            />
-                          ))}
-                        </div>
-                      </div>
-                      <p className="text-foreground leading-relaxed">
-                        {review.text}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )}
             </div>
           </section>
         </main>

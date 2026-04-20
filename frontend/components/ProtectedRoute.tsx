@@ -40,6 +40,12 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
         return;
       }
     }
+
+    // Redirect non-approved users to account-review
+    if (user.role !== "admin" && user.role !== "patient" && user.status && user.status !== "approved" && pathname !== "/account-review") {
+      navigate("/account-review");
+      return;
+    }
   }, [user, isLoading, requiredRole, navigate, pathname]);
 
   if (isLoading) {
@@ -62,6 +68,11 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     if (!roles.includes(user.role)) {
       return null; // Le useEffect va rediriger
     }
+  }
+
+  // Block non-approved users from rendering dashboard content
+  if (user.role !== "admin" && user.role !== "patient" && user.status && user.status !== "approved") {
+    return null;
   }
 
   return <>{children}</>;

@@ -12,10 +12,9 @@ import {
   FaFacebook,
   FaInstagram,
   FaLinkedinIn,
-  FaYoutube,
   FaExternalLinkAlt,
 } from "react-icons/fa";
-import { FaXTwitter } from "react-icons/fa6";
+import { FaTiktok } from "react-icons/fa6";
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
@@ -130,11 +129,8 @@ export function Footer() {
               <SocialLink href="#" label="LinkedIn">
                 <FaLinkedinIn className="w-5 h-5" />
               </SocialLink>
-              <SocialLink href="#" label="Twitter/X">
-                <FaXTwitter className="w-5 h-5" />
-              </SocialLink>
-              <SocialLink href="#" label="YouTube">
-                <FaYoutube className="w-5 h-5" />
+              <SocialLink href="#" label="TikTok">
+                <FaTiktok className="w-5 h-5" />
               </SocialLink>
             </div>
           </div>
@@ -157,13 +153,10 @@ export function Footer() {
 
           {/* Legal Links */}
           <div className="space-y-6">
-            <h4 className="font-semibold text-lg text-background/90">Legal</h4>
+            <h4 className="font-semibold text-lg text-background/90">Légal</h4>
             <ul className="space-y-4">
-              <FooterLink href="#">Mentions legales</FooterLink>
-              <FooterLink href="#">Confidentialite</FooterLink>
-              <FooterLink href="#">CGU</FooterLink>
-              <FooterLink href="#">Cookies</FooterLink>
-              <FooterLink href="#">Accessibilite</FooterLink>
+              <FooterLink href="/politique-confidentialite">Confidentialité</FooterLink>
+              <FooterLink href="/accessibilite">Accessibilité</FooterLink>
             </ul>
           </div>
 

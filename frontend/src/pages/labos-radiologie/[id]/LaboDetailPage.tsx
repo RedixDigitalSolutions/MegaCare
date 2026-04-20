@@ -970,7 +970,7 @@ export default function LaboDetailPage() {
   }, [id]);
 
   const [activeTab, setActiveTab] = useState<
-    "catalogue" | "equipe" | "horaires" | "avis"
+    "catalogue" | "equipe" | "horaires"
   >("catalogue");
   const [galleryIdx, setGalleryIdx] = useState(0);
   const [selectedExam, setSelectedExam] = useState<string>("");
@@ -1041,7 +1041,6 @@ export default function LaboDetailPage() {
     { key: "catalogue", label: "Catalogue" },
     { key: "equipe", label: "Équipe" },
     { key: "horaires", label: "Horaires" },
-    { key: "avis", label: `Avis (${lab.reviews})` },
   ] as const;
 
   // Group exam catalog by category
@@ -1125,9 +1124,6 @@ export default function LaboDetailPage() {
                   ))}
                   <span className="font-bold text-foreground ml-1">
                     {lab.rating.toFixed(1)}
-                  </span>
-                  <span className="text-muted-foreground text-sm">
-                    ({lab.reviews} avis)
                   </span>
                 </div>
                 <span className="text-sm text-foreground">
@@ -1376,48 +1372,6 @@ export default function LaboDetailPage() {
                   </div>
                 )}
 
-                {/* AVIS */}
-                {activeTab === "avis" && (
-                  <div className="space-y-4">
-                    {lab.patientReviews && lab.patientReviews.length > 0 ? (
-                      lab.patientReviews.map((r, i) => (
-                        <div
-                          key={i}
-                          className="p-4 rounded-xl bg-secondary/30 border border-border/50"
-                        >
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm font-semibold text-foreground">
-                              {r.author}
-                            </span>
-                            <div className="flex items-center gap-1">
-                              {[1, 2, 3, 4, 5].map((s) => (
-                                <Star
-                                  key={s}
-                                  size={12}
-                                  className={
-                                    s <= r.rating
-                                      ? "text-amber-400 fill-amber-400"
-                                      : "text-muted-foreground/30"
-                                  }
-                                />
-                              ))}
-                            </div>
-                          </div>
-                          <p className="text-sm text-muted-foreground mb-2">
-                            {r.comment}
-                          </p>
-                          <p className="text-xs text-muted-foreground/60">
-                            {r.date}
-                          </p>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-sm text-muted-foreground">
-                        Aucun avis pour le moment.
-                      </p>
-                    )}
-                  </div>
-                )}
               </div>
             </div>
           </div>

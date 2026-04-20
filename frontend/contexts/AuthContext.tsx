@@ -27,6 +27,8 @@ export interface User {
   paramedicalId?: string;
   companyName?: string;
   avatar?: string;
+  governorate?: string;
+  delegation?: string;
 }
 
 interface AuthContextType {

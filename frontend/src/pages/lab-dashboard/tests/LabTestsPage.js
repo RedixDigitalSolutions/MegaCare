@@ -33,7 +33,7 @@ export default function LabTestsPage() {
             headers: { Authorization: `Bearer ${token()}` },
         })
             .then((r) => r.json())
-            .then((data) => setTests(Array.isArray(data) ? data : []))
+            .then((json) => setTests(Array.isArray(json) ? json : (json.data ?? [])))
             .catch(() => { });
     }, []);
     const filtered = tests.filter((t) => {

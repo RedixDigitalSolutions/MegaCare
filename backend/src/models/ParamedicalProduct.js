@@ -3,6 +3,8 @@ const mongoose = require("mongoose");
 const paramedicalProductSchema = new mongoose.Schema(
     {
         _id: { type: String, required: true },
+        catalogItemId: { type: String, default: "" },
+        userId: { type: String, default: "" },
         name: { type: String, required: true },
         brand: { type: String, default: "" },
         category: { type: String, default: "" },

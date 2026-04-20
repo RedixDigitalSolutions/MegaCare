@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { MedicalServiceDashboardSidebar } from "@/components/MedicalServiceDashboardSidebar";
-import { Building2, Bell, Shield, Save, Eye, EyeOff, AlertTriangle } from "lucide-react";
+import { Building2, Shield, Save, Eye, EyeOff, AlertTriangle } from "lucide-react";
 
 interface ServiceInfo {
   name: string;
@@ -12,15 +12,6 @@ interface ServiceInfo {
   type: string;
 }
 
-interface Notifs {
-  newPatient: boolean;
-  vitalAlert: boolean;
-  appointmentReminder: boolean;
-  teamMessage: boolean;
-  billing: boolean;
-  maintenance: boolean;
-}
-
 const tok = () => localStorage.getItem("megacare_token") ?? "";
 
 const emptyService: ServiceInfo = { name: "", address: "", phone: "", email: "", director: "", capacity: "", type: "" };
@@ -30,22 +21,12 @@ export default function MedicalServiceSettingsPage() {
   const [editingService, setEditingService] = useState(false);
   const [serviceForm, setServiceForm] = useState<ServiceInfo>(emptyService);
 
-  const [notifs, setNotifs] = useState<Notifs>({
-    newPatient: true,
-    vitalAlert: true,
-    appointmentReminder: true,
-    teamMessage: false,
-    billing: true,
-    maintenance: false,
-  });
-
   useEffect(() => {
     fetch("/api/medical-service/settings", { headers: { Authorization: `Bearer ${tok()}` } })
       .then(r => r.json())
       .then(d => {
         if (d) {
           setService({ name: d.name || "", address: d.address || "", phone: d.phone || "", email: d.email || "", director: d.director || "", capacity: String(d.capacity || ""), type: d.serviceType || "" });
-          if (d.notifs) setNotifs(d.notifs);
         }
       })
       .catch(() => { });
@@ -60,7 +41,7 @@ export default function MedicalServiceSettingsPage() {
     await fetch("/api/medical-service/settings", {
       method: "PATCH",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok()}` },
-      body: JSON.stringify({ address: serviceForm.address, director: serviceForm.director, capacity: serviceForm.capacity, serviceType: serviceForm.type, notifs }),
+      body: JSON.stringify({ address: serviceForm.address, director: serviceForm.director, capacity: serviceForm.capacity, serviceType: serviceForm.type }),
     }).catch(() => { });
     setService(serviceForm);
     setEditingService(false);
@@ -83,15 +64,6 @@ export default function MedicalServiceSettingsPage() {
     setSavedMsg(msg);
     setTimeout(() => setSavedMsg(""), 3000);
   }
-
-  const notifLabels: { key: keyof Notifs; label: string; desc: string }[] = [
-    { key: "newPatient", label: "Nouveau patient", desc: "Notification lors de l'ajout d'un nouveau patient" },
-    { key: "vitalAlert", label: "Alerte constantes vitales", desc: "Alerte quand une constante est critique" },
-    { key: "appointmentReminder", label: "Rappel visite", desc: "Rappel 1h avant une visite planifiée" },
-    { key: "teamMessage", label: "Messagerie équipe", desc: "Notifications de nouveaux messages de l'équipe" },
-    { key: "billing", label: "Facturation", desc: "Alertes sur les paiements en retard" },
-    { key: "maintenance", label: "Maintenance équipement", desc: "Rappels pour les maintenances d'équipements" },
-  ];
 
   const serviceFields: { label: string; key: keyof ServiceInfo; type: string }[] = [
     { label: "Nom du service", key: "name", type: "text" },
@@ -162,28 +134,6 @@ export default function MedicalServiceSettingsPage() {
                   ))}
                 </div>
               )}
-            </div>
-          </div>
-
-          {/* Notifications */}
-          <div className="bg-card rounded-xl border border-border overflow-hidden">
-            <div className="flex items-center gap-2 px-5 py-4 border-b border-border">
-              <Bell size={18} className="text-primary" />
-              <h2 className="font-semibold text-foreground">Notifications</h2>
-            </div>
-            <div className="divide-y divide-border">
-              {notifLabels.map((n) => (
-                <div key={n.key} className="flex items-center justify-between px-5 py-3">
-                  <div>
-                    <p className="text-sm font-medium text-foreground">{n.label}</p>
-                    <p className="text-xs text-muted-foreground">{n.desc}</p>
-                  </div>
-                  <button onClick={() => setNotifs((prev) => ({ ...prev, [n.key]: !prev[n.key] }))}
-                    className={`relative inline-flex h-5 w-9 rounded-full transition-colors duration-200 ${notifs[n.key] ? "bg-primary" : "bg-muted"}`}>
-                    <span className={`inline-block w-4 h-4 rounded-full bg-white shadow transform transition-transform duration-200 mt-0.5 ${notifs[n.key] ? "translate-x-4 ml-0.5" : "translate-x-0.5"}`} />
-                  </button>
-                </div>
-              ))}
             </div>
           </div>
 

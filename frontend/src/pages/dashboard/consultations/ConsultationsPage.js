@@ -23,6 +23,7 @@ export default function ConsultationsPage() {
         const headers = { Authorization: `Bearer ${token}` };
         fetch("/api/appointments", { headers })
             .then((r) => (r.ok ? r.json() : []))
+            .then((j) => Array.isArray(j) ? j : (j.data ?? []))
             .then(async (appts) => {
             // Show completed appointments as past consultations
             const completed = appts.filter((a) => a.status === "completed");

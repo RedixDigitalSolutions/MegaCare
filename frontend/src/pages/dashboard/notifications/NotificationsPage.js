@@ -22,8 +22,8 @@ export default function NotificationsPage() {
             return;
         const headers = { Authorization: `Bearer ${token}` };
         Promise.all([
-            fetch("/api/appointments", { headers }).then((r) => r.ok ? r.json() : []),
-            fetch("/api/prescriptions", { headers }).then((r) => r.ok ? r.json() : []),
+            fetch("/api/appointments", { headers }).then((r) => r.ok ? r.json().then((j) => Array.isArray(j) ? j : (j.data ?? [])) : []),
+            fetch("/api/prescriptions", { headers }).then((r) => r.ok ? r.json().then((j) => Array.isArray(j) ? j : (j.data ?? [])) : []),
         ])
             .then(async ([appts, rxs]) => {
             const notifs = [];

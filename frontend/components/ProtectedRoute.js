@@ -30,6 +30,11 @@ export const ProtectedRoute = ({ children, requiredRole, }) => {
                 return;
             }
         }
+        // Redirect non-approved users to account-review
+        if (user.role !== "admin" && user.role !== "patient" && user.status && user.status !== "approved" && pathname !== "/account-review") {
+            navigate("/account-review");
+            return;
+        }
     }, [user, isLoading, requiredRole, navigate, pathname]);
     if (isLoading) {
         return (_jsx("div", { className: "flex items-center justify-center min-h-screen", children: _jsxs("div", { className: "space-y-4 text-center", children: [_jsx("div", { className: "w-12 h-12 border-4 border-primary/20 border-t-primary rounded-full animate-spin mx-auto" }), _jsx("p", { className: "text-muted-foreground", children: "Chargement..." })] }) }));
@@ -42,6 +47,10 @@ export const ProtectedRoute = ({ children, requiredRole, }) => {
         if (!roles.includes(user.role)) {
             return null; // Le useEffect va rediriger
         }
+    }
+    // Block non-approved users from rendering dashboard content
+    if (user.role !== "admin" && user.role !== "patient" && user.status && user.status !== "approved") {
+        return null;
     }
     return _jsx(_Fragment, { children: children });
 };

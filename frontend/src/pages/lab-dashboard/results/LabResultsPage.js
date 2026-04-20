@@ -30,7 +30,7 @@ export default function LabResultsPage() {
             headers: { Authorization: `Bearer ${token}` },
         })
             .then((r) => r.json())
-            .then((data) => setResults(Array.isArray(data) ? data : []))
+            .then((json) => setResults(Array.isArray(json) ? json : (json.data ?? [])))
             .catch(() => { });
     }, []);
     const [search, setSearch] = useState("");

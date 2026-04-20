@@ -4,7 +4,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { DoctorDashboardSidebar } from "@/components/DoctorDashboardSidebar";
 import { TrendingUp, TrendingDown, DollarSign, Video, MapPin, CheckCircle, Clock, } from "lucide-react";
-const CONSULTATION_FEE = 80;
 const WEEKDAYS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
 function getPeriodRange(p, today) {
     const start = new Date(today);
@@ -56,7 +55,8 @@ export default function DoctorRevenuePage() {
                 headers: { Authorization: `Bearer ${token}` },
             });
             if (res.ok) {
-                const data = await res.json();
+                const json = await res.json();
+                const data = Array.isArray(json) ? json : (json.data ?? []);
                 const active = data.filter((a) => a.status !== "rejected" && a.status !== "cancelled");
                 setAppointments(active);
                 // Resolve patient names
@@ -99,10 +99,10 @@ export default function DoctorRevenuePage() {
         const prevRange = getPrevPeriodRange(period, today);
         const periodAppts = appointments.filter((a) => inRange(a.date, range));
         const prevAppts = appointments.filter((a) => inRange(a.date, prevRange));
-        const revenue = periodAppts.length * CONSULTATION_FEE;
-        const prevRevenue = prevAppts.length * CONSULTATION_FEE;
+        const revenue = periodAppts.reduce((sum, a) => sum + (a.fee ?? 80), 0);
+        const prevRevenue = prevAppts.reduce((sum, a) => sum + (a.fee ?? 80), 0);
         const consultations = periodAppts.length;
-        const avgRevenue = consultations > 0 ? CONSULTATION_FEE : 0;
+        const avgRevenue = consultations > 0 ? Math.round(revenue / consultations) : 0;
         const growth = prevRevenue > 0
             ? Math.round(((revenue - prevRevenue) / prevRevenue) * 100)
             : consultations > 0
@@ -119,7 +119,7 @@ export default function DoctorRevenuePage() {
                 const d = new Date(a.date);
                 const idx = (d.getDay() + 6) % 7;
                 const label = WEEKDAYS[idx];
-                dayMap[label] = (dayMap[label] || 0) + CONSULTATION_FEE;
+                dayMap[label] = (dayMap[label] || 0) + (a.fee ?? 80);
             }
             WEEKDAYS.forEach((label) => chartBars.push({ label, value: dayMap[label] || 0 }));
         }
@@ -129,9 +129,11 @@ export default function DoctorRevenuePage() {
                 const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
                 const key = d.toISOString().slice(0, 7);
                 const label = d.toLocaleDateString("fr-FR", { month: "short" });
-                const value = appointments.filter((a) => a.date.startsWith(key) &&
+                const value = appointments
+                    .filter((a) => a.date.startsWith(key) &&
                     a.status !== "rejected" &&
-                    a.status !== "cancelled").length * CONSULTATION_FEE;
+                    a.status !== "cancelled")
+                    .reduce((sum, a) => sum + (a.fee ?? 80), 0);
                 chartBars.push({ label, value });
             }
             // Pad to 7 bars
@@ -145,7 +147,7 @@ export default function DoctorRevenuePage() {
             id: String(a.id),
             patient: patientNames[a.patientId] || a.patientName || "Patient",
             date: a.date,
-            amount: CONSULTATION_FEE,
+            amount: a.fee ?? 80,
             type: "Vidéo",
             status: a.status === "completed"
                 ? "Payée"

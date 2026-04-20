@@ -11,6 +11,9 @@ import {
   Pencil,
   Plus,
   Trash2,
+  ShieldCheck,
+  ShieldOff,
+  Clock,
 } from "lucide-react";
 
 interface Dossier {
@@ -58,6 +61,8 @@ export default function MedicalRecordsPage() {
   ]);
   const [editingSection, setEditingSection] = useState<string | null>(null);
   const [editData, setEditData] = useState<any>(null);
+  const [permissions, setPermissions] = useState<any[]>([]);
+  const [permLoading, setPermLoading] = useState(false);
 
   const token = localStorage.getItem("megacare_token");
 
@@ -78,6 +83,36 @@ export default function MedicalRecordsPage() {
   useEffect(() => {
     fetchDossier();
   }, [fetchDossier]);
+
+  const fetchPermissions = useCallback(async () => {
+    try {
+      const res = await fetch("/api/dossier/permissions/list", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (Array.isArray(data)) setPermissions(data);
+    } catch {}
+  }, [token]);
+
+  useEffect(() => {
+    fetchPermissions();
+  }, [fetchPermissions]);
+
+  const revokePermission = async (doctorId: string) => {
+    setPermLoading(true);
+    try {
+      const res = await fetch(`/api/dossier/permissions/${doctorId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data)) setPermissions(data);
+      }
+    } finally {
+      setPermLoading(false);
+    }
+  };
 
   const toggleSection = (section: string) => {
     setExpandedSections((prev) =>
@@ -911,6 +946,84 @@ export default function MedicalRecordsPage() {
                 </div>
               )}
             </SectionAccordion>
+
+            {/* ── Permissions / Accès médecins ── */}
+            <div className="bg-card rounded-lg border border-border overflow-hidden">
+              <div className="px-6 py-4 flex items-center gap-3">
+                <span className="text-2xl">🔐</span>
+                <h3 className="font-semibold text-foreground">Accès au dossier</h3>
+                <span className="text-xs font-medium bg-primary/10 text-primary px-2 py-0.5 rounded-full ml-auto">
+                  {permissions.filter((p) => p.status === "active").length} actif(s)
+                </span>
+              </div>
+              <div className="px-6 py-4 border-t border-border bg-secondary/5 space-y-3">
+                <p className="text-xs text-muted-foreground">
+                  Les médecins ci-dessous ont accès à votre dossier médical. L'accès est accordé automatiquement lors de la prise de rendez-vous et expire 3 jours après la consultation.
+                </p>
+                {permissions.length === 0 ? (
+                  <div className="border-2 border-dashed border-primary/30 rounded-lg p-8 text-center space-y-2">
+                    <ShieldCheck className="w-8 h-8 text-primary mx-auto" />
+                    <p className="font-semibold text-foreground text-sm">Aucun accès accordé</p>
+                    <p className="text-xs text-muted-foreground">
+                      Aucun médecin n'a actuellement accès à votre dossier
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {permissions.map((p, i) => {
+                      const isActive = p.status === "active";
+                      const isExpired = p.status === "expired";
+                      const hasExpiry = p.expiresAt && isActive;
+                      return (
+                        <div
+                          key={i}
+                          className={`flex items-center justify-between p-3 rounded-lg border ${
+                            isActive
+                              ? "bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-900"
+                              : isExpired
+                                ? "bg-orange-50 border-orange-200 dark:bg-orange-950/20 dark:border-orange-900"
+                                : "bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-900"
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            {isActive ? (
+                              <ShieldCheck size={18} className="text-green-600" />
+                            ) : isExpired ? (
+                              <Clock size={18} className="text-orange-500" />
+                            ) : (
+                              <ShieldOff size={18} className="text-red-500" />
+                            )}
+                            <div>
+                              <p className="font-medium text-sm text-foreground">
+                                Dr. {p.doctorName || "Médecin"}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {isActive
+                                  ? hasExpiry
+                                    ? `Expire le ${new Date(p.expiresAt).toLocaleDateString("fr-FR")}`
+                                    : `Accordé le ${new Date(p.grantedAt).toLocaleDateString("fr-FR")}`
+                                  : isExpired
+                                    ? "Accès expiré"
+                                    : "Accès révoqué"}
+                              </p>
+                            </div>
+                          </div>
+                          {isActive && (
+                            <button
+                              onClick={() => revokePermission(p.doctorId)}
+                              disabled={permLoading}
+                              className="px-3 py-1.5 text-xs font-medium text-red-600 border border-red-300 rounded-lg hover:bg-red-100 transition disabled:opacity-50"
+                            >
+                              Révoquer
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </main>
       </div>

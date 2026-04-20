@@ -4,48 +4,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { useAuth } from "@/contexts/AuthContext";
+import { tunisianGovernorates, examTypeOptions, labTypes } from "@/lib/config";
 import { Search, MapPin, Star, X, Clock, CheckCircle, Calendar, ChevronLeft, ChevronRight, Activity, SlidersHorizontal, FlaskConical, Eye, Upload, FileText, Shield, Loader2, } from "lucide-react";
-// ─── Mock Data ─────────────────────────────────────────────────────────────────
-const tunisianGovernorates = [
-    "Tunis",
-    "Ariana",
-    "Ben Arous",
-    "Manouba",
-    "Nabeul",
-    "Zaghouan",
-    "Bizerte",
-    "Béja",
-    "Jendouba",
-    "Le Kef",
-    "Siliana",
-    "Monastir",
-    "Mahdia",
-    "Sfax",
-    "Kairouan",
-    "Kasserine",
-    "Sidi Bouzid",
-    "Sousse",
-    "Gabès",
-    "Médenine",
-    "Tataouine",
-    "Gafsa",
-    "Tozeur",
-    "Kébili",
-];
-const examTypeOptions = [
-    "Biologie",
-    "Hématologie",
-    "Microbiologie",
-    "Sérologie",
-    "Endocrinologie",
-    "Imagerie",
-    "IRM",
-    "Scanner",
-    "Échographie",
-    "Radiographie",
-    "Médecine nucléaire",
-];
-const labTypes = ["Laboratoire", "Radiologie", "Mixte"];
 const typeColors = {
     Laboratoire: "bg-blue-500/10 text-blue-700 dark:text-blue-400",
     Radiologie: "bg-violet-500/10 text-violet-700 dark:text-violet-400",
@@ -168,7 +128,7 @@ function BookingModal({ lab, onClose, }) {
 }
 // ─── Lab Card ─────────────────────────────────────────────────────────────────
 function LabCard({ lab, onBook, onOrdonnance, }) {
-    return (_jsxs("div", { className: "bg-card border border-border rounded-xl overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-200 group flex flex-col", children: [_jsxs("div", { className: "relative h-44 overflow-hidden", children: [_jsx("img", { src: lab.imageUrl, alt: lab.name, className: "w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" }), _jsx("div", { className: "absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" }), _jsxs("div", { className: "absolute top-3 left-3 flex gap-2", children: [_jsxs("span", { className: `px-2.5 py-1 rounded-lg text-xs font-semibold ${typeColors[lab.type]}`, children: [typeIcons[lab.type], lab.type] }), lab.cnam && (_jsxs("span", { className: "px-2.5 py-1 rounded-lg text-xs font-semibold bg-accent/90 text-accent-foreground flex items-center gap-1", children: [_jsx(Shield, { size: 10 }), " CNAM"] }))] }), _jsxs("div", { className: "absolute bottom-3 left-3 flex items-center gap-1.5", children: [_jsx(Star, { size: 13, className: "text-amber-400 fill-amber-400" }), _jsx("span", { className: "text-white font-bold text-sm", children: lab.rating.toFixed(1) }), _jsxs("span", { className: "text-white/70 text-xs", children: ["(", lab.reviews, " avis)"] })] })] }), _jsxs("div", { className: "p-4 flex flex-col flex-1 gap-3", children: [_jsxs("div", { children: [_jsx("h3", { className: "font-bold text-foreground text-base leading-tight", children: lab.name }), _jsxs("p", { className: "text-xs text-muted-foreground flex items-center gap-1 mt-1", children: [_jsx(MapPin, { size: 11 }), " ", lab.city, ", ", lab.governorate] })] }), _jsxs("div", { className: "flex flex-wrap gap-1.5", children: [lab.exams.slice(0, 4).map((ex) => (_jsx("span", { className: "px-2 py-0.5 rounded-full text-[11px] font-medium bg-secondary/70 text-foreground/80", children: ex }, ex))), lab.exams.length > 4 && (_jsxs("span", { className: "px-2 py-0.5 rounded-full text-[11px] font-medium bg-secondary/70 text-muted-foreground", children: ["+", lab.exams.length - 4] }))] }), _jsxs("div", { className: "flex items-center justify-between text-xs text-muted-foreground", children: [_jsxs("span", { className: "flex items-center gap-1", children: [_jsx(Clock, { size: 12 }), " R\u00E9sultats : ", lab.resultDelay] }), _jsxs("span", { className: "font-semibold text-foreground", children: ["\u00C0 partir de", " ", _jsxs("span", { className: "text-primary", children: [lab.priceFrom, " TND"] })] })] }), _jsxs("div", { className: "mt-auto flex gap-2 pt-2", children: [_jsx(Link, { to: `/labos-radiologie/${lab.id}`, className: "flex-1 py-2.5 text-center text-xs font-semibold border border-border rounded-xl hover:bg-secondary/50 transition text-foreground", children: "Voir d\u00E9tails" }), _jsxs("button", { onClick: () => onOrdonnance(lab), className: "flex-1 py-2.5 text-xs font-semibold border border-primary/40 rounded-xl hover:bg-primary/5 transition text-primary flex items-center justify-center gap-1", children: [_jsx(Upload, { size: 13 }), " Ordonnance"] }), _jsx("button", { onClick: () => onBook(lab), className: "flex-1 py-2.5 text-xs font-semibold bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition", children: "RDV" })] })] })] }));
+    return (_jsxs("div", { className: "bg-card border border-border rounded-xl overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-200 group flex flex-col", children: [_jsxs("div", { className: "relative h-44 overflow-hidden", children: [_jsx("img", { src: lab.imageUrl, alt: lab.name, className: "w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" }), _jsx("div", { className: "absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" }), _jsxs("div", { className: "absolute top-3 left-3 flex gap-2", children: [_jsxs("span", { className: `px-2.5 py-1 rounded-lg text-xs font-semibold ${typeColors[lab.type]}`, children: [typeIcons[lab.type], lab.type] }), lab.cnam && (_jsxs("span", { className: "px-2.5 py-1 rounded-lg text-xs font-semibold bg-accent/90 text-accent-foreground flex items-center gap-1", children: [_jsx(Shield, { size: 10 }), " CNAM"] }))] }), _jsxs("div", { className: "absolute bottom-3 left-3 flex items-center gap-1.5", children: [_jsx(Star, { size: 13, className: "text-amber-400 fill-amber-400" }), _jsx("span", { className: "text-white font-bold text-sm", children: lab.rating.toFixed(1) })] })] }), _jsxs("div", { className: "p-4 flex flex-col flex-1 gap-3", children: [_jsxs("div", { children: [_jsx("h3", { className: "font-bold text-foreground text-base leading-tight", children: lab.name }), _jsxs("p", { className: "text-xs text-muted-foreground flex items-center gap-1 mt-1", children: [_jsx(MapPin, { size: 11 }), " ", lab.city, ", ", lab.governorate] })] }), _jsxs("div", { className: "flex flex-wrap gap-1.5", children: [lab.exams.slice(0, 4).map((ex) => (_jsx("span", { className: "px-2 py-0.5 rounded-full text-[11px] font-medium bg-secondary/70 text-foreground/80", children: ex }, ex))), lab.exams.length > 4 && (_jsxs("span", { className: "px-2 py-0.5 rounded-full text-[11px] font-medium bg-secondary/70 text-muted-foreground", children: ["+", lab.exams.length - 4] }))] }), _jsxs("div", { className: "flex items-center justify-between text-xs text-muted-foreground", children: [_jsxs("span", { className: "flex items-center gap-1", children: [_jsx(Clock, { size: 12 }), " R\u00E9sultats : ", lab.resultDelay] }), _jsxs("span", { className: "font-semibold text-foreground", children: ["\u00C0 partir de", " ", _jsxs("span", { className: "text-primary", children: [lab.priceFrom, " TND"] })] })] }), _jsxs("div", { className: "mt-auto flex gap-2 pt-2", children: [_jsx(Link, { to: `/labos-radiologie/${lab.id}`, className: "flex-1 py-2.5 text-center text-xs font-semibold border border-border rounded-xl hover:bg-secondary/50 transition text-foreground", children: "Voir d\u00E9tails" }), _jsxs("button", { onClick: () => onOrdonnance(lab), className: "flex-1 py-2.5 text-xs font-semibold border border-primary/40 rounded-xl hover:bg-primary/5 transition text-primary flex items-center justify-center gap-1", children: [_jsx(Upload, { size: 13 }), " Ordonnance"] }), _jsx("button", { onClick: () => onBook(lab), className: "flex-1 py-2.5 text-xs font-semibold bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition", children: "RDV" })] })] })] }));
 }
 // ─── Filter Panel ─────────────────────────────────────────────────────────────
 function FilterPanel({ selectedTypes, toggleType, selectedGov, setSelectedGov, selectedExamTypes, toggleExamType, cnamOnly, setCnamOnly, onReset, }) {

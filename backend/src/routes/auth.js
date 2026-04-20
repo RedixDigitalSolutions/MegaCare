@@ -138,13 +138,19 @@ router.get("/profile", authMiddleware, async (req, res) => {
 router.patch("/profile", authMiddleware, async (req, res) => {
   const user = await User.findById(req.user.id);
   if (!user) return res.status(404).json({ message: "Utilisateur non trouvé" });
-  const { firstName, lastName, phone, email, specialization, avatar } =
+  const { firstName, lastName, phone, email, specialization, avatar,
+          companyName, address, governorate, delegation, mapsUrl } =
     req.body;
   if (firstName !== undefined) user.firstName = firstName;
   if (lastName !== undefined) user.lastName = lastName;
   if (phone !== undefined) user.phone = phone;
   if (specialization !== undefined) user.specialization = specialization;
   if (avatar !== undefined) user.avatar = avatar;
+  if (companyName !== undefined) user.companyName = companyName;
+  if (address !== undefined) user.address = address;
+  if (governorate !== undefined) user.governorate = governorate;
+  if (delegation !== undefined) user.delegation = delegation;
+  if (mapsUrl !== undefined) user.mapsUrl = mapsUrl;
   if (email !== undefined && email !== user.email) {
     const taken = await User.findOne({ email, _id: { $ne: user._id } });
     if (taken)

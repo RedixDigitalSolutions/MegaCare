@@ -571,7 +571,7 @@ export default function ServiceMedicalDetailPage() {
       .catch(() => setLoading(false));
   }, [id]);
 
-  const [tab, setTab] = useState<"about" | "team" | "schedule" | "reviews">(
+  const [tab, setTab] = useState<"about" | "team" | "schedule">(
     "about",
   );
   const [galleryIdx, setGalleryIdx] = useState(0);
@@ -716,9 +716,7 @@ export default function ServiceMedicalDetailPage() {
                     <span className="font-bold text-foreground text-sm">
                       {estab.rating}
                     </span>
-                    <span className="text-muted-foreground text-xs">
-                      ({estab.reviews} avis)
-                    </span>
+
                   </div>
                   {estab.founded && (
                     <div className="flex items-center gap-1.5 text-muted-foreground text-xs">
@@ -798,13 +796,12 @@ export default function ServiceMedicalDetailPage() {
               {/* Tabs */}
               <div className="bg-card rounded-2xl border border-border overflow-hidden">
                 <div className="flex border-b border-border">
-                  {(["about", "team", "schedule", "reviews"] as const).map(
+                  {(["about", "team", "schedule"] as const).map(
                     (t) => {
                       const labels: Record<string, string> = {
                         about: "À propos",
                         team: "Équipe",
                         schedule: "Horaires",
-                        reviews: "Avis",
                       };
                       return (
                         <button
@@ -816,11 +813,6 @@ export default function ServiceMedicalDetailPage() {
                             }`}
                         >
                           {labels[t]}
-                          {t === "reviews" && estab.patientReviews?.length ? (
-                            <span className="ml-1.5 px-1.5 py-0.5 bg-amber-500/15 text-amber-600 dark:text-amber-400 rounded-full text-[10px]">
-                              {estab.patientReviews.length}
-                            </span>
-                          ) : null}
                         </button>
                       );
                     },
@@ -943,54 +935,7 @@ export default function ServiceMedicalDetailPage() {
                     </div>
                   )}
 
-                  {/* Reviews */}
-                  {tab === "reviews" && (
-                    <div className="space-y-4">
-                      {!estab.patientReviews ||
-                        estab.patientReviews.length === 0 ? (
-                        <p className="text-sm text-muted-foreground text-center py-6">
-                          Aucun avis pour le moment.
-                        </p>
-                      ) : (
-                        estab.patientReviews.map((review, i) => (
-                          <div
-                            key={i}
-                            className="p-4 bg-secondary/30 rounded-xl space-y-2"
-                          >
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary text-xs">
-                                  {review.author[0]}
-                                </div>
-                                <span className="font-semibold text-foreground text-sm">
-                                  {review.author}
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-1">
-                                {Array.from({ length: 5 }, (_, i) => (
-                                  <Star
-                                    key={i}
-                                    size={13}
-                                    className={
-                                      i < review.rating
-                                        ? "text-amber-400 fill-amber-400"
-                                        : "text-muted-foreground/20"
-                                    }
-                                  />
-                                ))}
-                              </div>
-                            </div>
-                            <p className="text-sm text-muted-foreground leading-relaxed">
-                              {review.comment}
-                            </p>
-                            <p className="text-xs text-muted-foreground/70">
-                              {review.date}
-                            </p>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  )}
+
                 </div>
               </div>
             </div>

@@ -3,6 +3,17 @@ const ICE_SERVERS = {
     iceServers: [
         { urls: "stun:stun.l.google.com:19302" },
         { urls: "stun:stun1.l.google.com:19302" },
+        // TURN server — required for peers behind symmetric NAT (production).
+        // Set VITE_TURN_URL, VITE_TURN_USERNAME, VITE_TURN_CREDENTIAL in .env.
+        ...(import.meta.env.VITE_TURN_URL
+            ? [
+                {
+                    urls: import.meta.env.VITE_TURN_URL,
+                    username: import.meta.env.VITE_TURN_USERNAME,
+                    credential: import.meta.env.VITE_TURN_CREDENTIAL,
+                },
+            ]
+            : []),
     ],
 };
 export function useWebRTC({ socket, partnerId, initiator }) {
@@ -259,8 +270,15 @@ export function useWebRTC({ socket, partnerId, initiator }) {
         startLocalStream().then(() => {
             // Tell the doctor we're ready to receive the offer
             socket.emit("webrtc:ready", { to: partnerId });
-            // Re-emit ready periodically in case doctor joins later
-            const readyInterval = setInterval(() => {
+            // Re-emit ready periodically in case doctor joins later.
+            // Stops automatically once the ICE connection is established.
+            let readyInterval;
+            readyInterval = setInterval(() => {
+                const iceState = pcRef.current?.iceConnectionState;
+                if (iceState === "connected" || iceState === "completed") {
+                    clearInterval(readyInterval);
+                    return;
+                }
                 if (!pcRef.current || pcRef.current.signalingState === "closed") {
                     socket.emit("webrtc:ready", { to: partnerId });
                 }

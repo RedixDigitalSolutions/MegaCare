@@ -9,7 +9,6 @@ import {
   X,
   User,
   CheckCircle,
-  Bell,
   Shield,
   Loader2,
   AlertCircle,
@@ -22,24 +21,6 @@ import {
   Camera,
   KeyRound,
 } from "lucide-react";
-
-const NOTIF_STORAGE_KEY = "megacare_doctor_notif_prefs";
-
-function loadNotifPrefs() {
-  try {
-    const raw = localStorage.getItem(NOTIF_STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch {}
-  return { appointments: true, reminders: true, reviews: true };
-}
-
-function saveNotifPrefs(prefs: {
-  appointments: boolean;
-  reminders: boolean;
-  reviews: boolean;
-}) {
-  localStorage.setItem(NOTIF_STORAGE_KEY, JSON.stringify(prefs));
-}
 
 export default function DoctorSettingsPage() {
   const { user, isLoading, isAuthenticated, updateUser } = useAuth();
@@ -58,22 +39,6 @@ export default function DoctorSettingsPage() {
   const [phone, setPhone] = useState("");
   const [specialty, setSpecialty] = useState("");
   const [licenseId, setLicenseId] = useState("");
-
-  // Notifications (persisted in localStorage)
-  const [notifPrefs, setNotifPrefs] = useState(loadNotifPrefs);
-  const toggleNotif = (key: "appointments" | "reminders" | "reviews") => {
-    setNotifPrefs(
-      (prev: {
-        appointments: boolean;
-        reminders: boolean;
-        reviews: boolean;
-      }) => {
-        const next = { ...prev, [key]: !prev[key] };
-        saveNotifPrefs(next);
-        return next;
-      },
-    );
-  };
 
   // Save state
   const [saving, setSaving] = useState(false);
@@ -505,76 +470,8 @@ export default function DoctorSettingsPage() {
                 </div>
               </div>
 
-              {/* ── Bottom row: Notifications + Security side by side ── */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                {/* Notifications */}
-                <div className="bg-card rounded-2xl border border-border p-6 space-y-4">
-                  <div className="flex items-center gap-2.5 pb-3 border-b border-border">
-                    <div className="p-2 bg-amber-500/10 rounded-lg">
-                      <Bell size={18} className="text-amber-600" />
-                    </div>
-                    <div>
-                      <h2 className="text-base font-bold text-foreground">
-                        Notifications
-                      </h2>
-                      <p className="text-xs text-muted-foreground">
-                        Choisissez ce qui vous alerte
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-1">
-                    {[
-                      {
-                        label: "Nouveaux rendez-vous",
-                        desc: "Alerte à chaque nouvelle réservation",
-                        key: "appointments" as const,
-                      },
-                      {
-                        label: "Rappels d'agenda",
-                        desc: "Rappels avant vos consultations",
-                        key: "reminders" as const,
-                      },
-                      {
-                        label: "Nouveaux avis patients",
-                        desc: "Quand un patient laisse un avis",
-                        key: "reviews" as const,
-                      },
-                    ].map(({ label, desc, key }) => (
-                      <label
-                        key={key}
-                        className="flex items-center justify-between cursor-pointer py-3 px-2 rounded-xl hover:bg-muted/50 transition"
-                      >
-                        <div className="pr-4">
-                          <span className="text-sm font-medium text-foreground block">
-                            {label}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            {desc}
-                          </span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => toggleNotif(key)}
-                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0 ${
-                            notifPrefs[key]
-                              ? "bg-primary"
-                              : "bg-muted-foreground/20"
-                          }`}
-                        >
-                          <span
-                            className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
-                              notifPrefs[key]
-                                ? "translate-x-6"
-                                : "translate-x-1"
-                            }`}
-                          />
-                        </button>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
+              {/* ── Security ── */}
+              <div>
                 {/* Security */}
                 <div className="bg-card rounded-2xl border border-border p-6 space-y-4">
                   <div className="flex items-center gap-2.5 pb-3 border-b border-border">

@@ -15,6 +15,7 @@ import {
   Menu,
   X,
   MessageSquare,
+  Home,
 } from "lucide-react";
 
 const menuItems = [
@@ -36,7 +37,6 @@ const menuItems = [
     icon: FileText,
   },
   { href: "/doctor-dashboard/revenue", label: "Mes revenus", icon: TrendingUp },
-  { href: "/doctor-dashboard/reviews", label: "Avis patients", icon: Star },
   {
     href: "/doctor-dashboard/messaging",
     label: "Messages",
@@ -148,8 +148,16 @@ export function DoctorDashboardSidebar({
         })}
       </nav>
 
-      {/* Logout */}
-      <div className="px-3 py-3 border-t border-sidebar-border shrink-0">
+      {/* Footer actions */}
+      <div className="px-3 py-3 border-t border-sidebar-border shrink-0 space-y-0.5">
+        <Link
+          to="/"
+          onClick={() => setMobileOpen(false)}
+          className="w-full flex items-center gap-3 px-3 py-2.5 text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground rounded-lg transition-all text-sm font-medium"
+        >
+          <Home size={17} />
+          Retour à l’accueil
+        </Link>
         <button
           onClick={handleLogout}
           className="w-full flex items-center gap-3 px-3 py-2.5 text-sidebar-foreground/50 hover:text-destructive hover:bg-destructive/10 rounded-lg transition-all text-sm font-medium"

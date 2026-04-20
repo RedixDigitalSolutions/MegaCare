@@ -69,6 +69,19 @@ const dossierSchema = new mongoose.Schema(
         notes: String,
       },
     ],
+    permissions: [
+      {
+        doctorId: { type: String, required: true },
+        doctorName: { type: String, default: "" },
+        grantedAt: { type: Date, default: Date.now },
+        expiresAt: { type: Date, default: null },
+        status: {
+          type: String,
+          enum: ["active", "expired", "revoked"],
+          default: "active",
+        },
+      },
+    ],
   },
   {
     timestamps: true,

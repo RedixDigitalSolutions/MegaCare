@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
 import { LabDashboardSidebar } from "@/components/LabDashboardSidebar";
-import { FlaskConical, FileText, Users, Image, Calendar, CreditCard, MessageSquare, BarChart3, Settings, Clock, CheckCircle2, AlertCircle, } from "lucide-react";
+import { FlaskConical, FileText, Users, Image, Calendar, CreditCard, MessageSquare, BarChart3, Settings, Clock, CheckCircle2, AlertCircle, Loader2, } from "lucide-react";
 const quickLinks = [
     {
         href: "/lab-dashboard/tests",
@@ -28,7 +28,6 @@ const quickLinks = [
         icon: Image,
         color: "text-purple-500",
         bg: "bg-purple-50",
-        disabled: true,
     },
     {
         href: "/lab-dashboard/patients",
@@ -37,7 +36,6 @@ const quickLinks = [
         icon: Users,
         color: "text-indigo-500",
         bg: "bg-indigo-50",
-        disabled: true,
     },
     {
         href: "/lab-dashboard/appointments",
@@ -46,7 +44,6 @@ const quickLinks = [
         icon: Calendar,
         color: "text-pink-500",
         bg: "bg-pink-50",
-        disabled: true,
     },
     {
         href: "/lab-dashboard/billing",
@@ -55,7 +52,6 @@ const quickLinks = [
         icon: CreditCard,
         color: "text-amber-500",
         bg: "bg-amber-50",
-        disabled: true,
     },
     {
         href: "/lab-dashboard/messaging",
@@ -64,7 +60,6 @@ const quickLinks = [
         icon: MessageSquare,
         color: "text-teal-500",
         bg: "bg-teal-50",
-        disabled: true,
     },
     {
         href: "/lab-dashboard/analytics",
@@ -73,7 +68,6 @@ const quickLinks = [
         icon: BarChart3,
         color: "text-red-500",
         bg: "bg-red-50",
-        disabled: true,
     },
     {
         href: "/lab-dashboard/settings",
@@ -82,46 +76,21 @@ const quickLinks = [
         icon: Settings,
         color: "text-slate-500",
         bg: "bg-slate-50",
-        disabled: true,
     },
 ];
-const recentActivity = [
-    {
-        icon: CheckCircle2,
-        color: "text-green-500",
-        bg: "bg-green-50",
-        text: "Analyse ADN — Leila Mansouri complétée",
-        time: "Il y a 45 min",
-    },
-    {
-        icon: AlertCircle,
-        color: "text-amber-500",
-        bg: "bg-amber-50",
-        text: "Résultat cholestérol élevé — Karim Smaoui",
-        time: "Il y a 1h 20",
-    },
-    {
-        icon: FlaskConical,
-        color: "text-blue-500",
-        bg: "bg-blue-50",
-        text: "Nouvelle demande d'analyse — Ahmed Nasser",
-        time: "Il y a 2h",
-    },
-    {
-        icon: FileText,
-        color: "text-purple-500",
-        bg: "bg-purple-50",
-        text: "Résultat TSH partagé — Sara Meddeb",
-        time: "Il y a 3h",
-    },
-    {
-        icon: CheckCircle2,
-        color: "text-green-500",
-        bg: "bg-green-50",
-        text: "Radio pulmonaire envoyée — Dr. Mansouri",
-        time: "Il y a 4h",
-    },
-];
+function formatTimeAgo(dateStr) {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1)
+        return "À l'instant";
+    if (mins < 60)
+        return `Il y a ${mins} min`;
+    const hours = Math.floor(mins / 60);
+    if (hours < 24)
+        return `Il y a ${hours}h`;
+    const days = Math.floor(hours / 24);
+    return `Il y a ${days}j`;
+}
 export default function LabDashboardPage() {
     const { user, isLoading, isAuthenticated } = useAuth();
     const navigate = useNavigate();
@@ -132,6 +101,9 @@ export default function LabDashboardPage() {
         criticalResults: 0,
     });
     const [loadingKpis, setLoadingKpis] = useState(true);
+    const [partnerDoctors, setPartnerDoctors] = useState(0);
+    const [recentActivity, setRecentActivity] = useState([]);
+    const [loadingActivity, setLoadingActivity] = useState(true);
     useEffect(() => {
         if (!isLoading && !isAuthenticated)
             navigate("/login");
@@ -150,15 +122,25 @@ export default function LabDashboardPage() {
         if (!isAuthenticated || !user || user.role !== "lab_radiology")
             return;
         const token = localStorage.getItem("megacare_token");
-        fetch("/api/lab/kpis", {
-            headers: { Authorization: `Bearer ${token}` },
-        })
+        const headers = { Authorization: `Bearer ${token}` };
+        fetch("/api/lab/kpis", { headers })
             .then((r) => r.json())
             .then((data) => {
             setKpiResponse(data);
             setLoadingKpis(false);
         })
             .catch(() => setLoadingKpis(false));
+        fetch("/api/lab/partner-doctors", { headers })
+            .then((r) => r.json())
+            .then((data) => setPartnerDoctors(data.count ?? 0))
+            .catch(() => { });
+        fetch("/api/lab/activity", { headers })
+            .then((r) => r.json())
+            .then((data) => {
+            setRecentActivity(Array.isArray(data) ? data : []);
+            setLoadingActivity(false);
+        })
+            .catch(() => setLoadingActivity(false));
     }, [isAuthenticated, user]);
     if (isLoading || !isAuthenticated || !user || user.role !== "lab_radiology")
         return null;
@@ -189,7 +171,7 @@ export default function LabDashboardPage() {
         },
         {
             label: "Médecins partenaires",
-            value: "45",
+            value: loadingKpis ? "…" : String(partnerDoctors),
             sub: "Actifs",
             icon: Users,
             color: "text-green-500",
@@ -201,12 +183,18 @@ export default function LabDashboardPage() {
                                     return (_jsxs("div", { className: "bg-card rounded-xl border border-border p-4 flex items-center gap-4", children: [_jsx("div", { className: `w-10 h-10 rounded-lg flex items-center justify-center ${k.bg}`, children: _jsx(Icon, { size: 20, className: k.color }) }), _jsxs("div", { children: [_jsx("p", { className: "text-2xl font-bold text-foreground", children: k.value }), _jsx("p", { className: "text-xs text-muted-foreground", children: k.label }), _jsx("p", { className: "text-xs text-green-600 font-medium", children: k.sub })] })] }, k.label));
                                 }) }), _jsxs("div", { children: [_jsx("h2", { className: "text-sm font-semibold text-foreground mb-3", children: "Acc\u00E8s rapide" }), _jsx("div", { className: "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3", children: quickLinks.map((q) => {
                                             const Icon = q.icon;
-                                            if (q.disabled) {
-                                                return (_jsxs("div", { title: "Bient\u00F4t disponible", className: "bg-card rounded-xl border border-border p-4 opacity-50 cursor-not-allowed space-y-2", children: [_jsx("div", { className: `w-9 h-9 rounded-lg flex items-center justify-center ${q.bg}`, children: _jsx(Icon, { size: 18, className: q.color }) }), _jsx("p", { className: "text-sm font-semibold text-muted-foreground", children: q.label }), _jsx("p", { className: "text-xs text-muted-foreground leading-tight", children: q.desc })] }, q.href));
-                                            }
                                             return (_jsxs(Link, { to: q.href, className: "bg-card rounded-xl border border-border p-4 hover:shadow-md hover:border-primary/40 transition-all group space-y-2", children: [_jsx("div", { className: `w-9 h-9 rounded-lg flex items-center justify-center ${q.bg}`, children: _jsx(Icon, { size: 18, className: q.color }) }), _jsx("p", { className: "text-sm font-semibold text-foreground group-hover:text-primary transition", children: q.label }), _jsx("p", { className: "text-xs text-muted-foreground leading-tight", children: q.desc })] }, q.href));
-                                        }) })] }), _jsxs("div", { className: "bg-card rounded-xl border border-border overflow-hidden", children: [_jsx("div", { className: "px-5 py-4 border-b border-border", children: _jsx("h2", { className: "font-semibold text-foreground text-sm", children: "Activit\u00E9 r\u00E9cente" }) }), _jsx("div", { className: "divide-y divide-border", children: recentActivity.map((a, i) => {
-                                            const Icon = a.icon;
-                                            return (_jsxs("div", { className: "flex items-center gap-4 px-5 py-3", children: [_jsx("div", { className: `w-8 h-8 rounded-lg flex items-center justify-center ${a.bg} shrink-0`, children: _jsx(Icon, { size: 15, className: a.color }) }), _jsx("p", { className: "flex-1 text-sm text-foreground", children: a.text }), _jsx("span", { className: "text-xs text-muted-foreground whitespace-nowrap", children: a.time })] }, i));
-                                        }) })] })] })] })] }));
+                                        }) })] }), _jsxs("div", { className: "bg-card rounded-xl border border-border overflow-hidden", children: [_jsx("div", { className: "px-5 py-4 border-b border-border", children: _jsx("h2", { className: "font-semibold text-foreground text-sm", children: "Activit\u00E9 r\u00E9cente" }) }), _jsx("div", { className: "divide-y divide-border", children: loadingActivity ? (_jsx("div", { className: "flex items-center justify-center py-8", children: _jsx(Loader2, { size: 20, className: "animate-spin text-muted-foreground" }) })) : recentActivity.length === 0 ? (_jsx("p", { className: "text-sm text-muted-foreground px-5 py-6 text-center", children: "Aucune activit\u00E9 r\u00E9cente" })) : (recentActivity.map((a, i) => {
+                                            const iconMap = {
+                                                completed: { icon: CheckCircle2, color: "text-green-500", bg: "bg-green-50" },
+                                                critical: { icon: AlertCircle, color: "text-red-500", bg: "bg-red-50" },
+                                                in_progress: { icon: Clock, color: "text-amber-500", bg: "bg-amber-50" },
+                                                new_request: { icon: FlaskConical, color: "text-blue-500", bg: "bg-blue-50" },
+                                                result: { icon: FileText, color: "text-purple-500", bg: "bg-purple-50" },
+                                            };
+                                            const style = iconMap[a.type] ?? iconMap.result;
+                                            const Icon = style.icon;
+                                            const ago = formatTimeAgo(a.createdAt);
+                                            return (_jsxs("div", { className: "flex items-center gap-4 px-5 py-3", children: [_jsx("div", { className: `w-8 h-8 rounded-lg flex items-center justify-center ${style.bg} shrink-0`, children: _jsx(Icon, { size: 15, className: style.color }) }), _jsx("p", { className: "flex-1 text-sm text-foreground", children: a.text }), _jsx("span", { className: "text-xs text-muted-foreground whitespace-nowrap", children: ago })] }, i));
+                                        })) })] })] })] })] }));
 }

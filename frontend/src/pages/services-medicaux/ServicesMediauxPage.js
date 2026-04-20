@@ -4,57 +4,9 @@ import { Link, useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { useAuth } from "@/contexts/AuthContext";
+import { tunisianGovernorates, allServices, establishmentTypes } from "@/lib/config";
 import { Search, MapPin, Star, ChevronDown, X, Clock, CheckCircle, Calendar, ChevronLeft, ChevronRight, Building2, Shield, SlidersHorizontal, Loader2, } from "lucide-react";
 // ─── (data loaded from API in component) ────────────────────────────────────
-const tunisianGovernorates = [
-    "Tunis",
-    "Ariana",
-    "Ben Arous",
-    "Manouba",
-    "Nabeul",
-    "Zaghouan",
-    "Bizerte",
-    "Béja",
-    "Jendouba",
-    "Le Kef",
-    "Siliana",
-    "Monastir",
-    "Mahdia",
-    "Sfax",
-    "Kairouan",
-    "Kasserine",
-    "Sidi Bouzid",
-    "Sousse",
-    "Gabès",
-    "Médenine",
-    "Tataouine",
-    "Gafsa",
-    "Tozeur",
-    "Kébili",
-];
-const allServices = [
-    "Cardiologie",
-    "Chirurgie",
-    "Urgences",
-    "Maternité",
-    "Pédiatrie",
-    "Radiologie",
-    "Imagerie",
-    "Gynécologie",
-    "Orthopédie",
-    "Neurologie",
-    "Dermatologie",
-    "Ophtalmologie",
-    "ORL",
-    "Soins infirmiers",
-    "HAD",
-];
-const establishmentTypes = [
-    "Clinique",
-    "Hôpital",
-    "HAD",
-    "Centre médical",
-];
 const typeColors = {
     Clinique: "bg-blue-500/10 text-blue-700 dark:text-blue-400",
     Hôpital: "bg-purple-500/10 text-purple-700 dark:text-purple-400",
@@ -144,7 +96,7 @@ function BookingModal({ estab, onClose, }) {
 }
 // ─── Establishment Card ────────────────────────────────────────────────────────
 function EstabCard({ estab, onBook, }) {
-    return (_jsxs("div", { className: "bg-card border border-border rounded-xl overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-200 group flex flex-col", children: [_jsxs("div", { className: "relative h-44 overflow-hidden", children: [_jsx("img", { src: estab.imageUrl, alt: estab.name, className: "w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" }), _jsx("div", { className: "absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" }), _jsxs("div", { className: "absolute top-3 left-3 flex gap-2", children: [_jsx("span", { className: `px-2.5 py-1 text-xs font-semibold rounded-full backdrop-blur-sm ${typeColors[estab.type]}`, children: estab.type }), estab.emergencies && (_jsx("span", { className: "px-2.5 py-1 text-xs font-semibold rounded-full bg-red-500/90 text-white backdrop-blur-sm", children: "Urgences 24h" }))] }), estab.accredited && (_jsx("div", { className: "absolute top-3 right-3 w-8 h-8 bg-white/90 rounded-full flex items-center justify-center", title: "\u00C9tablissement accr\u00E9dit\u00E9", children: _jsx(Shield, { className: "text-emerald-600", size: 14 }) }))] }), _jsxs("div", { className: "p-5 flex flex-col flex-1", children: [_jsxs("div", { className: "flex items-start justify-between gap-2 mb-2", children: [_jsx("h3", { className: "font-bold text-foreground text-base leading-tight group-hover:text-primary transition-colors", children: estab.name }), _jsxs("div", { className: "flex items-center gap-1 shrink-0", children: [_jsx(Star, { className: "text-amber-400 fill-amber-400", size: 14 }), _jsx("span", { className: "text-sm font-bold text-foreground", children: estab.rating }), _jsxs("span", { className: "text-xs text-muted-foreground", children: ["(", estab.reviews, ")"] })] })] }), _jsxs("div", { className: "flex items-center gap-1.5 text-muted-foreground text-xs mb-3", children: [_jsx(MapPin, { size: 13 }), _jsxs("span", { children: [estab.city, ", ", estab.governorate] })] }), _jsxs("div", { className: "flex flex-wrap gap-1.5 mb-4", children: [estab.services.slice(0, 3).map((s) => (_jsx("span", { className: "px-2.5 py-0.5 bg-secondary text-muted-foreground text-xs rounded-full", children: s }, s))), estab.services.length > 3 && (_jsxs("span", { className: "px-2.5 py-0.5 bg-secondary text-muted-foreground text-xs rounded-full", children: ["+", estab.services.length - 3] }))] }), _jsxs("div", { className: "flex items-center gap-3 text-xs text-muted-foreground mb-4 mt-auto", children: [_jsx(Clock, { size: 12 }), _jsxs("span", { children: ["Consultation d\u00E8s ", estab.price, " TND"] })] }), _jsxs("div", { className: "flex gap-2", children: [_jsx(Link, { to: `/services-medicaux/${estab.id}`, className: "flex-1 py-2.5 border border-border text-foreground rounded-xl text-xs font-semibold text-center hover:bg-secondary/50 transition-colors", children: "Voir d\u00E9tails" }), _jsx("button", { onClick: onBook, className: "flex-1 py-2.5 bg-primary text-primary-foreground rounded-xl text-xs font-semibold hover:bg-primary/90 transition-colors", children: "Prendre RDV" })] })] })] }));
+    return (_jsxs("div", { className: "bg-card border border-border rounded-xl overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-200 group flex flex-col", children: [_jsxs("div", { className: "relative h-44 overflow-hidden", children: [_jsx("img", { src: estab.imageUrl, alt: estab.name, className: "w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" }), _jsx("div", { className: "absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" }), _jsxs("div", { className: "absolute top-3 left-3 flex gap-2", children: [_jsx("span", { className: `px-2.5 py-1 text-xs font-semibold rounded-full backdrop-blur-sm ${typeColors[estab.type]}`, children: estab.type }), estab.emergencies && (_jsx("span", { className: "px-2.5 py-1 text-xs font-semibold rounded-full bg-red-500/90 text-white backdrop-blur-sm", children: "Urgences 24h" }))] }), estab.accredited && (_jsx("div", { className: "absolute top-3 right-3 w-8 h-8 bg-white/90 rounded-full flex items-center justify-center", title: "\u00C9tablissement accr\u00E9dit\u00E9", children: _jsx(Shield, { className: "text-emerald-600", size: 14 }) }))] }), _jsxs("div", { className: "p-5 flex flex-col flex-1", children: [_jsxs("div", { className: "flex items-start justify-between gap-2 mb-2", children: [_jsx("h3", { className: "font-bold text-foreground text-base leading-tight group-hover:text-primary transition-colors", children: estab.name }), _jsxs("div", { className: "flex items-center gap-1 shrink-0", children: [_jsx(Star, { className: "text-amber-400 fill-amber-400", size: 14 }), _jsx("span", { className: "text-sm font-bold text-foreground", children: estab.rating })] })] }), _jsxs("div", { className: "flex items-center gap-1.5 text-muted-foreground text-xs mb-3", children: [_jsx(MapPin, { size: 13 }), _jsxs("span", { children: [estab.city, ", ", estab.governorate] })] }), _jsxs("div", { className: "flex flex-wrap gap-1.5 mb-4", children: [estab.services.slice(0, 3).map((s) => (_jsx("span", { className: "px-2.5 py-0.5 bg-secondary text-muted-foreground text-xs rounded-full", children: s }, s))), estab.services.length > 3 && (_jsxs("span", { className: "px-2.5 py-0.5 bg-secondary text-muted-foreground text-xs rounded-full", children: ["+", estab.services.length - 3] }))] }), _jsxs("div", { className: "flex items-center gap-3 text-xs text-muted-foreground mb-4 mt-auto", children: [_jsx(Clock, { size: 12 }), _jsxs("span", { children: ["Consultation d\u00E8s ", estab.price, " TND"] })] }), _jsxs("div", { className: "flex gap-2", children: [_jsx(Link, { to: `/services-medicaux/${estab.id}`, className: "flex-1 py-2.5 border border-border text-foreground rounded-xl text-xs font-semibold text-center hover:bg-secondary/50 transition-colors", children: "Voir d\u00E9tails" }), _jsx("button", { onClick: onBook, className: "flex-1 py-2.5 bg-primary text-primary-foreground rounded-xl text-xs font-semibold hover:bg-primary/90 transition-colors", children: "Prendre RDV" })] })] })] }));
 }
 // ─── Partners Strip ────────────────────────────────────────────────────────────
 const partners = [

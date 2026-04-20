@@ -1,6 +1,6 @@
 # MegaCare Platform — Full Diagnostic Report
 
-> Generated: April 14, 2026  
+> Generated: April 17, 2026  
 > Scope: Complete backend + frontend audit  
 > Status: Development / Prototype stage
 
@@ -38,10 +38,10 @@ MegaCare is a healthcare platform with **83 frontend routes** across 7 dashboard
 | Orphan pages (no route)         | 0 (cleaned)   |
 | Backend API endpoints           | 38            |
 | Backend models                  | 11            |
-| Critical security issues        | 4             |
-| High-priority bugs              | 5 (8 fixed)   |
+| Critical security issues        | 2             |
+| High-priority bugs              | 5 (10 fixed)  |
 
-**Bottom line:** The platform has excellent UI/UX across all dashboards. The **core patient flow** (auth, appointments, messaging, live consultation, medical records, prescriptions, find doctor, consultations history, notifications, settings, medical history, dashboard) is now fully connected to real backend data. The **pharmacy dashboard** (4 pages), **lab dashboard** (3 pages), **medical service dashboard** (12 pages), and **paramedical dashboard** (13 pages) are now wired to backend APIs. Remaining hardcoded areas are mostly a few public listing pages and selected admin pages. Pharmacy operates as a **reservation system** (no cart/checkout/e-commerce).
+**Bottom line:** The platform has excellent UI/UX across all dashboards. The **core patient flow** (auth, appointments, messaging, live consultation, medical records, prescriptions, find doctor, consultations history, notifications, settings, medical history, dashboard) is now fully connected to real backend data. The **pharmacy dashboard** (4 pages), **lab dashboard** (3 pages), **medical service dashboard** (12 pages), and **paramedical dashboard** (13 pages) are now wired to backend APIs. The **admin stats page** is fully wired (real KPIs from `GET /api/admin/users`). The **admin settings page** is partially wired (profile + password persisted; notification/platform toggles are UI-only). Two previously critical security vulnerabilities in `users.js` (privilege escalation via PUT, PII exposure via GET) have been resolved. Pharmacy operates as a **reservation system** (no cart/checkout/e-commerce).
 
 ---
 
@@ -49,18 +49,18 @@ MegaCare is a healthcare platform with **83 frontend routes** across 7 dashboard
 
 ```
 ┌─────────────────────────────────────────────────┐
-│                   Frontend                       │
+│                   Frontend                      │
 │  React 19 + Vite + TypeScript + Tailwind CSS    │
 │  Port: 5173 (dev) — Proxy /api → :5000          │
 │  UI: Radix/shadcn components + Lucide icons     │
 ├─────────────────────────────────────────────────┤
-│                   Backend                        │
-│  Express.js 4.18 + Socket.IO 4.8.3             │
-│  Port: 5000                                     │
+│                   Backend                       │
+│  Express.js 4.18 + Socket.IO 4.8.3              │
+│  Port: 5000 (AirPlay Receiver disabled)          │
 │  Auth: JWT (7-day expiry)                       │
 ├─────────────────────────────────────────────────┤
-│                  Database                        │
-│  MongoDB (localhost:27017/megacare)              │
+│                  Database                       │
+│  MongoDB (localhost:27017/megacare)             │
 │  8 Collections: User, Appointment, Message,     │
 │  Dossier, Prescription, Product, Order, Doctor  │
 └─────────────────────────────────────────────────┘
@@ -146,6 +146,15 @@ These pages render beautiful UI but **all data is static arrays defined in the c
 | `/dashboard/notifications` (NotificationsPage)    | Static notification items      | ✅ Derives notifications from real appointments + prescriptions data         |
 | `/dashboard/prescriptions` (PrescriptionsPage)    | Static mock prescriptions      | ✅ Fetches `/api/prescriptions`, calculates expiry, resolves doctor names    |
 | `/dashboard/settings` (SettingsPage)              | All fields `readOnly`, no save | ✅ Editable fields, save via `PATCH /api/auth/profile`, password change form |
+
+#### Admin Dashboard
+
+> **Admin stats and settings pages have been updated.**
+
+| Page                                      | Previous Issue       | Fix Applied                                                                                                                                              |
+| ----------------------------------------- | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/admin/stats` (AdminStatsPage)           | Marked as 🔴 hardcoded | ✅ Already fetches `GET /api/admin/users`; computes real KPIs (total, approved, pending, rejected, suspended, per-role breakdown, approval rate)        |
+| `/admin/settings` (AdminSettingsPage)     | Marked as 🔴 not wired | ✅ Profile save and password change wired to API; notification/platform toggles remain UI-only (no backend settings storage)                            |
 
 #### Doctor Dashboard
 
@@ -271,9 +280,9 @@ The following orphan and e-commerce pages were deleted:
 
 | #   | Vulnerability                                    | Location                  | Impact                                                                                                                                                                                                           |
 | --- | ------------------------------------------------ | ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | **Privilege escalation via PUT /api/users/:id**  | `routes/users.js`         | Any authenticated user can set their own `role` to `"admin"` and `status` to `"approved"` by sending `{ role: "admin", status: "approved" }`. The route only strips `password`, `id`, and `email` from the body. |
+| 1   | ~~**Privilege escalation via PUT /api/users/:id**~~ | `routes/users.js`      | **FIXED** — `role` and `status` are now stripped from the request body alongside `password`, `id`, and `email`. Privilege escalation is no longer possible.                                                      |
 | 2   | ~~**No role check on POST /api/prescriptions**~~ | `routes/prescriptions.js` | **FIXED** — Added `req.user.role !== "doctor"` guard. Returns 403 for non-doctors.                                                                                                                               |
-| 3   | **GET /api/users exposes all users**             | `routes/users.js`         | Any authenticated user can list every user in the system (emails, phones, roles, addresses). Passwords are excluded but all PII is exposed.                                                                      |
+| 3   | ~~**GET /api/users exposes all users**~~          | `routes/users.js`         | **FIXED** — `GET /api/users` now returns 403 for any role that is not `admin` or `doctor`. PII is no longer exposed to patients, pharmacists, etc.                                                               |
 | 4   | **No async error handling in any route**         | All route files           | No `try/catch` on any async handler. An unhandled Mongoose error will crash the request (hang forever or return stack trace). Use `express-async-errors` or manual wrapping.                                     |
 
 ### 🟠 HIGH — ✅ All Fixed
@@ -358,7 +367,7 @@ The following orphan and e-commerce pages were deleted:
 | ------------------ | ------ | ------------------------------------------------------------------------------------------------------------------------- |
 | **AuthContext**    | ⚠️     | No token refresh. No server-side validation on reload. Split between context (user) and localStorage (token) is fragile.  |
 | **ProtectedRoute** | ⚠️     | Only used on ~15 of 92 routes. No token validation — trusts localStorage.                                                 |
-| **use-socket**     | ⚠️     | **Hardcoded `http://localhost:5000`** bypasses Vite proxy. Doesn't reconnect on login/logout.                             |
+| **use-socket**     | ✅     | Fixed — uses `import.meta.env.VITE_SOCKET_URL ?? ""` (routes through Vite proxy). Doesn't reconnect on login/logout.             |
 | **use-webrtc**     | ⚠️     | No TURN server (fails behind NAT). Patient re-emits `webrtc:ready` after connection. No error handling on SDP operations. |
 | **use-toast**      | ✅     | Standard shadcn/ui boilerplate.                                                                                           |
 | **use-mobile**     | ✅     | Standard responsive breakpoint hook.                                                                                      |
@@ -422,8 +431,8 @@ The following orphan and e-commerce pages were deleted:
 | `/admin/users`     | 🟢     | API            |
 | `/admin/pending`   | 🟢     | API            |
 | `/admin/suspended` | 🟢     | API            |
-| `/admin/stats`     | 🔴     | Hardcoded KPIs |
-| `/admin/settings`  | 🔴     | Not wired      |
+| `/admin/stats`     | 🟢     | API (`GET /api/admin/users` — real KPIs computed from user data) |
+| `/admin/settings`  | 🟡     | Partially wired — profile (`PATCH /api/auth/profile`) + password (`POST /api/auth/change-password`); notification/platform toggles are UI-only |
 
 ### Patient Dashboard
 
@@ -572,11 +581,11 @@ The following orphan and e-commerce pages were deleted:
 | 2   | **Fix hardcoded localhost in socket hook** — use relative URL or env variable | `use-socket.ts`                    | 2 min  |
 | 3   | ~~**Fix hardcoded localhost in DoctorSettingsPage**~~ — **DONE**              | `DoctorSettingsPage.tsx`           | Done   |
 | 4   | **Add `helmet` middleware**                                                   | `index.js`                         | 2 min  |
-| 5   | **Strip `role` and `status` from PUT /api/users/:id body**                    | `routes/users.js`                  | 1 min  |
+| 5   | ~~**Strip `role` and `status` from PUT /api/users/:id body**~~ — **DONE**     | `routes/users.js`                  | Done   |
 | 6   | ~~**Add role check to POST /api/prescriptions**~~ — **DONE**                  | `routes/prescriptions.js`          | Done   |
 | 7   | ~~**Add rate limiting to login endpoint**~~ — **DONE**                       | `index.js` — `express-rate-limit`, 15 req/15 min per IP on all auth routes        |
 | 8   | ~~**Stop re-emitting `webrtc:ready` after connection**~~                      | `use-webrtc.ts`                                                                    |
-| 9   | ~~**Restrict GET /api/users to admin and doctor roles**~~                     | `routes/users.js`                                                                  |
+| 9   | ~~**Restrict GET /api/users to admin and doctor roles**~~ — **DONE**          | `routes/users.js`                                                                  |
 | 10  | ~~**Set `patientName` on POST /api/appointments** by looking up the user~~ — **DONE** | `routes/appointments.js` — patientName set from User lookup                |
 
 ### Medium Effort (Backend API Connectivity)
@@ -613,11 +622,12 @@ The following orphan and e-commerce pages were deleted:
 
 ### Phase 1: Critical Fixes (Immediate)
 
-1. Fix privilege escalation in `PUT /api/users/:id` — strip `role` and `status`
+1. ~~Fix privilege escalation in `PUT /api/users/:id` — strip `role` and `status`~~ ✅ **DONE**
 2. ~~Add role check on `POST /api/prescriptions` — doctor only~~ ✅ **DONE**
-3. Restrict `GET /api/users` to admin/doctor roles
+3. ~~Restrict `GET /api/users` to admin/doctor roles~~ ✅ **DONE**
 4. Add `express-async-errors` to prevent unhandled promise crashes
-5. ~~Fix hardcoded `localhost:5000` in `DoctorSettingsPage.tsx`~~ ✅ **DONE** (socket hook still uses hardcoded URL)
+5. ~~Fix hardcoded `localhost:5000` in `DoctorSettingsPage.tsx`~~ ✅ **DONE**
+   ~~Fix hardcoded `localhost:5000` in `use-socket.js` and `vite.config.js`~~ ✅ **DONE**
 
 ### Phase 2: Security Hardening
 

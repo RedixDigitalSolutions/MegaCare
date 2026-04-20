@@ -7,6 +7,8 @@ const ParamedPatient = require("../models/ParamedPatient");
 const ParamedAppointment = require("../models/ParamedAppointment");
 const ParamedSupply = require("../models/ParamedSupply");
 const ParamedCareSession = require("../models/ParamedCareSession");
+const ParamedicalProduct = require("../models/ParamedicalProduct");
+const ParamedicalOrder = require("../models/ParamedicalOrder");
 const Vital = require("../models/Vital");
 const User = require("../models/User");
 
@@ -22,17 +24,54 @@ const auth = [authMiddleware, paraGuard];
 router.get("/kpis", auth, async (req, res) => {
     const uid = req.user.id;
     const today = new Date().toISOString().slice(0, 10);
-    const [patients, appointments, sessions] = await Promise.all([
+    const [patients, appointments, sessions, products] = await Promise.all([
         ParamedPatient.find({ userId: uid }).lean(),
         ParamedAppointment.find({ userId: uid }).lean(),
         ParamedCareSession.find({ userId: uid }).lean(),
+        ParamedicalProduct.find({ userId: uid }).lean(),
     ]);
     const todayApts = appointments.filter((a) => a.date === today && a.status !== "Annulé");
-    const totalHours = sessions.length * 1.5; // ~1.5h per session estimate
+    const totalHours = sessions.length * 1.5;
+
+    const MIN_STOCK = 10;
+    const lowStockProducts = products
+        .filter((p) => p.stockQty <= MIN_STOCK)
+        .sort((a, b) => a.stockQty - b.stockQty)
+        .slice(0, 6)
+        .map((p) => ({ name: p.name, current: p.stockQty, minimum: MIN_STOCK }));
+
+    // Best-selling: sort by reviews (proxy) then price
+    const topSelling = products
+        .sort((a, b) => (b.reviews || 0) - (a.reviews || 0))
+        .slice(0, 5)
+        .map((p, i) => ({ rank: i + 1, name: p.name, sold: p.reviews || 0, revenue: Math.round((p.reviews || 0) * p.price) }));
+
+    // Recent appointments as pending orders
+    const pendingApts = appointments
+        .filter((a) => a.status === "En attente")
+        .sort((a, b) => (b.date > a.date ? 1 : -1))
+        .slice(0, 4)
+        .map((a) => ({
+            id: a._id,
+            customer: a.patient,
+            type: a.type,
+            date: a.date,
+            time: a.time,
+            location: a.location,
+            status: a.status,
+        }));
+
     res.json({
         totalPatients: patients.filter((p) => p.status !== "Clôturé").length,
         consultationsToday: todayApts.length,
         weeklyHours: Math.round(totalHours),
+        totalStock: products.reduce((s, p) => s + (p.stockQty || 0), 0),
+        totalProducts: products.length,
+        lowStockCount: products.filter((p) => p.stockQty <= MIN_STOCK).length,
+        lowStockProducts,
+        topSelling,
+        pendingAppointments: pendingApts,
+        pendingAppointmentsCount: appointments.filter((a) => a.status === "En attente").length,
         recentActivities: appointments
             .sort((a, b) => (b.createdAt > a.createdAt ? 1 : -1))
             .slice(0, 5)
@@ -317,6 +356,64 @@ router.get("/planning", auth, async (req, res) => {
     res.json(grouped);
 });
 
+// ── Products (paramedical stock) ─────────────────────────────
+router.get("/products", auth, async (req, res) => {
+    const items = await ParamedicalProduct.find({ userId: req.user.id }).sort({ createdAt: -1 }).lean();
+    res.json(items.map((i) => ({ ...i, id: i._id })));
+});
+
+router.post("/products", auth, async (req, res) => {
+    const { catalogItemId, name, brand, category, price, stockQty, prescription, imageUrl, shortDesc, description, usage, features } = req.body;
+    if (!name?.trim()) return res.status(400).json({ message: "Nom du produit requis" });
+    // Check for duplicate by catalogItemId (preferred) or by name
+    const dupQuery = catalogItemId
+        ? { userId: req.user.id, catalogItemId }
+        : { userId: req.user.id, name: name.trim() };
+    const exists = await ParamedicalProduct.findOne(dupQuery);
+    if (exists) return res.status(409).json({ message: "Ce produit existe déjà dans votre stock" });
+    const doc = await ParamedicalProduct.create({
+        _id: randomUUID(), userId: req.user.id,
+        catalogItemId: catalogItemId || "",
+        name: name.trim(), brand: brand || "", category: category || "",
+        price: Number(price) || 0, stockQty: Number(stockQty) || 0,
+        inStock: (Number(stockQty) || 0) > 0,
+        prescription: prescription || false,
+        imageUrl: imageUrl || "", shortDesc: shortDesc || "",
+        description: description || "", usage: usage || "",
+        features: features || [],
+    });
+    res.status(201).json({ ...doc.toObject(), id: doc._id });
+});
+
+router.put("/products/:id", auth, async (req, res) => {
+    const update = { ...req.body };
+    if (update.stockQty !== undefined) update.inStock = Number(update.stockQty) > 0;
+    const doc = await ParamedicalProduct.findOneAndUpdate(
+        { _id: req.params.id, userId: req.user.id },
+        { $set: update }, { new: true }
+    );
+    if (!doc) return res.status(404).json({ message: "Produit introuvable" });
+    res.json({ ...doc.toObject(), id: doc._id });
+});
+
+router.patch("/products/:id/stock", auth, async (req, res) => {
+    const { stockQty } = req.body;
+    const qty = Number(stockQty);
+    if (isNaN(qty) || qty < 0) return res.status(400).json({ message: "Quantité invalide" });
+    const doc = await ParamedicalProduct.findOneAndUpdate(
+        { _id: req.params.id, userId: req.user.id },
+        { $set: { stockQty: qty, inStock: qty > 0 } }, { new: true }
+    );
+    if (!doc) return res.status(404).json({ message: "Produit introuvable" });
+    res.json({ ...doc.toObject(), id: doc._id });
+});
+
+router.delete("/products/:id", auth, async (req, res) => {
+    const doc = await ParamedicalProduct.findOneAndDelete({ _id: req.params.id, userId: req.user.id });
+    if (!doc) return res.status(404).json({ message: "Produit introuvable" });
+    res.json({ success: true });
+});
+
 // ── Settings ──────────────────────────────────────────────────
 router.get("/settings", auth, async (req, res) => {
     const user = await User.findById(req.user.id).lean();
@@ -338,6 +435,93 @@ router.patch("/settings", auth, async (req, res) => {
     if (specialization !== undefined) update.specialization = specialization;
     await User.findByIdAndUpdate(req.user.id, { $set: update });
     res.json({ success: true });
+});
+
+// ── Clients (order-based) ─────────────────────────────────────
+// GET /api/paramedical/clients — unique clients who placed orders with this paramedical
+router.get("/clients", auth, async (req, res) => {
+    const orders = await ParamedicalOrder.find({ paramedicalId: req.user.id }).lean();
+    const clientMap = {};
+    for (const o of orders) {
+        if (!clientMap[o.userId]) {
+            clientMap[o.userId] = { totalOrders: 0, totalSpent: 0, lastOrderDate: o.createdAt };
+        }
+        clientMap[o.userId].totalOrders += 1;
+        clientMap[o.userId].totalSpent += o.total;
+        if (new Date(o.createdAt) > new Date(clientMap[o.userId].lastOrderDate)) {
+            clientMap[o.userId].lastOrderDate = o.createdAt;
+        }
+    }
+    const userIds = Object.keys(clientMap);
+    const users = await User.find({ _id: { $in: userIds } })
+        .select("firstName lastName phone governorate delegation")
+        .lean();
+    const clients = users.map((u) => ({
+        id: String(u._id),
+        name: `${u.firstName} ${u.lastName}`,
+        phone: u.phone || "",
+        governorate: u.governorate || "",
+        delegation: u.delegation || "",
+        totalOrders: clientMap[String(u._id)].totalOrders,
+        totalSpent: clientMap[String(u._id)].totalSpent,
+        lastOrderDate: clientMap[String(u._id)].lastOrderDate,
+    }));
+    res.json(clients);
+});
+
+// GET /api/paramedical/clients/:clientId/orders — order history for a specific client
+router.get("/clients/:clientId/orders", auth, async (req, res) => {
+    const orders = await ParamedicalOrder.find({
+        paramedicalId: req.user.id,
+        userId: req.params.clientId,
+    })
+        .sort({ createdAt: -1 })
+        .lean();
+    res.json(orders.map((o) => ({ ...o, id: o._id })));
+});
+
+// ── Orders ────────────────────────────────────────────────────
+// GET /api/paramedical/orders — list orders assigned to this paramedical
+router.get("/orders", auth, async (req, res) => {
+    const orders = await ParamedicalOrder.find({ paramedicalId: req.user.id })
+        .sort({ createdAt: -1 })
+        .lean();
+
+    // Enrich with patient names
+    const userIds = [...new Set(orders.map((o) => o.userId))];
+    const users = await User.find({ _id: { $in: userIds } }).select("firstName lastName phone governorate delegation").lean();
+    const userMap = Object.fromEntries(users.map((u) => [String(u._id), u]));
+
+    const enriched = orders.map((o) => {
+        const patient = userMap[o.userId];
+        return {
+            ...o,
+            id: o._id,
+            patientName: patient ? `${patient.firstName} ${patient.lastName}` : "Patient",
+            patientPhone: patient?.phone || "",
+            patientGovernorate: patient?.governorate || "",
+            patientDelegation: patient?.delegation || "",
+        };
+    });
+
+    res.json(enriched);
+});
+
+// PATCH /api/paramedical/orders/:id — update order status
+router.patch("/orders/:id", auth, async (req, res) => {
+    const { status } = req.body;
+    const validStatuses = ["pending", "confirmed", "ready", "delivered", "cancelled"];
+    if (!validStatuses.includes(status)) {
+        return res.status(400).json({ message: "Statut invalide" });
+    }
+    const order = await ParamedicalOrder.findById(req.params.id);
+    if (!order) return res.status(404).json({ message: "Commande non trouvée" });
+    if (order.paramedicalId !== req.user.id) {
+        return res.status(403).json({ message: "Accès refusé" });
+    }
+    order.status = status;
+    await order.save();
+    res.json({ ...order.toObject(), id: order._id });
 });
 
 module.exports = router;

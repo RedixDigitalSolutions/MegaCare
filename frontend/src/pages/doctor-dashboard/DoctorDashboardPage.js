@@ -20,7 +20,8 @@ export default function DoctorDashboardPage() {
                 headers: { Authorization: `Bearer ${token}` },
             });
             if (res.ok) {
-                const data = await res.json();
+                const json = await res.json();
+                const data = Array.isArray(json) ? json : (json.data ?? []);
                 setAllAppointments(data);
             }
         }

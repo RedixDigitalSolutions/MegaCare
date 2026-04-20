@@ -4,20 +4,15 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   LayoutDashboard,
   Users,
-  UserCheck,
   Calendar,
   FileText,
-  Video,
-  Activity,
-  Package,
-  CreditCard,
-  MessageSquare,
   BarChart3,
   Settings,
   LogOut,
   Heart,
   Menu,
   X,
+  Home,
 } from "lucide-react";
 
 const menuItems = [
@@ -32,11 +27,6 @@ const menuItems = [
     icon: Users,
   },
   {
-    href: "/medical-service-dashboard/team",
-    label: "Mon Équipe",
-    icon: UserCheck,
-  },
-  {
     href: "/medical-service-dashboard/schedule",
     label: "Planification",
     icon: Calendar,
@@ -45,31 +35,6 @@ const menuItems = [
     href: "/medical-service-dashboard/prescriptions",
     label: "Ordonnances",
     icon: FileText,
-  },
-  {
-    href: "/medical-service-dashboard/teleconsultation",
-    label: "Téléconsultation",
-    icon: Video,
-  },
-  {
-    href: "/medical-service-dashboard/vitals",
-    label: "Constantes Vitales",
-    icon: Activity,
-  },
-  {
-    href: "/medical-service-dashboard/equipment",
-    label: "Équipements",
-    icon: Package,
-  },
-  {
-    href: "/medical-service-dashboard/billing",
-    label: "Facturation",
-    icon: CreditCard,
-  },
-  {
-    href: "/medical-service-dashboard/messaging",
-    label: "Messagerie",
-    icon: MessageSquare,
   },
   {
     href: "/medical-service-dashboard/analytics",
@@ -162,8 +127,16 @@ export function MedicalServiceDashboardSidebar() {
         })}
       </nav>
 
-      {/* Logout */}
-      <div className="px-3 py-3 border-t border-sidebar-border shrink-0">
+      {/* Footer actions */}
+      <div className="px-3 py-3 border-t border-sidebar-border shrink-0 space-y-0.5">
+        <Link
+          to="/"
+          onClick={() => setMobileOpen(false)}
+          className="w-full flex items-center gap-3 px-3 py-2.5 text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground rounded-lg transition-all text-sm font-medium"
+        >
+          <Home size={17} />
+          Retour à l’accueil
+        </Link>
         <button
           onClick={handleLogout}
           className="w-full flex items-center gap-3 px-3 py-2.5 text-sidebar-foreground/50 hover:text-destructive hover:bg-destructive/10 rounded-lg transition-all text-sm font-medium"

@@ -69,9 +69,9 @@ export default function DoctorConsultationsPage() {
             headers: { Authorization: `Bearer ${token}` },
         })
             .then((r) => r.json())
-            .then((data) => {
-            if (Array.isArray(data))
-                setAppointments(data);
+            .then((j) => {
+            const data = Array.isArray(j) ? j : (j.data ?? []);
+            setAppointments(data);
         })
             .catch(() => { });
     }, [isAuthenticated]);

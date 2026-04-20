@@ -34,14 +34,16 @@ export default function DashboardPage() {
             return;
         const headers = { Authorization: `Bearer ${token}` };
         Promise.all([
-            fetch("/api/appointments", { headers }).then((r) => r.ok ? r.json() : []),
-            fetch("/api/prescriptions", { headers }).then((r) => r.ok ? r.json() : []),
+            fetch("/api/appointments", { headers }).then((r) => r.ok ? r.json().then((j) => Array.isArray(j) ? j : (j.data ?? [])) : []),
+            fetch("/api/prescriptions", { headers }).then((r) => r.ok ? r.json().then((j) => Array.isArray(j) ? j : (j.data ?? [])) : []),
         ])
             .then(async ([appts, rxs]) => {
-            setAppointments(appts);
-            setPrescriptions(rxs);
+            const apptList = Array.isArray(appts) ? appts : (appts?.data ?? []);
+            const rxList = Array.isArray(rxs) ? rxs : (rxs?.data ?? []);
+            setAppointments(apptList);
+            setPrescriptions(rxList);
             // Resolve doctor names for appointments
-            const doctorIds = [...new Set(appts.map((a) => a.doctorId))];
+            const doctorIds = [...new Set(apptList.map((a) => a.doctorId))];
             const names = {};
             await Promise.all(doctorIds.map((id) => fetch(`/api/users/${id}`, { headers })
                 .then((r) => r.ok ? r.json() : null)

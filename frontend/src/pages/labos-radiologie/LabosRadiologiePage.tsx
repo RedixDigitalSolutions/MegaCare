@@ -543,7 +543,6 @@ function LabCard({
           <span className="text-white font-bold text-sm">
             {lab.rating.toFixed(1)}
           </span>
-          <span className="text-white/70 text-xs">({lab.reviews} avis)</span>
         </div>
       </div>
 

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import type { User } from "@/contexts/AuthContext";
@@ -10,9 +10,10 @@ import {
   ArrowRight,
   Sparkles,
   Phone,
-  User as UserIcon,
   LayoutDashboard,
   LogOut,
+  Stethoscope,
+  Leaf,
 } from "lucide-react";
 
 export function Header() {
@@ -22,6 +23,75 @@ export function Header() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { user, isAuthenticated, isLoading, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Cart counts from localStorage + custom events
+  const [cartCounts, setCartCounts] = useState(() => {
+    try {
+      const pharma = JSON.parse(localStorage.getItem("megacare_pharma_cart") || "[]");
+      const para = JSON.parse(localStorage.getItem("megacare_parapharma_cart") || "[]");
+      const paramedical = JSON.parse(localStorage.getItem("megacare_para_cart") || "[]");
+      return {
+        pharma: Array.isArray(pharma) ? pharma.length : 0,
+        para: (Array.isArray(para) ? para.length : 0) + (Array.isArray(paramedical) ? paramedical.reduce((s: number, i: any) => s + (i.quantity || 0), 0) : 0),
+      };
+    } catch { return { pharma: 0, para: 0 }; }
+  });
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (!detail) return;
+      setCartCounts((prev) => {
+        const next = { ...prev };
+        if (detail.pharma !== undefined) next.pharma = detail.pharma;
+        if (detail.para !== undefined || detail.paramedical !== undefined) {
+          // Recalculate from localStorage to keep both in sync
+          try {
+            const para = JSON.parse(localStorage.getItem("megacare_parapharma_cart") || "[]");
+            const paramedical = JSON.parse(localStorage.getItem("megacare_para_cart") || "[]");
+            next.para = (Array.isArray(para) ? para.length : 0) + (Array.isArray(paramedical) ? paramedical.reduce((s: number, i: any) => s + (i.quantity || 0), 0) : 0);
+          } catch { /* keep previous */ }
+        }
+        return next;
+      });
+    };
+    window.addEventListener("megacare:cart", handler);
+    return () => window.removeEventListener("megacare:cart", handler);
+  }, []);
+
+  const openCart = (type: "pharma" | "para") => {
+    if (type === "para") {
+      // If on paramedical page, open checkout there
+      if (location.pathname === "/paramedical") {
+        window.dispatchEvent(new CustomEvent("megacare:open-cart", { detail: "paramedical" }));
+        return;
+      }
+      // If on pharmacy page, open para cart sidebar
+      if (location.pathname === "/pharmacy") {
+        window.dispatchEvent(new CustomEvent("megacare:open-cart", { detail: "para" }));
+        return;
+      }
+      // Otherwise check which page has items
+      try {
+        const paramedical = JSON.parse(localStorage.getItem("megacare_para_cart") || "[]");
+        const pharmaParaCart = JSON.parse(localStorage.getItem("megacare_parapharma_cart") || "[]");
+        if (paramedical.length > 0 && pharmaParaCart.length === 0) {
+          navigate("/paramedical?openCart=1");
+        } else {
+          navigate("/pharmacy?openCart=para");
+        }
+      } catch {
+        navigate("/pharmacy?openCart=para");
+      }
+      return;
+    }
+    if (location.pathname !== "/pharmacy") {
+      navigate("/pharmacy?openCart=" + type);
+    } else {
+      window.dispatchEvent(new CustomEvent("megacare:open-cart", { detail: type }));
+    }
+  };
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 20);
@@ -102,7 +172,8 @@ export function Header() {
         <div ref={dropdownRef} className="hidden lg:flex items-center gap-0.5">
           <NavLink href="/">Accueil</NavLink>
 
-          {/* Services Dropdown - includes Medecins & Pharmacie */}
+          {/* Services Dropdown - hidden from professional users */}
+          {(!user || user.role === "patient" || user.role === "admin") && (
           <div
             className="relative"
             onMouseEnter={() => setActiveDropdown("services")}
@@ -177,12 +248,40 @@ export function Header() {
               </div>
             </div>
           </div>
+          )}
 
           <NavLink href="/guide">Guide & Tarifs</NavLink>
         </div>
 
         {/* Desktop CTA */}
         <div className="hidden lg:flex items-center gap-3">
+          {/* Cart icons — always visible */}
+          <div className="flex items-center gap-2 mr-1">
+            <button
+              onClick={() => openCart("pharma")}
+              className="relative p-2 rounded-xl bg-orange-100 hover:bg-orange-200 transition-all duration-300"
+              title="Panier Pharmacie"
+            >
+              <Stethoscope size={18} className="text-orange-600" />
+              {cartCounts.pharma > 0 && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                  {cartCounts.pharma}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => openCart("para")}
+              className="relative p-2 rounded-xl bg-green-100 hover:bg-green-200 transition-all duration-300"
+              title="Panier Parapharmacie"
+            >
+              <Leaf size={18} className="text-green-600" />
+              {cartCounts.para > 0 && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                  {cartCounts.para}
+                </span>
+              )}
+            </button>
+          </div>
           {!isLoading && isAuthenticated && user ? (
             <ProfileMenuButton user={user} logout={logout} />
           ) : (
@@ -212,6 +311,33 @@ export function Header() {
 
         {/* Tablet CTA (md to lg) */}
         <div className="hidden md:flex lg:hidden items-center gap-2">
+          {/* Cart icons — always visible */}
+          <div className="flex items-center gap-1.5 mr-1">
+            <button
+              onClick={() => openCart("pharma")}
+              className="relative p-2 rounded-xl bg-orange-100 hover:bg-orange-200 transition"
+              title="Panier Pharmacie"
+            >
+              <Stethoscope size={16} className="text-orange-600" />
+              {cartCounts.pharma > 0 && (
+                <span className="absolute -top-1 -right-1 w-4.5 h-4.5 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                  {cartCounts.pharma}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => openCart("para")}
+              className="relative p-2 rounded-xl bg-green-100 hover:bg-green-200 transition"
+              title="Panier Parapharmacie"
+            >
+              <Leaf size={16} className="text-green-600" />
+              {cartCounts.para > 0 && (
+                <span className="absolute -top-1 -right-1 w-4.5 h-4.5 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                  {cartCounts.para}
+                </span>
+              )}
+            </button>
+          </div>
           {!isLoading && isAuthenticated && user ? (
             <ProfileMenuButton user={user} logout={logout} />
           ) : (
@@ -231,6 +357,36 @@ export function Header() {
             </>
           )}
         </div>
+
+        {/* Mobile Cart + Menu */}
+        <div className="flex items-center gap-1 lg:hidden">
+          {/* Cart icons (mobile) — always visible */}
+          <div className="flex items-center gap-1 md:hidden">
+            <button
+              onClick={() => openCart("pharma")}
+              className="relative p-2 rounded-xl bg-orange-100 hover:bg-orange-200 transition"
+              title="Panier Pharmacie"
+            >
+              <Stethoscope size={16} className="text-orange-600" />
+              {cartCounts.pharma > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                  {cartCounts.pharma}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => openCart("para")}
+              className="relative p-2 rounded-xl bg-green-100 hover:bg-green-200 transition"
+              title="Panier Parapharmacie"
+            >
+              <Leaf size={16} className="text-green-600" />
+              {cartCounts.para > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+                  {cartCounts.para}
+                </span>
+              )}
+            </button>
+          </div>
 
         {/* Mobile Menu Button */}
         <button
@@ -254,6 +410,7 @@ export function Header() {
             />
           </div>
         </button>
+        </div>
       </nav>
 
       {/* Mobile Navigation */}
@@ -267,7 +424,8 @@ export function Header() {
             Accueil
           </MobileNavLink>
 
-          {/* Mobile Services Accordion */}
+          {/* Mobile Services Accordion - hidden from professional users */}
+          {(!user || user.role === "patient" || user.role === "admin") && (
           <details className="group">
             <summary className="cursor-pointer py-3 px-4 text-foreground/80 hover:text-primary hover:bg-secondary/50 rounded-xl transition-all duration-300 flex items-center justify-between font-medium text-sm list-none select-none">
               Services
@@ -309,6 +467,7 @@ export function Header() {
               </MobileSubLink>
             </div>
           </details>
+          )}
 
           <MobileNavLink href="/guide" onClick={() => setIsOpen(false)}>
             Guide & Tarifs
@@ -362,13 +521,6 @@ export function Header() {
                     )}
                   </div>
                 </div>
-                <Link
-                  to="/profile"
-                  onClick={() => setIsOpen(false)}
-                  className="block py-2.5 px-4 text-foreground/80 hover:text-primary hover:bg-secondary/50 rounded-xl transition-all duration-300 font-medium text-sm"
-                >
-                  Mon profil
-                </Link>
                 {user.status === "approved" && (
                   <Link
                     to={
@@ -642,14 +794,6 @@ function ProfileMenuButton({
           </div>
 
           <div className="py-1.5">
-            <Link
-              to="/profile"
-              onClick={() => setOpen(false)}
-              className="flex items-center gap-2.5 px-4 py-2.5 text-sm text-foreground/80 hover:text-primary hover:bg-secondary/50 transition-colors"
-            >
-              <UserIcon size={15} />
-              Mon profil
-            </Link>
             {!isPending && !isRejected && (
               <Link
                 to={dashboards[user.role] || "/dashboard"}

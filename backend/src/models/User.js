@@ -32,6 +32,23 @@ const userSchema = new mongoose.Schema(
     labId: String,
     paramedicalId: String,
     companyName: String,
+    // Location fields (all users)
+    governorate: String,
+    delegation: String,
+    // Pharmacy-specific fields
+    address: String,
+    coordinates: {
+      lat: { type: Number },
+      lng: { type: Number },
+    },
+    wilaya: String,
+    city: String,
+    governorate: String,
+    delegation: String,
+    mapsUrl: { type: String, default: "" },
+    openingHours: String,
+    isOnDuty: { type: Boolean, default: false },
+    description: String,
   },
   {
     timestamps: true,

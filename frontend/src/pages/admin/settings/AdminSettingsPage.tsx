@@ -6,9 +6,7 @@ import { FaShieldAlt, FaSave, FaEye, FaEyeSlash } from "react-icons/fa";
 import {
   User,
   Mail,
-  Bell,
   Lock,
-  Globe,
   CheckCircle,
   AlertCircle,
 } from "lucide-react";
@@ -34,16 +32,6 @@ export default function AdminSettingsPage() {
   const [showPwd, setShowPwd] = useState(false);
   const [pwdError, setPwdError] = useState("");
   const [pwdSaved, setPwdSaved] = useState(false);
-
-  // Notification toggles
-  const [notifNewUser, setNotifNewUser] = useState(true);
-  const [notifPending, setNotifPending] = useState(true);
-  const [notifSuspended, setNotifSuspended] = useState(false);
-  const [notifEmail, setNotifEmail] = useState(true);
-
-  // Platform toggles
-  const [maintenanceMode, setMaintenanceMode] = useState(false);
-  const [autoApprovePatients, setAutoApprovePatients] = useState(true);
 
   if (isLoading || !user) return null;
   if (user.role !== "admin") {
@@ -120,26 +108,6 @@ export default function AdminSettingsPage() {
       setPwdError("Erreur réseau");
     }
   };
-
-  const Toggle = ({
-    checked,
-    onChange,
-  }: {
-    checked: boolean;
-    onChange: (v: boolean) => void;
-  }) => (
-    <button
-      type="button"
-      onClick={() => onChange(!checked)}
-      className={`relative w-11 h-6 rounded-full transition-colors ${checked ? "bg-primary" : "bg-muted-foreground/30"
-        }`}
-    >
-      <span
-        className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${checked ? "translate-x-5" : "translate-x-0"
-          }`}
-      />
-    </button>
-  );
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -312,107 +280,6 @@ export default function AdminSettingsPage() {
             </div>
           </section>
 
-          {/* ── Notifications section ── */}
-          <section className="space-y-4">
-            <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
-              <Bell size={16} className="text-primary" />
-              Notifications
-            </h2>
-            <div className="bg-card border border-border rounded-2xl divide-y divide-border overflow-hidden">
-              {[
-                {
-                  label: "Nouveau compte inscrit",
-                  desc: "Recevoir une alerte à chaque nouvelle inscription",
-                  checked: notifNewUser,
-                  set: setNotifNewUser,
-                },
-                {
-                  label: "Approbation en attente",
-                  desc: "Me rappeler les comptes professionnels non traités",
-                  checked: notifPending,
-                  set: setNotifPending,
-                },
-                {
-                  label: "Compte suspendu",
-                  desc: "Être notifié lorsqu'une suspension est déclenchée",
-                  checked: notifSuspended,
-                  set: setNotifSuspended,
-                },
-                {
-                  label: "Résumé par email",
-                  desc: "Recevoir un rapport hebdomadaire par email",
-                  checked: notifEmail,
-                  set: setNotifEmail,
-                },
-              ].map((item) => (
-                <div
-                  key={item.label}
-                  className="flex items-center justify-between px-5 py-4"
-                >
-                  <div>
-                    <p className="text-sm font-semibold text-foreground">
-                      {item.label}
-                    </p>
-                    <p className="text-xs text-muted-foreground">{item.desc}</p>
-                  </div>
-                  <Toggle checked={item.checked} onChange={item.set} />
-                </div>
-              ))}
-            </div>
-          </section>
-
-          {/* ── Platform section ── */}
-          <section className="space-y-4">
-            <h2 className="text-base font-semibold text-foreground flex items-center gap-2">
-              <Globe size={16} className="text-primary" />
-              Plateforme
-            </h2>
-            <div className="bg-card border border-border rounded-2xl divide-y divide-border overflow-hidden">
-              <div className="flex items-center justify-between px-5 py-4">
-                <div>
-                  <p className="text-sm font-semibold text-foreground">
-                    Approbation automatique — Patients
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Approuver automatiquement les comptes patients sans
-                    vérification manuelle
-                  </p>
-                </div>
-                <Toggle
-                  checked={autoApprovePatients}
-                  onChange={setAutoApprovePatients}
-                />
-              </div>
-              <div className="flex items-center justify-between px-5 py-4">
-                <div>
-                  <p className="text-sm font-semibold text-foreground flex items-center gap-2">
-                    Mode maintenance
-                    {maintenanceMode && (
-                      <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-semibold">
-                        Actif
-                      </span>
-                    )}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Bloquer l&apos;accès public à la plateforme temporairement
-                  </p>
-                </div>
-                <Toggle
-                  checked={maintenanceMode}
-                  onChange={setMaintenanceMode}
-                />
-              </div>
-            </div>
-            {maintenanceMode && (
-              <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800">
-                <AlertCircle size={15} className="shrink-0 mt-0.5" />
-                <span>
-                  Le mode maintenance est activé. Les utilisateurs ne peuvent
-                  pas accéder à la plateforme.
-                </span>
-              </div>
-            )}
-          </section>
         </main>
       </div>
     </div>

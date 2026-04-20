@@ -2,11 +2,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { DashboardSidebar } from "@/components/DashboardSidebar";
 import {
-  User,
   Lock,
-  Bell,
   Shield,
-  Save,
   Loader2,
   CheckCircle2,
   AlertCircle,
@@ -18,16 +15,6 @@ import { useEffect, useState } from "react";
 export default function SettingsPage() {
   const { user, isLoading, isAuthenticated } = useAuth();
   const navigate = useNavigate();
-
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [saveMsg, setSaveMsg] = useState<{
-    type: "success" | "error";
-    text: string;
-  } | null>(null);
 
   // Password change
   const [showPasswordForm, setShowPasswordForm] = useState(false);
@@ -48,51 +35,9 @@ export default function SettingsPage() {
     }
   }, [isLoading, isAuthenticated, navigate]);
 
-  useEffect(() => {
-    if (user) {
-      setFirstName(user.firstName || "");
-      setLastName(user.lastName || "");
-      setEmail(user.email || "");
-      setPhone(user.phone || "");
-    }
-  }, [user]);
-
   if (isLoading || !isAuthenticated || !user) {
     return null;
   }
-
-  const handleSaveProfile = async () => {
-    setSaving(true);
-    setSaveMsg(null);
-    try {
-      const token = localStorage.getItem("megacare_token");
-      const res = await fetch("/api/auth/profile", {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ firstName, lastName, email, phone }),
-      });
-      const data = await res.json();
-      if (!res.ok)
-        throw new Error(data.message || "Erreur lors de la sauvegarde");
-      // Update local auth context
-      const stored = localStorage.getItem("megacare_user");
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        localStorage.setItem(
-          "megacare_user",
-          JSON.stringify({ ...parsed, firstName, lastName, email, phone }),
-        );
-      }
-      setSaveMsg({ type: "success", text: "Profil mis à jour avec succès" });
-    } catch (err: any) {
-      setSaveMsg({ type: "error", text: err.message });
-    } finally {
-      setSaving(false);
-    }
-  };
 
   const handleChangePassword = async () => {
     setPwMsg(null);
@@ -147,95 +92,6 @@ export default function SettingsPage() {
               <p className="text-muted-foreground mt-2">
                 Gérez vos préférences et informations personnelles
               </p>
-            </div>
-
-            {/* Profile Settings */}
-            <div className="bg-card border border-border rounded-lg p-6 space-y-6">
-              <div className="flex items-center gap-4">
-                <User size={24} className="text-primary" />
-                <h2 className="text-xl font-bold text-foreground">
-                  Profil personnel
-                </h2>
-              </div>
-
-              <div className="space-y-4">
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">
-                      Prénom
-                    </label>
-                    <input
-                      type="text"
-                      value={firstName}
-                      onChange={(e) => setFirstName(e.target.value)}
-                      className="w-full px-4 py-2 border border-border rounded-lg bg-input text-foreground"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">
-                      Nom
-                    </label>
-                    <input
-                      type="text"
-                      value={lastName}
-                      onChange={(e) => setLastName(e.target.value)}
-                      className="w-full px-4 py-2 border border-border rounded-lg bg-input text-foreground"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-4 py-2 border border-border rounded-lg bg-input text-foreground"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-foreground mb-2">
-                    Téléphone
-                  </label>
-                  <input
-                    type="tel"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    className="w-full px-4 py-2 border border-border rounded-lg bg-input text-foreground"
-                  />
-                </div>
-
-                {saveMsg && (
-                  <div
-                    className={`flex items-center gap-2 p-3 rounded-lg text-sm ${saveMsg.type === "success" ? "bg-green-50 text-green-700 border border-green-200" : "bg-red-50 text-red-700 border border-red-200"}`}
-                  >
-                    {saveMsg.type === "success" ? (
-                      <CheckCircle2 size={16} />
-                    ) : (
-                      <AlertCircle size={16} />
-                    )}
-                    {saveMsg.text}
-                  </div>
-                )}
-
-                <button
-                  onClick={handleSaveProfile}
-                  disabled={saving}
-                  className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition flex items-center justify-center gap-2 disabled:opacity-50"
-                >
-                  {saving ? (
-                    <Loader2 size={18} className="animate-spin" />
-                  ) : (
-                    <Save size={18} />
-                  )}
-                  {saving
-                    ? "Enregistrement..."
-                    : "Enregistrer les modifications"}
-                </button>
-              </div>
             </div>
 
             {/* Security Settings */}
@@ -351,52 +207,6 @@ export default function SettingsPage() {
                 <button className="w-full px-4 py-2 border border-border hover:bg-muted rounded-lg transition text-left font-medium text-foreground">
                   Gérer les sessions actives
                 </button>
-              </div>
-            </div>
-
-            {/* Notification Settings */}
-            <div className="bg-card border border-border rounded-lg p-6 space-y-6">
-              <div className="flex items-center gap-4">
-                <Bell size={24} className="text-primary" />
-                <h2 className="text-xl font-bold text-foreground">
-                  Notifications
-                </h2>
-              </div>
-
-              <div className="space-y-4">
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    defaultChecked
-                    className="w-5 h-5 rounded border-border"
-                  />
-                  <span className="text-foreground">
-                    Rappels de rendez-vous
-                  </span>
-                </label>
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    defaultChecked
-                    className="w-5 h-5 rounded border-border"
-                  />
-                  <span className="text-foreground">Suivi de commandes</span>
-                </label>
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    defaultChecked
-                    className="w-5 h-5 rounded border-border"
-                  />
-                  <span className="text-foreground">Avis des médecins</span>
-                </label>
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    className="w-5 h-5 rounded border-border"
-                  />
-                  <span className="text-foreground">Offres spéciales</span>
-                </label>
               </div>
             </div>
 

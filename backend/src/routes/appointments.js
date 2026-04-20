@@ -3,6 +3,7 @@ const router = express.Router();
 const authMiddleware = require("../middleware/auth");
 const { randomUUID } = require("crypto");
 const Appointment = require("../models/Appointment");
+const Dossier = require("../models/Dossier");
 
 // GET /api/appointments
 router.get("/", authMiddleware, async (req, res) => {
@@ -55,6 +56,31 @@ router.post("/", authMiddleware, async (req, res) => {
     reason: reason || "",
     status: "pending",
   });
+
+  // Auto-grant doctor access to patient's dossier
+  const doctorUser = await User.findById(doctorId).lean();
+  const doctorFullName = doctorUser ? `${doctorUser.firstName} ${doctorUser.lastName}` : "Médecin";
+  const dossier = await Dossier.findOne({ patientId: req.user.id });
+  if (dossier) {
+    const existingPerm = dossier.permissions.find((p) => p.doctorId === doctorId);
+    if (existingPerm) {
+      if (existingPerm.status !== "active") {
+        existingPerm.status = "active";
+        existingPerm.grantedAt = new Date();
+        existingPerm.expiresAt = null;
+      }
+    } else {
+      dossier.permissions.push({
+        doctorId,
+        doctorName: doctorFullName,
+        grantedAt: new Date(),
+        expiresAt: null,
+        status: "active",
+      });
+    }
+    await dossier.save();
+  }
+
   res.status(201).json({ ...appt.toObject(), id: appt._id });
 });
 
@@ -109,6 +135,16 @@ router.patch("/:id/status", authMiddleware, async (req, res) => {
   }
   appt.status = status;
   await appt.save();
+
+  // Auto-set dossier permission expiry 3 days after completion
+  if (status === "completed") {
+    const expiresAt = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000);
+    await Dossier.updateOne(
+      { patientId: appt.patientId, "permissions.doctorId": appt.doctorId, "permissions.status": "active" },
+      { $set: { "permissions.$.expiresAt": expiresAt } }
+    );
+  }
+
   res.json({ ...appt.toObject(), id: appt._id });
 });
 

@@ -3,15 +3,19 @@ import { useAuth } from "@/contexts/AuthContext";
 import { ParamedicalDashboardSidebar } from "@/components/ParamedicalDashboardSidebar";
 import {
   User,
-  Bell,
   Save,
   Check,
   Eye,
   EyeOff,
   Lock,
+  MapPin,
+  ExternalLink,
 } from "lucide-react";
+import { GOVERNORATES, DELEGATIONS } from "@/lib/governorates";
 
 const tok = () => localStorage.getItem("megacare_token") ?? "";
+
+const MAPS_URL_REGEX = /^https?:\/\/(maps\.google\.|goo\.gl\/maps|maps\.app\.goo\.gl|www\.google\.[a-z.]+\/maps)/i;
 
 export default function ParamedicalSettingsPage() {
   const { user } = useAuth();
@@ -23,6 +27,14 @@ export default function ParamedicalSettingsPage() {
     specialization: user?.specialization ?? "",
   });
 
+  const [location, setLocation] = useState({
+    companyName: (user as any)?.companyName ?? "",
+    address: (user as any)?.address ?? "",
+    governorate: (user as any)?.governorate ?? "",
+    delegation: (user as any)?.delegation ?? "",
+    mapsUrl: (user as any)?.mapsUrl ?? "",
+  });
+
   const [passwords, setPasswords] = useState({
     current: "",
     next: "",
@@ -30,13 +42,6 @@ export default function ParamedicalSettingsPage() {
   });
 
   const [showPwd, setShowPwd] = useState(false);
-
-  const [notifs, setNotifs] = useState({
-    email: true,
-    sms: true,
-    push: true,
-    dailyReport: true,
-  });
 
   const [toast, setToast] = useState("");
   const [pwdError, setPwdError] = useState("");
@@ -57,6 +62,21 @@ export default function ParamedicalSettingsPage() {
     else showToast("Erreur lors de la mise a jour du profil");
   };
 
+  const handleLocationSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (location.mapsUrl && !MAPS_URL_REGEX.test(location.mapsUrl)) {
+      showToast("URL Google Maps invalide");
+      return;
+    }
+    const r = await fetch("/api/auth/profile", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok()}` },
+      body: JSON.stringify(location),
+    }).catch(() => null);
+    if (r && r.ok) showToast("Localisation mise à jour");
+    else showToast("Erreur lors de la mise à jour");
+  };
+
   const handlePasswordSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setPwdError("");
@@ -75,9 +95,6 @@ export default function ParamedicalSettingsPage() {
       setPwdError("Impossible de mettre a jour le mot de passe.");
     }
   };
-
-  const toggleNotif = (key: keyof typeof notifs) =>
-    setNotifs((prev) => ({ ...prev, [key]: !prev[key] }));
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -178,6 +195,88 @@ export default function ParamedicalSettingsPage() {
             </form>
           </section>
 
+          {/* ── Location section ── */}
+          <section className="bg-card border border-border rounded-2xl overflow-hidden">
+            <div className="flex items-center gap-3 px-5 py-4 border-b border-border">
+              <MapPin size={16} className="text-primary" />
+              <h2 className="font-semibold text-foreground text-sm">Localisation & Parapharmacie</h2>
+            </div>
+            <form onSubmit={handleLocationSave} className="p-5 space-y-4">
+              <div>
+                <label className="text-xs font-medium text-muted-foreground block mb-1.5">Nom de la boutique / enseigne</label>
+                <input
+                  type="text"
+                  value={location.companyName}
+                  onChange={(e) => setLocation({ ...location, companyName: e.target.value })}
+                  className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 bg-background"
+                  placeholder="Parapharmacie El Amal"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground block mb-1.5">Adresse complète</label>
+                <input
+                  type="text"
+                  value={location.address}
+                  onChange={(e) => setLocation({ ...location, address: e.target.value })}
+                  className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 bg-background"
+                  placeholder="12 Rue de la République"
+                />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground block mb-1.5">Gouvernorat</label>
+                  <select
+                    value={location.governorate}
+                    onChange={(e) => setLocation({ ...location, governorate: e.target.value, delegation: "" })}
+                    className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 bg-background"
+                  >
+                    <option value="">Sélectionner</option>
+                    {GOVERNORATES.map((g) => <option key={g} value={g}>{g}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground block mb-1.5">Délégation</label>
+                  <select
+                    value={location.delegation}
+                    onChange={(e) => setLocation({ ...location, delegation: e.target.value })}
+                    disabled={!location.governorate}
+                    className="w-full px-3 py-2 border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 bg-background disabled:opacity-50"
+                  >
+                    <option value="">Sélectionner</option>
+                    {(DELEGATIONS[location.governorate] ?? []).map((d) => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-muted-foreground block mb-1.5 flex items-center gap-1">
+                  <ExternalLink size={11} />
+                  Lien Google Maps
+                </label>
+                <input
+                  type="url"
+                  value={location.mapsUrl}
+                  onChange={(e) => setLocation({ ...location, mapsUrl: e.target.value })}
+                  className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 bg-background ${location.mapsUrl && !MAPS_URL_REGEX.test(location.mapsUrl) ? "border-red-400 focus:ring-red-400" : "border-border focus:ring-primary/40"}`}
+                  placeholder="https://maps.google.com/..."
+                />
+                {location.mapsUrl && !MAPS_URL_REGEX.test(location.mapsUrl) && (
+                  <p className="text-xs text-red-500 mt-1">URL invalide. Utilisez un lien Google Maps</p>
+                )}
+                {location.mapsUrl && MAPS_URL_REGEX.test(location.mapsUrl) && (
+                  <a href={location.mapsUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-primary hover:underline mt-1">
+                    <MapPin size={11} /> Aperçu — Ouvrir dans Google Maps
+                  </a>
+                )}
+              </div>
+              <div className="flex justify-end">
+                <button type="submit" className="flex items-center gap-2 px-5 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-semibold hover:bg-primary/90 transition">
+                  <Save size={14} />
+                  Enregistrer la localisation
+                </button>
+              </div>
+            </form>
+          </section>
+
           {/* ── Password section ── */}
           <section className="bg-card border border-border rounded-2xl overflow-hidden">
             <div className="flex items-center gap-3 px-5 py-4 border-b border-border">
@@ -220,39 +319,6 @@ export default function ParamedicalSettingsPage() {
             </form>
           </section>
 
-          {/* ── Notifications section ── */}
-          <section className="bg-card border border-border rounded-2xl overflow-hidden">
-            <div className="flex items-center gap-3 px-5 py-4 border-b border-border">
-              <Bell size={16} className="text-primary" />
-              <h2 className="font-semibold text-foreground text-sm">Notifications</h2>
-            </div>
-            <div className="p-5 space-y-0 divide-y divide-border">
-              {[
-                { key: "email", label: "Alertes email", description: "Recevoir les notifications par e-mail" },
-                { key: "sms", label: "Alertes SMS", description: "Recevoir les alertes urgentes par SMS" },
-                { key: "push", label: "Notifications push", description: "Notifications en temps réel dans l'application" },
-                { key: "dailyReport", label: "Rapport journalier", description: "Recevoir un résumé quotidien de vos soins" },
-              ].map(({ key, label, description }) => {
-                const on = notifs[key as keyof typeof notifs];
-                return (
-                  <div key={key} className="flex items-center justify-between py-4">
-                    <div>
-                      <p className="text-sm font-medium text-foreground">{label}</p>
-                      <p className="text-xs text-muted-foreground">{description}</p>
-                    </div>
-                    <button
-                      onClick={() => toggleNotif(key as keyof typeof notifs)}
-                      className={`relative w-11 h-6 rounded-full transition-colors ${on ? "bg-primary" : "bg-muted"}`}
-                      role="switch"
-                      aria-checked={on}
-                    >
-                      <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform ${on ? "translate-x-5" : ""}`} />
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
         </main>
       </div>
     </div>

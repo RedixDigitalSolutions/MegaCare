@@ -25,8 +25,8 @@ export interface Medicine {
   available: number;
   prescription: boolean;
   pharmacy: string;
-  distance: number;
-  delivery: string;
+  distance?: number;
+  delivery?: string;
   description: string;
   imageUrl?: string;
   category?: string;
@@ -172,6 +172,7 @@ export function MedicineModal({
               </span>
             </div>
 
+            {medicine.delivery && (
             <div className="bg-secondary/50 rounded-xl p-3 space-y-1">
               <div className="flex items-center gap-1.5">
                 <Zap size={13} className="text-green-500" />
@@ -183,6 +184,7 @@ export function MedicineModal({
                 En {medicine.delivery}
               </span>
             </div>
+            )}
 
             <div className="bg-secondary/50 rounded-xl p-3 space-y-1">
               <div className="flex items-center gap-1.5">
@@ -191,12 +193,18 @@ export function MedicineModal({
                   Pharmacie
                 </span>
               </div>
+              {medicine.pharmacy ? (
               <span className="text-sm font-bold text-foreground leading-tight">
                 {medicine.pharmacy}
               </span>
+              ) : (
+              <span className="text-sm text-muted-foreground">—</span>
+              )}
+              {medicine.distance != null && (
               <p className="text-xs text-muted-foreground">
                 à {medicine.distance} km
               </p>
+              )}
             </div>
 
             <div className="bg-secondary/50 rounded-xl p-3 space-y-1">

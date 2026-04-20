@@ -27,6 +27,67 @@ router.get("/kpis", authMiddleware, labGuard, async (req, res) => {
     });
 });
 
+// GET /api/lab/activity — recent activity feed built from real data
+router.get("/activity", authMiddleware, labGuard, async (req, res) => {
+    try {
+        const [recentTests, recentResults] = await Promise.all([
+            LabTest.find().sort({ createdAt: -1 }).limit(10).lean(),
+            LabResult.find().sort({ createdAt: -1 }).limit(10).lean(),
+        ]);
+
+        const items = [];
+        for (const t of recentTests) {
+            let type, text;
+            if (t.status === "Complété") {
+                type = "completed";
+                text = `Analyse ${t.testType} — ${t.patient} complétée`;
+            } else if (t.status === "En cours") {
+                type = "in_progress";
+                text = `Analyse ${t.testType} en cours — ${t.patient}`;
+            } else {
+                type = "new_request";
+                text = `Nouvelle demande d'analyse ${t.testType} — ${t.patient}`;
+            }
+            items.push({ type, text, createdAt: t.createdAt });
+        }
+        for (const r of recentResults) {
+            if (r.status === "Critique") {
+                items.push({
+                    type: "critical",
+                    text: `Résultat ${r.testType} critique — ${r.patient}`,
+                    createdAt: r.createdAt,
+                });
+            } else {
+                items.push({
+                    type: "result",
+                    text: `Résultat ${r.testType} partagé — ${r.patient}`,
+                    createdAt: r.createdAt,
+                });
+            }
+        }
+
+        items.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        res.json(items.slice(0, 8));
+    } catch (err) {
+        res.status(500).json({ message: "Erreur serveur" });
+    }
+});
+
+// GET /api/lab/partner-doctors — count of distinct doctors
+router.get("/partner-doctors", authMiddleware, labGuard, async (req, res) => {
+    try {
+        const [testDoctors, resultDoctors] = await Promise.all([
+            LabTest.distinct("doctor"),
+            LabResult.distinct("doctor"),
+        ]);
+        const all = new Set([...testDoctors, ...resultDoctors]);
+        all.delete("");
+        res.json({ count: all.size });
+    } catch (err) {
+        res.status(500).json({ message: "Erreur serveur" });
+    }
+});
+
 // GET /api/lab/tests
 router.get("/tests", authMiddleware, labGuard, async (req, res) => {
     const page = Math.max(1, parseInt(req.query.page) || 1);

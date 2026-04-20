@@ -62,7 +62,8 @@ export default function DoctorMessagingPage() {
                 headers,
             });
             if (res.ok) {
-                setThread(await res.json());
+                const json = await res.json();
+                setThread(Array.isArray(json) ? json : (json.data ?? []));
                 fetchConversations();
             }
         }

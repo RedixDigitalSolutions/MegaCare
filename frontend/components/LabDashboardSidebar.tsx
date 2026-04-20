@@ -16,6 +16,7 @@ import {
   Microscope,
   Menu,
   X,
+  Home,
 } from "lucide-react";
 
 const menuItems = [
@@ -26,43 +27,36 @@ const menuItems = [
     href: "/lab-dashboard/imaging",
     label: "Imagerie",
     icon: Image,
-    disabled: true,
   },
   {
     href: "/lab-dashboard/patients",
     label: "Patients",
     icon: Users,
-    disabled: true,
   },
   {
     href: "/lab-dashboard/appointments",
     label: "Rendez-vous",
     icon: Calendar,
-    disabled: true,
   },
   {
     href: "/lab-dashboard/billing",
     label: "Facturation",
     icon: CreditCard,
-    disabled: true,
   },
   {
     href: "/lab-dashboard/messaging",
     label: "Messagerie",
     icon: MessageSquare,
-    disabled: true,
   },
   {
     href: "/lab-dashboard/analytics",
     label: "Statistiques",
     icon: BarChart3,
-    disabled: true,
   },
   {
     href: "/lab-dashboard/settings",
     label: "Paramètres",
     icon: Settings,
-    disabled: true,
   },
 ];
 
@@ -124,21 +118,6 @@ export function LabDashboardSidebar() {
         {menuItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href;
-          if (item.disabled) {
-            return (
-              <span
-                key={item.href}
-                title="Bientôt disponible"
-                className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-sidebar-foreground/30 cursor-not-allowed select-none"
-              >
-                <Icon size={17} />
-                <span className="flex-1">{item.label}</span>
-                <span className="text-[10px] bg-sidebar-accent/40 text-sidebar-foreground/30 px-1.5 py-0.5 rounded">
-                  Bientôt
-                </span>
-              </span>
-            );
-          }
           return (
             <Link
               key={item.href}
@@ -160,8 +139,16 @@ export function LabDashboardSidebar() {
         })}
       </nav>
 
-      {/* Logout */}
-      <div className="px-3 py-3 border-t border-sidebar-border shrink-0">
+      {/* Footer actions */}
+      <div className="px-3 py-3 border-t border-sidebar-border shrink-0 space-y-0.5">
+        <Link
+          to="/"
+          onClick={() => setMobileOpen(false)}
+          className="w-full flex items-center gap-3 px-3 py-2.5 text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground rounded-lg transition-all text-sm font-medium"
+        >
+          <Home size={17} />
+          Retour à l’accueil
+        </Link>
         <button
           onClick={handleLogout}
           className="w-full flex items-center gap-3 px-3 py-2.5 text-sidebar-foreground/50 hover:text-destructive hover:bg-destructive/10 rounded-lg transition-all text-sm font-medium"

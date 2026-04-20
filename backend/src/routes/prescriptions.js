@@ -1,8 +1,12 @@
 const express = require("express");
 const router = express.Router();
 const authMiddleware = require("../middleware/auth");
-const { randomUUID } = require("crypto");
+const { randomUUID, randomBytes } = require("crypto");
 const Prescription = require("../models/Prescription");
+
+function generateSecretCode() {
+  return randomBytes(4).toString("hex").toUpperCase(); // 8-char hex
+}
 
 // GET /api/prescriptions
 router.get("/", authMiddleware, async (req, res) => {
@@ -47,8 +51,40 @@ router.post("/", authMiddleware, async (req, res) => {
     doctorId: req.user.id,
     patientId: patientId || null,
     medicines,
+    secretCode: generateSecretCode(),
+    purchaseStatus: "pending",
   });
   res.status(201).json({ ...pres.toObject(), id: pres._id });
+});
+
+// GET /api/prescriptions/verify/:secretCode — pharmacy verifies prescription
+router.get("/verify/:secretCode", authMiddleware, async (req, res) => {
+  const pres = await Prescription.findOne({ secretCode: req.params.secretCode }).lean();
+  if (!pres) return res.status(404).json({ message: "Ordonnance introuvable" });
+
+  const User = require("../models/User");
+  const doctor = await User.findById(pres.doctorId).lean();
+  const patient = await User.findById(pres.patientId).lean();
+
+  res.json({
+    ...pres,
+    id: pres._id,
+    doctorName: doctor ? `Dr. ${doctor.firstName} ${doctor.lastName}` : "Médecin",
+    patientName: patient ? `${patient.firstName} ${patient.lastName}` : "Patient",
+  });
+});
+
+// PATCH /api/prescriptions/:id/purchase — mark as purchased
+router.patch("/:id/purchase", authMiddleware, async (req, res) => {
+  const pres = await Prescription.findById(req.params.id);
+  if (!pres) return res.status(404).json({ message: "Ordonnance non trouvée" });
+  pres.purchaseStatus = "purchased";
+  pres.scanned = true;
+  if (!pres.pharmacyId && req.body.pharmacyId) {
+    pres.pharmacyId = req.body.pharmacyId;
+  }
+  await pres.save();
+  res.json({ ...pres.toObject(), id: pres._id });
 });
 
 module.exports = router;

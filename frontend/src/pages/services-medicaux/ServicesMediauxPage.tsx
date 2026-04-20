@@ -357,9 +357,6 @@ function EstabCard({
             <span className="text-sm font-bold text-foreground">
               {estab.rating}
             </span>
-            <span className="text-xs text-muted-foreground">
-              ({estab.reviews})
-            </span>
           </div>
         </div>
 

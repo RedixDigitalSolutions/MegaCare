@@ -64,15 +64,6 @@ export default function LoginPage() {
         body: JSON.stringify({
           email: formData.email,
           password: formData.password,
-          role: userRole,
-          ...(formData.doctorId && { doctorId: formData.doctorId }),
-          ...(formData.pharmacyId && { pharmacyId: formData.pharmacyId }),
-          ...(formData.serviceId && { serviceId: formData.serviceId }),
-          ...(formData.labId && { labId: formData.labId }),
-          ...(formData.paramedicalId && {
-            paramedicalId: formData.paramedicalId,
-          }),
-          ...(formData.companyName && { companyName: formData.companyName }),
         }),
       });
 
@@ -518,47 +509,6 @@ export default function LoginPage() {
               />
             </div>
 
-            {userRole === "doctor" && (
-              <div className="space-y-1.5">
-                <label
-                  htmlFor="doctorId"
-                  className="text-sm font-medium text-foreground"
-                >
-                  N° de licence médicale
-                </label>
-                <input
-                  id="doctorId"
-                  type="text"
-                  name="doctorId"
-                  value={formData.doctorId}
-                  onChange={handleInputChange}
-                  placeholder="Ex: MD123456"
-                  className="w-full px-4 py-3 bg-input border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition"
-                  required
-                />
-              </div>
-            )}
-            {userRole === "pharmacy" && (
-              <div className="space-y-1.5">
-                <label
-                  htmlFor="pharmacyId"
-                  className="text-sm font-medium text-foreground"
-                >
-                  N° d'agrément pharmacie
-                </label>
-                <input
-                  id="pharmacyId"
-                  type="text"
-                  name="pharmacyId"
-                  value={formData.pharmacyId}
-                  onChange={handleInputChange}
-                  placeholder="Ex: PH789456"
-                  className="w-full px-4 py-3 bg-input border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition"
-                  required
-                />
-              </div>
-            )}
-
             <div className="space-y-1.5">
               <div className="flex justify-between items-center">
                 <label
@@ -601,9 +551,7 @@ export default function LoginPage() {
               disabled={
                 isLoading ||
                 !formData.email ||
-                !formData.password ||
-                (userRole === "doctor" && !formData.doctorId) ||
-                (userRole === "pharmacy" && !formData.pharmacyId)
+                !formData.password
               }
               className={`w-full py-3.5 bg-gradient-to-r ${activeRole.color} text-white font-semibold rounded-xl hover:opacity-90 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg`}
             >

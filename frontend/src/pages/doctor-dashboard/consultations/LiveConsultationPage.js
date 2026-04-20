@@ -67,9 +67,9 @@ export default function LiveConsultationPage() {
         };
         fetch(`/api/messages/thread/${patientId}`, { headers })
             .then((res) => res.json())
-            .then((data) => {
-            if (Array.isArray(data))
-                setChatMessages(data);
+            .then((j) => {
+            const data = Array.isArray(j) ? j : (j.data ?? []);
+            setChatMessages(data);
         })
             .catch(() => { });
     }, [patientId]);

@@ -2,10 +2,10 @@ import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-run
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { LayoutDashboard, Calendar, Video, FileText, Pill, Bell, Settings, LogOut, Search, Camera, Menu, X, Heart, MessageSquare, } from "lucide-react";
+import { LayoutDashboard, Calendar, Video, FileText, Pill, Bell, Settings, LogOut, Menu, X, Heart, MessageSquare, User, Home, } from "lucide-react";
 const menuItems = [
+    { href: "/", label: "Accueil", icon: Home },
     { href: "/dashboard", label: "Tableau de bord", icon: LayoutDashboard },
-    { href: "/dashboard/find-doctor", label: "Trouver un médecin", icon: Search },
     { href: "/dashboard/appointments", label: "Mes rendez-vous", icon: Calendar },
     { href: "/dashboard/consultations", label: "Mes consultations", icon: Video },
     {
@@ -16,17 +16,12 @@ const menuItems = [
     { href: "/dashboard/messages", label: "Messages", icon: MessageSquare },
     { href: "/dashboard/prescriptions", label: "Mes ordonnances", icon: Pill },
     {
-        href: "/pharmacy/prescription-scanner",
-        label: "Pharmacie en ligne",
-        icon: Camera,
-        badge: "NEW",
-    },
-    {
         href: "/dashboard/notifications",
         label: "Notifications",
         icon: Bell,
         badge: 3,
     },
+    { href: "/dashboard/profile", label: "Mon profil", icon: User },
     { href: "/dashboard/settings", label: "Paramètres", icon: Settings },
 ];
 export function DashboardSidebar({ userName = "Patient", liveDoctorName, }) {

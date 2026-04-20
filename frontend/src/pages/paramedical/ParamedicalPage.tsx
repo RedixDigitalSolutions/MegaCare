@@ -1,8 +1,9 @@
 ﻿import { useState, useEffect, useMemo } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { useAuth } from "@/contexts/AuthContext";
+import { GOVERNORATES, DELEGATIONS } from "@/lib/governorates";
 import {
   Search,
   Star,
@@ -15,6 +16,15 @@ import {
   Shield,
   Activity,
   Loader2,
+  Plus,
+  Minus,
+  Trash2,
+  MapPin,
+  Truck,
+  Store,
+  CheckCircle,
+  Phone,
+  Clock,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -150,18 +160,6 @@ function ProductCard({
           )}
         </div>
 
-        {/* Stock & delivery */}
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span
-            className={`flex items-center gap-1 font-medium ${product.inStock ? "text-emerald-600 dark:text-emerald-500" : "text-red-500"}`}
-          >
-            <span
-              className={`w-1.5 h-1.5 rounded-full ${product.inStock ? "bg-emerald-500" : "bg-red-400"}`}
-            />
-            {product.inStock ? "En stock" : "Indisponible"}
-          </span>
-        </div>
-
         {/* Add to cart */}
         <button
           onClick={() => onAddToCart(product)}
@@ -174,6 +172,12 @@ function ProductCard({
       </div>
     </div>
   );
+}
+
+// ─── Cart Item type ────────────────────────────────────────────────────────────
+interface CartItem {
+  product: ParamedicalProduct;
+  quantity: number;
 }
 
 // ─── Add to Cart Toast ─────────────────────────────────────────────────────────
@@ -193,18 +197,11 @@ function CartToast({
       />
       <div className="flex-1 min-w-0">
         <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 mb-0.5">
-          Réservé ✓
+          Ajouté au panier ✓
         </p>
         <p className="text-sm font-semibold text-foreground line-clamp-1">
           {product.name}
         </p>
-        <Link
-          to="/pharmacy"
-          className="text-xs text-primary hover:underline mt-1 block"
-          onClick={onClose}
-        >
-          Voir la pharmacie →
-        </Link>
       </div>
       <button
         onClick={onClose}
@@ -216,10 +213,362 @@ function CartToast({
   );
 }
 
+// ─── Provider option type ──────────────────────────────────────────────────────
+interface ProviderOption {
+  id: string;
+  name: string;
+  address: string;
+  phone: string;
+  openingHours: string;
+  governorate: string;
+  delegation: string;
+}
+
+// ─── Checkout Modal ─────────────────────────────────────────────────────────────
+function CheckoutModal({
+  cart,
+  onClose,
+  onUpdateQty,
+  onRemove,
+  onOrder,
+  userGovernorate,
+  userDelegation,
+}: {
+  cart: CartItem[];
+  onClose: () => void;
+  onUpdateQty: (productId: string, qty: number) => void;
+  onRemove: (productId: string) => void;
+  onOrder: (data: { deliveryMethod: string; deliveryAddress: string; deliveryGovernorate: string; deliveryDelegation: string; deliveryPhone: string; pickupProviderId?: string }) => Promise<boolean>;
+  userGovernorate?: string;
+  userDelegation?: string;
+}) {
+  const [step, setStep] = useState<"cart" | "provider" | "checkout" | "success">("cart");
+  const [deliveryMethod, setDeliveryMethod] = useState<"pickup" | "delivery">("pickup");
+  const [address, setAddress] = useState("");
+  const [governorate, setGovernorate] = useState(userGovernorate || "");
+  const [delegation, setDelegation] = useState(userDelegation || "");
+  const [phone, setPhone] = useState("");
+  const [phoneError, setPhoneError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  // Provider picker state
+  const [availableProviders, setAvailableProviders] = useState<ProviderOption[]>([]);
+  const [selectedProvider, setSelectedProvider] = useState<ProviderOption | null>(null);
+  const [loadingProviders, setLoadingProviders] = useState(false);
+
+  const total = cart.reduce((s, item) => s + item.product.price * item.quantity, 0);
+  const DELIVERY_FEE = 8;
+  const grandTotal = total + (deliveryMethod === "delivery" ? DELIVERY_FEE : 0);
+
+  // Fetch providers when entering provider step
+  useEffect(() => {
+    if (step !== "provider") return;
+    setLoadingProviders(true);
+    const params = new URLSearchParams();
+    if (governorate) params.set("governorate", governorate);
+    if (delegation) params.set("delegation", delegation);
+    fetch(`/api/public/paramedical-providers?${params}`)
+      .then((r) => r.json())
+      .then((data) => setAvailableProviders(Array.isArray(data) ? data : []))
+      .catch(() => setAvailableProviders([]))
+      .finally(() => setLoadingProviders(false));
+  }, [step, governorate, delegation]);
+
+  const validatePhone = (value: string) => {
+    const digits = value.replace(/\D/g, "");
+    if (!digits) return "Le numéro de téléphone est requis.";
+    if (digits.length !== 8) return "Le numéro doit contenir exactement 8 chiffres.";
+    return "";
+  };
+
+  const handleSubmit = async () => {
+    const err = validatePhone(phone);
+    if (err) { setPhoneError(err); return; }
+    setPhoneError("");
+    setSubmitting(true);
+    const ok = await onOrder({
+      deliveryMethod,
+      deliveryAddress: address,
+      deliveryGovernorate: governorate,
+      deliveryDelegation: delegation,
+      deliveryPhone: phone,
+      pickupProviderId: deliveryMethod === "pickup" && selectedProvider ? selectedProvider.id : undefined,
+    });
+    setSubmitting(false);
+    if (ok) setStep("success");
+  };
+
+  const handleProceedFromCart = () => {
+    if (deliveryMethod === "pickup") {
+      setStep("provider");
+    } else {
+      setStep("checkout");
+    }
+  };
+
+  if (step === "success") {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
+        <div className="bg-card rounded-2xl p-8 max-w-md w-full mx-4 text-center space-y-4" onClick={(e) => e.stopPropagation()}>
+          <CheckCircle size={48} className="mx-auto text-emerald-500" />
+          <h2 className="text-xl font-bold text-foreground">Commande confirmée !</h2>
+          <p className="text-muted-foreground">
+            {deliveryMethod === "pickup"
+              ? `Votre commande sera prête pour le retrait chez ${selectedProvider?.name || "le fournisseur"}. Vous recevrez une notification.`
+              : "Votre commande sera livrée à l'adresse indiquée."}
+          </p>
+          <button onClick={onClose} className="px-6 py-2.5 bg-primary text-primary-foreground rounded-xl font-semibold hover:bg-primary/90 transition">
+            Fermer
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
+      <div className="bg-card rounded-2xl max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between p-4 border-b border-border">
+          <h2 className="text-lg font-bold text-foreground">
+            {step === "cart" ? `Panier (${cart.length})` : step === "provider" ? "Choisir un fournisseur" : "Finaliser la commande"}
+          </h2>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X size={20} /></button>
+        </div>
+
+        {step === "cart" ? (
+          <div className="p-4 space-y-4">
+            {cart.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">Votre panier est vide</p>
+            ) : (
+              <>
+                {cart.map((item) => (
+                  <div key={item.product.id} className="flex items-center gap-3 p-3 bg-secondary/30 rounded-xl">
+                    <img src={item.product.imageUrl} alt="" className="w-14 h-14 rounded-lg object-cover flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-foreground line-clamp-1">{item.product.name}</p>
+                      <p className="text-xs text-muted-foreground">{item.product.brand}</p>
+                      <p className="text-sm font-bold text-primary mt-0.5">{(item.product.price * item.quantity).toFixed(2)} TND</p>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <button onClick={() => onUpdateQty(item.product.id, item.quantity - 1)} className="w-7 h-7 flex items-center justify-center rounded-lg border border-border hover:bg-secondary transition">
+                        <Minus size={12} />
+                      </button>
+                      <span className="w-6 text-center text-sm font-semibold">{item.quantity}</span>
+                      <button onClick={() => onUpdateQty(item.product.id, item.quantity + 1)} className="w-7 h-7 flex items-center justify-center rounded-lg border border-border hover:bg-secondary transition">
+                        <Plus size={12} />
+                      </button>
+                    </div>
+                    <button onClick={() => onRemove(item.product.id)} className="text-muted-foreground hover:text-red-500 transition">
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                ))}
+                <div className="flex items-center justify-between pt-3 border-t border-border">
+                  <span className="font-bold text-foreground">Total articles</span>
+                  <span className="text-xl font-bold text-primary">{total.toFixed(2)} TND</span>
+                </div>
+                {deliveryMethod === "delivery" && (
+                  <div className="flex items-center gap-3 p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl">
+                    <Truck size={18} className="text-amber-600 dark:text-amber-400 flex-shrink-0" />
+                    <div className="flex-1">
+                      <p className="text-xs font-semibold text-amber-700 dark:text-amber-300">Frais de livraison à domicile</p>
+                      <p className="text-xs text-amber-600 dark:text-amber-400">Sera ajouté au total de votre commande</p>
+                    </div>
+                    <span className="text-sm font-bold text-amber-700 dark:text-amber-300">+8,00 DT</span>
+                  </div>
+                )}
+
+                {/* Delivery Method */}
+                <div>
+                  <h3 className="text-sm font-bold text-foreground mb-3">Mode de récupération</h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      onClick={() => setDeliveryMethod("pickup")}
+                      className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition ${deliveryMethod === "pickup" ? "border-primary bg-primary/5" : "border-border hover:border-primary/30"}`}
+                    >
+                      <Store size={24} className={deliveryMethod === "pickup" ? "text-primary" : "text-muted-foreground"} />
+                      <span className="text-sm font-semibold">Retrait sur place</span>
+                      <span className="text-xs text-muted-foreground">Gratuit</span>
+                    </button>
+                    <button
+                      onClick={() => setDeliveryMethod("delivery")}
+                      className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition ${deliveryMethod === "delivery" ? "border-primary bg-primary/5" : "border-border hover:border-primary/30"}`}
+                    >
+                      <Truck size={24} className={deliveryMethod === "delivery" ? "text-primary" : "text-muted-foreground"} />
+                      <span className="text-sm font-semibold">Livraison</span>
+                      <span className="text-xs text-muted-foreground">+8 DT</span>
+                    </button>
+                  </div>
+                </div>
+
+                <button onClick={handleProceedFromCart} className="w-full py-3 bg-primary text-primary-foreground rounded-xl font-semibold hover:bg-primary/90 transition">
+                  {deliveryMethod === "pickup" ? "Choisir un fournisseur" : "Passer la commande"}
+                </button>
+              </>
+            )}
+          </div>
+        ) : step === "provider" ? (
+          /* ── Provider Picker Step ── */
+          <div className="p-4 space-y-4">
+            {loadingProviders ? (
+              <div className="flex justify-center py-12">
+                <Loader2 size={32} className="animate-spin text-primary" />
+              </div>
+            ) : availableProviders.length === 0 ? (
+              <div className="text-center py-8 space-y-2">
+                <MapPin size={32} className="mx-auto text-muted-foreground/40" />
+                <p className="text-sm text-muted-foreground">Aucun fournisseur trouvé dans cette zone</p>
+              </div>
+            ) : (
+              <div className="space-y-3 max-h-[50vh] overflow-y-auto">
+                {availableProviders.map((prov) => (
+                  <button
+                    key={prov.id}
+                    onClick={() => setSelectedProvider(prov)}
+                    className={`w-full text-left p-4 rounded-xl border-2 transition ${selectedProvider?.id === prov.id ? "border-primary bg-primary/5" : "border-border hover:border-primary/30"}`}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-foreground">{prov.name}</p>
+                        {prov.address && (
+                          <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                            <MapPin size={12} /> {prov.address}
+                          </p>
+                        )}
+                        {prov.phone && (
+                          <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
+                            <Phone size={12} /> {prov.phone}
+                          </p>
+                        )}
+                        {prov.openingHours && (
+                          <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
+                            <Clock size={12} /> {prov.openingHours}
+                          </p>
+                        )}
+                      </div>
+                      {selectedProvider?.id === prov.id && (
+                        <CheckCircle size={20} className="text-primary flex-shrink-0 ml-2" />
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+            <div className="flex gap-3">
+              <button onClick={() => setStep("cart")} className="flex-1 py-2.5 border border-border rounded-xl font-medium text-sm hover:bg-secondary/50 transition">
+                Retour
+              </button>
+              <button
+                onClick={() => setStep("checkout")}
+                disabled={!selectedProvider}
+                className="flex-1 py-2.5 bg-primary text-primary-foreground rounded-xl font-semibold text-sm hover:bg-primary/90 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Continuer
+              </button>
+            </div>
+          </div>
+        ) : (
+          /* ── Checkout Details Step ── */
+          <div className="p-4 space-y-4">
+            {/* Selected provider for pickup */}
+            {deliveryMethod === "pickup" && selectedProvider && (
+              <div className="bg-primary/5 border border-primary/20 rounded-xl p-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-primary">Retrait chez</p>
+                    <p className="font-semibold text-foreground">{selectedProvider.name}</p>
+                    {selectedProvider.address && <p className="text-xs text-muted-foreground">{selectedProvider.address}</p>}
+                  </div>
+                  <button onClick={() => setStep("provider")} className="text-xs text-primary hover:underline font-medium">
+                    Changer
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Delivery address fields */}
+            {deliveryMethod === "delivery" && (
+              <div className="space-y-3">
+                <div>
+                  <label className="text-xs font-medium text-foreground">Gouvernorat</label>
+                  <select value={governorate} onChange={(e) => { setGovernorate(e.target.value); setDelegation(""); }} className="w-full mt-1 px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary">
+                    <option value="">Sélectionner...</option>
+                    {GOVERNORATES.map((g) => <option key={g} value={g}>{g}</option>)}
+                  </select>
+                </div>
+                {governorate && DELEGATIONS[governorate] && (
+                  <div>
+                    <label className="text-xs font-medium text-foreground">Délégation</label>
+                    <select value={delegation} onChange={(e) => setDelegation(e.target.value)} className="w-full mt-1 px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary">
+                      <option value="">Sélectionner...</option>
+                      {DELEGATIONS[governorate].map((d) => <option key={d} value={d}>{d}</option>)}
+                    </select>
+                  </div>
+                )}
+                <div>
+                  <label className="text-xs font-medium text-foreground">Adresse complète</label>
+                  <input type="text" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Rue, numéro, immeuble..." className="w-full mt-1 px-3 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary" />
+                </div>
+              </div>
+            )}
+
+            {/* Phone */}
+            <div>
+              <label className="text-xs font-medium text-foreground">Téléphone <span className="text-muted-foreground font-normal">(8 chiffres)</span></label>
+              <input
+                type="tel"
+                value={phone}
+                onChange={(e) => { setPhone(e.target.value); if (phoneError) setPhoneError(validatePhone(e.target.value)); }}
+                onBlur={(e) => setPhoneError(validatePhone(e.target.value))}
+                maxLength={8}
+                placeholder="XX XXX XXX"
+                className={`w-full mt-1 px-3 py-2 bg-background border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary ${phoneError ? "border-red-500 focus:ring-red-500" : "border-border"}`}
+              />
+              {phoneError && <p className="text-xs text-red-500 mt-1 flex items-center gap-1"><span>⚠</span> {phoneError}</p>}
+            </div>
+
+            {/* Summary */}
+            <div className="bg-secondary/30 rounded-xl p-3 space-y-1">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">{cart.length} article{cart.length > 1 ? "s" : ""}</span>
+                <span className="font-semibold text-foreground">{total.toFixed(2)} TND</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">{deliveryMethod === "pickup" ? "Retrait sur place" : "Livraison"}</span>
+                <span className="text-sm font-semibold text-foreground">{deliveryMethod === "pickup" ? "Gratuit" : "+8,00 DT"}</span>
+              </div>
+              {deliveryMethod === "delivery" && (
+                <div className="flex justify-between text-sm border-t border-border pt-1 mt-1">
+                  <span className="font-bold text-foreground">Total</span>
+                  <span className="font-bold text-primary">{grandTotal.toFixed(2)} TND</span>
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-3">
+              <button onClick={() => setStep(deliveryMethod === "pickup" ? "provider" : "cart")} className="flex-1 py-2.5 border border-border rounded-xl font-medium text-sm hover:bg-secondary/50 transition">
+                Retour
+              </button>
+              <button
+                onClick={handleSubmit}
+                disabled={submitting || (deliveryMethod === "delivery" && !address) || !!phoneError}
+                className="flex-1 py-2.5 bg-primary text-primary-foreground rounded-xl font-semibold text-sm hover:bg-primary/90 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {submitting ? "Envoi…" : `Confirmer — ${grandTotal.toFixed(2)} TND`}
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Page ─────────────────────────────────────────────────────────────────
 export default function ParamedicalPage() {
-  const { isAuthenticated } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [products, setProducts] = useState<ParamedicalProduct[]>([]);
   const [loading, setLoading] = useState(true);
@@ -257,19 +606,92 @@ export default function ParamedicalPage() {
     "price-asc" | "price-desc" | "rating" | "name"
   >("rating");
   const [showMobileFilters, setShowMobileFilters] = useState(false);
-  const [cartCount, setCartCount] = useState(0);
-  const [toastProduct, setToastProduct] = useState<ParamedicalProduct | null>(
-    null,
-  );
+  const [cart, setCart] = useState<CartItem[]>(() => {
+    try {
+      const saved = localStorage.getItem("megacare_para_cart");
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
+  const [showCheckout, setShowCheckout] = useState(false);
+  const [toastProduct, setToastProduct] = useState<ParamedicalProduct | null>(null);
+
+  const cartCount = cart.reduce((s, item) => s + item.quantity, 0);
+
+  // Persist cart to localStorage & broadcast count to Header
+  useEffect(() => {
+    localStorage.setItem("megacare_para_cart", JSON.stringify(cart));
+    window.dispatchEvent(new CustomEvent("megacare:cart", {
+      detail: { paramedical: cartCount },
+    }));
+  }, [cart, cartCount]);
+
+  // Open cart from Header navigation (query param)
+  useEffect(() => {
+    if (searchParams.get("openCart")) {
+      setShowCheckout(true);
+      searchParams.delete("openCart");
+      setSearchParams(searchParams, { replace: true });
+    }
+  }, [searchParams]);
+
+  // Listen for "open cart" requests from Header
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const type = (e as CustomEvent).detail;
+      if (type === "paramedical") setShowCheckout(true);
+    };
+    window.addEventListener("megacare:open-cart", handler);
+    return () => window.removeEventListener("megacare:open-cart", handler);
+  }, []);
 
   const handleAddToCart = (product: ParamedicalProduct) => {
     if (!isAuthenticated) {
       navigate("/login");
       return;
     }
-    setCartCount((c) => c + 1);
+    setCart((prev) => {
+      const existing = prev.find((item) => item.product.id === product.id);
+      if (existing) {
+        return prev.map((item) => item.product.id === product.id ? { ...item, quantity: item.quantity + 1 } : item);
+      }
+      return [...prev, { product, quantity: 1 }];
+    });
     setToastProduct(product);
     setTimeout(() => setToastProduct(null), 3500);
+  };
+
+  const handleUpdateQty = (productId: string, qty: number) => {
+    if (qty <= 0) {
+      setCart((prev) => prev.filter((item) => item.product.id !== productId));
+    } else {
+      setCart((prev) => prev.map((item) => item.product.id === productId ? { ...item, quantity: qty } : item));
+    }
+  };
+
+  const handleRemoveFromCart = (productId: string) => {
+    setCart((prev) => prev.filter((item) => item.product.id !== productId));
+  };
+
+  const handleOrder = async (data: { deliveryMethod: string; deliveryAddress: string; deliveryGovernorate: string; deliveryDelegation: string; deliveryPhone: string; pickupProviderId?: string }): Promise<boolean> => {
+    try {
+      const token = localStorage.getItem("megacare_token");
+      const res = await fetch("/api/public/paramedical-orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          items: cart.map((item) => ({ productId: item.product.id, name: item.product.name, quantity: item.quantity })),
+          ...data,
+        }),
+      });
+      if (res.ok) {
+        setCart([]);
+        localStorage.removeItem("megacare_para_cart");
+        return true;
+      }
+    } catch {
+      /* ignore */
+    }
+    return false;
   };
 
   const filtered = useMemo(() => {
@@ -491,18 +913,6 @@ export default function ParamedicalPage() {
               produit{filtered.length !== 1 ? "s" : ""}
             </p>
             <div className="flex items-center gap-3">
-              <Link
-                to="/pharmacy"
-                className="relative flex items-center gap-1.5 px-4 py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-semibold hover:bg-primary/90 transition"
-              >
-                <ShoppingCart size={15} />
-                {cartCount > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-                    {cartCount}
-                  </span>
-                )}
-                Réservations
-              </Link>
               <button
                 onClick={() => setShowMobileFilters(!showMobileFilters)}
                 className="flex items-center gap-2 px-4 py-2.5 border border-border rounded-xl text-sm font-medium hover:bg-secondary/50 transition"
@@ -525,18 +935,6 @@ export default function ParamedicalPage() {
               <div className="bg-card rounded-xl border border-border p-6 space-y-6 sticky top-24">
                 <div className="flex items-center justify-between">
                   <h3 className="font-bold text-foreground">Filtres</h3>
-                  <Link
-                    to="/pharmacy"
-                    className="relative flex items-center gap-1.5 px-3 py-2 bg-primary text-primary-foreground rounded-xl text-xs font-semibold hover:bg-primary/90 transition"
-                  >
-                    <ShoppingCart size={13} />
-                    Réservations
-                    {cartCount > 0 && (
-                      <span className="absolute -top-1.5 -right-1.5 w-4.5 h-4.5 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center px-1">
-                        {cartCount}
-                      </span>
-                    )}
-                  </Link>
                 </div>
                 <FilterSidebar />
               </div>
@@ -608,9 +1006,14 @@ export default function ParamedicalPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 grid grid-cols-1 sm:grid-cols-3 gap-6 text-center">
           {[
             {
-              icon: <Shield size={22} className="text-primary mx-auto mb-2" />,
-              title: "Retrait dans votre pharmacie",
-              desc: "Disponible chez nos pharmacies partenaires",
+              icon: <Store size={22} className="text-primary mx-auto mb-2" />,
+              title: "Retrait sur place",
+              desc: "Récupérez votre commande en point de vente",
+            },
+            {
+              icon: <Truck size={22} className="text-primary mx-auto mb-2" />,
+              title: "Livraison à domicile",
+              desc: "Faites-vous livrer vos produits paramédicaux",
             },
             {
               icon: (
@@ -634,6 +1037,19 @@ export default function ParamedicalPage() {
         <CartToast
           product={toastProduct}
           onClose={() => setToastProduct(null)}
+        />
+      )}
+
+      {/* Checkout modal */}
+      {showCheckout && (
+        <CheckoutModal
+          cart={cart}
+          onClose={() => setShowCheckout(false)}
+          onUpdateQty={handleUpdateQty}
+          onRemove={handleRemoveFromCart}
+          onOrder={handleOrder}
+          userGovernorate={user?.governorate}
+          userDelegation={user?.delegation}
         />
       )}
 

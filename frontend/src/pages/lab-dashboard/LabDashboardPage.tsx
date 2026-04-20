@@ -16,6 +16,7 @@ import {
   Clock,
   CheckCircle2,
   AlertCircle,
+  Loader2,
 } from "lucide-react";
 
 const quickLinks = [
@@ -42,7 +43,6 @@ const quickLinks = [
     icon: Image,
     color: "text-purple-500",
     bg: "bg-purple-50",
-    disabled: true,
   },
   {
     href: "/lab-dashboard/patients",
@@ -51,7 +51,6 @@ const quickLinks = [
     icon: Users,
     color: "text-indigo-500",
     bg: "bg-indigo-50",
-    disabled: true,
   },
   {
     href: "/lab-dashboard/appointments",
@@ -60,7 +59,6 @@ const quickLinks = [
     icon: Calendar,
     color: "text-pink-500",
     bg: "bg-pink-50",
-    disabled: true,
   },
   {
     href: "/lab-dashboard/billing",
@@ -69,7 +67,6 @@ const quickLinks = [
     icon: CreditCard,
     color: "text-amber-500",
     bg: "bg-amber-50",
-    disabled: true,
   },
   {
     href: "/lab-dashboard/messaging",
@@ -78,7 +75,6 @@ const quickLinks = [
     icon: MessageSquare,
     color: "text-teal-500",
     bg: "bg-teal-50",
-    disabled: true,
   },
   {
     href: "/lab-dashboard/analytics",
@@ -87,7 +83,6 @@ const quickLinks = [
     icon: BarChart3,
     color: "text-red-500",
     bg: "bg-red-50",
-    disabled: true,
   },
   {
     href: "/lab-dashboard/settings",
@@ -96,47 +91,19 @@ const quickLinks = [
     icon: Settings,
     color: "text-slate-500",
     bg: "bg-slate-50",
-    disabled: true,
   },
 ];
 
-const recentActivity = [
-  {
-    icon: CheckCircle2,
-    color: "text-green-500",
-    bg: "bg-green-50",
-    text: "Analyse ADN — Leila Mansouri complétée",
-    time: "Il y a 45 min",
-  },
-  {
-    icon: AlertCircle,
-    color: "text-amber-500",
-    bg: "bg-amber-50",
-    text: "Résultat cholestérol élevé — Karim Smaoui",
-    time: "Il y a 1h 20",
-  },
-  {
-    icon: FlaskConical,
-    color: "text-blue-500",
-    bg: "bg-blue-50",
-    text: "Nouvelle demande d'analyse — Ahmed Nasser",
-    time: "Il y a 2h",
-  },
-  {
-    icon: FileText,
-    color: "text-purple-500",
-    bg: "bg-purple-50",
-    text: "Résultat TSH partagé — Sara Meddeb",
-    time: "Il y a 3h",
-  },
-  {
-    icon: CheckCircle2,
-    color: "text-green-500",
-    bg: "bg-green-50",
-    text: "Radio pulmonaire envoyée — Dr. Mansouri",
-    time: "Il y a 4h",
-  },
-];
+function formatTimeAgo(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "À l'instant";
+  if (mins < 60) return `Il y a ${mins} min`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `Il y a ${hours}h`;
+  const days = Math.floor(hours / 24);
+  return `Il y a ${days}j`;
+}
 
 export default function LabDashboardPage() {
   const { user, isLoading, isAuthenticated } = useAuth();
@@ -148,6 +115,11 @@ export default function LabDashboardPage() {
     criticalResults: 0,
   });
   const [loadingKpis, setLoadingKpis] = useState(true);
+  const [partnerDoctors, setPartnerDoctors] = useState(0);
+  const [recentActivity, setRecentActivity] = useState<
+    { type: string; text: string; createdAt: string }[]
+  >([]);
+  const [loadingActivity, setLoadingActivity] = useState(true);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) navigate("/login");
@@ -166,15 +138,28 @@ export default function LabDashboardPage() {
   useEffect(() => {
     if (!isAuthenticated || !user || user.role !== "lab_radiology") return;
     const token = localStorage.getItem("megacare_token");
-    fetch("/api/lab/kpis", {
-      headers: { Authorization: `Bearer ${token}` },
-    })
+    const headers = { Authorization: `Bearer ${token}` };
+
+    fetch("/api/lab/kpis", { headers })
       .then((r) => r.json())
       .then((data) => {
         setKpiResponse(data);
         setLoadingKpis(false);
       })
       .catch(() => setLoadingKpis(false));
+
+    fetch("/api/lab/partner-doctors", { headers })
+      .then((r) => r.json())
+      .then((data) => setPartnerDoctors(data.count ?? 0))
+      .catch(() => {});
+
+    fetch("/api/lab/activity", { headers })
+      .then((r) => r.json())
+      .then((data) => {
+        setRecentActivity(Array.isArray(data) ? data : []);
+        setLoadingActivity(false);
+      })
+      .catch(() => setLoadingActivity(false));
   }, [isAuthenticated, user]);
 
   if (isLoading || !isAuthenticated || !user || user.role !== "lab_radiology")
@@ -207,7 +192,7 @@ export default function LabDashboardPage() {
     },
     {
       label: "Médecins partenaires",
-      value: "45",
+      value: loadingKpis ? "…" : String(partnerDoctors),
       sub: "Actifs",
       icon: Users,
       color: "text-green-500",
@@ -263,27 +248,6 @@ export default function LabDashboardPage() {
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
               {quickLinks.map((q) => {
                 const Icon = q.icon;
-                if (q.disabled) {
-                  return (
-                    <div
-                      key={q.href}
-                      title="Bientôt disponible"
-                      className="bg-card rounded-xl border border-border p-4 opacity-50 cursor-not-allowed space-y-2"
-                    >
-                      <div
-                        className={`w-9 h-9 rounded-lg flex items-center justify-center ${q.bg}`}
-                      >
-                        <Icon size={18} className={q.color} />
-                      </div>
-                      <p className="text-sm font-semibold text-muted-foreground">
-                        {q.label}
-                      </p>
-                      <p className="text-xs text-muted-foreground leading-tight">
-                        {q.desc}
-                      </p>
-                    </div>
-                  );
-                }
                 return (
                   <Link
                     key={q.href}
@@ -315,22 +279,41 @@ export default function LabDashboardPage() {
               </h2>
             </div>
             <div className="divide-y divide-border">
-              {recentActivity.map((a, i) => {
-                const Icon = a.icon;
-                return (
-                  <div key={i} className="flex items-center gap-4 px-5 py-3">
-                    <div
-                      className={`w-8 h-8 rounded-lg flex items-center justify-center ${a.bg} shrink-0`}
-                    >
-                      <Icon size={15} className={a.color} />
+              {loadingActivity ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 size={20} className="animate-spin text-muted-foreground" />
+                </div>
+              ) : recentActivity.length === 0 ? (
+                <p className="text-sm text-muted-foreground px-5 py-6 text-center">
+                  Aucune activité récente
+                </p>
+              ) : (
+                recentActivity.map((a, i) => {
+                  const iconMap: Record<string, { icon: typeof CheckCircle2; color: string; bg: string }> = {
+                    completed: { icon: CheckCircle2, color: "text-green-500", bg: "bg-green-50" },
+                    critical: { icon: AlertCircle, color: "text-red-500", bg: "bg-red-50" },
+                    in_progress: { icon: Clock, color: "text-amber-500", bg: "bg-amber-50" },
+                    new_request: { icon: FlaskConical, color: "text-blue-500", bg: "bg-blue-50" },
+                    result: { icon: FileText, color: "text-purple-500", bg: "bg-purple-50" },
+                  };
+                  const style = iconMap[a.type] ?? iconMap.result;
+                  const Icon = style.icon;
+                  const ago = formatTimeAgo(a.createdAt);
+                  return (
+                    <div key={i} className="flex items-center gap-4 px-5 py-3">
+                      <div
+                        className={`w-8 h-8 rounded-lg flex items-center justify-center ${style.bg} shrink-0`}
+                      >
+                        <Icon size={15} className={style.color} />
+                      </div>
+                      <p className="flex-1 text-sm text-foreground">{a.text}</p>
+                      <span className="text-xs text-muted-foreground whitespace-nowrap">
+                        {ago}
+                      </span>
                     </div>
-                    <p className="flex-1 text-sm text-foreground">{a.text}</p>
-                    <span className="text-xs text-muted-foreground whitespace-nowrap">
-                      {a.time}
-                    </span>
-                  </div>
-                );
-              })}
+                  );
+                })
+              )}
             </div>
           </div>
         </main>

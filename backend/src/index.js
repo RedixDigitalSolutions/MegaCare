@@ -27,8 +27,8 @@ app.use(
 );
 app.use(express.json({ limit: "10mb" }));
 
-// Rate limiting — auth endpoints (15 requests per 15 min per IP)
-const authLimiter = rateLimit({
+// Rate limiting — auth mutations only (login/register: 15 req / 15 min)
+const authMutationLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 15,
   standardHeaders: true,
@@ -36,20 +36,34 @@ const authLimiter = rateLimit({
   message: { message: "Trop de tentatives, réessayez dans 15 minutes" },
 });
 
+// Rate limiting — auth reads (profile etc: 120 req / 15 min)
+const authReadLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Trop de requêtes, réessayez dans quelques minutes" },
+});
+
 // Routes
-app.use("/api/auth", authLimiter, require("./routes/auth"));
+app.use("/api/auth/login", authMutationLimiter);
+app.use("/api/auth/register", authMutationLimiter);
+app.use("/api/auth/profile", authReadLimiter);
+app.use("/api/auth", require("./routes/auth"));
 app.use("/api/admin", require("./routes/admin"));
 app.use("/api/users", require("./routes/users"));
 app.use("/api/doctors", require("./routes/doctors"));
 app.use("/api/appointments", require("./routes/appointments"));
 app.use("/api/prescriptions", require("./routes/prescriptions"));
 app.use("/api/pharmacy", require("./routes/pharmacy"));
+app.use("/api/pharmacies", require("./routes/pharmacies"));
+app.use("/api/medicines", require("./routes/medicines"));
 app.use("/api/lab", require("./routes/lab"));
 app.use("/api/medical-service", require("./routes/medical-service"));
 app.use("/api/paramedical", require("./routes/paramedical"));
+app.use("/api/paramedical-catalog", require("./routes/paramedicalCatalog"));
 app.use("/api/messages", require("./routes/messages"));
 app.use("/api/dossier", require("./routes/dossier"));
-app.use("/api/reviews", require("./routes/reviews"));
 app.use("/api/public", require("./routes/public"));
 
 // Health check

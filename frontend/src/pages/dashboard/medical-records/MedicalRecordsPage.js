@@ -1,7 +1,7 @@
 import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-runtime";
 import { useState, useEffect, useCallback } from "react";
 import { DashboardSidebar } from "@/components/DashboardSidebar";
-import { ChevronDown, FileText, Lock, AlertCircle, Loader2, Save, X, Pencil, Trash2, } from "lucide-react";
+import { ChevronDown, FileText, Lock, AlertCircle, Loader2, Save, X, Pencil, Trash2, ShieldCheck, ShieldOff, Clock, } from "lucide-react";
 export default function MedicalRecordsPage() {
     const [dossier, setDossier] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -11,6 +11,8 @@ export default function MedicalRecordsPage() {
     ]);
     const [editingSection, setEditingSection] = useState(null);
     const [editData, setEditData] = useState(null);
+    const [permissions, setPermissions] = useState([]);
+    const [permLoading, setPermLoading] = useState(false);
     const token = localStorage.getItem("megacare_token");
     const fetchDossier = useCallback(async () => {
         try {
@@ -30,6 +32,37 @@ export default function MedicalRecordsPage() {
     useEffect(() => {
         fetchDossier();
     }, [fetchDossier]);
+    const fetchPermissions = useCallback(async () => {
+        try {
+            const res = await fetch("/api/dossier/permissions/list", {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            const data = await res.json();
+            if (Array.isArray(data))
+                setPermissions(data);
+        }
+        catch { }
+    }, [token]);
+    useEffect(() => {
+        fetchPermissions();
+    }, [fetchPermissions]);
+    const revokePermission = async (doctorId) => {
+        setPermLoading(true);
+        try {
+            const res = await fetch(`/api/dossier/permissions/${doctorId}`, {
+                method: "DELETE",
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (res.ok) {
+                const data = await res.json();
+                if (Array.isArray(data))
+                    setPermissions(data);
+            }
+        }
+        finally {
+            setPermLoading(false);
+        }
+    };
     const toggleSection = (section) => {
         setExpandedSections((prev) => prev.includes(section)
             ? prev.filter((s) => s !== section)
@@ -246,7 +279,22 @@ export default function MedicalRecordsPage() {
                                                                         ? "Imagerie"
                                                                         : doc.type === "prescription"
                                                                             ? "Ordonnance"
-                                                                            : "Autre", " ", "\u00B7 ", doc.date] }), doc.description && (_jsx("p", { className: "text-xs text-muted-foreground mt-1", children: doc.description }))] })] }, i)))) : (_jsxs("div", { className: "border-2 border-dashed border-primary/30 rounded-lg p-8 text-center space-y-2", children: [_jsx(FileText, { className: "w-8 h-8 text-primary mx-auto" }), _jsx("p", { className: "font-semibold text-foreground text-sm", children: "Aucun document" }), _jsx("p", { className: "text-xs text-muted-foreground", children: "Cliquez sur Modifier pour ajouter des documents" })] })) })) })] })] })] }) }));
+                                                                            : "Autre", " ", "\u00B7 ", doc.date] }), doc.description && (_jsx("p", { className: "text-xs text-muted-foreground mt-1", children: doc.description }))] })] }, i)))) : (_jsxs("div", { className: "border-2 border-dashed border-primary/30 rounded-lg p-8 text-center space-y-2", children: [_jsx(FileText, { className: "w-8 h-8 text-primary mx-auto" }), _jsx("p", { className: "font-semibold text-foreground text-sm", children: "Aucun document" }), _jsx("p", { className: "text-xs text-muted-foreground", children: "Cliquez sur Modifier pour ajouter des documents" })] })) })) }), _jsxs("div", { className: "bg-card rounded-lg border border-border overflow-hidden", children: [_jsxs("div", { className: "px-6 py-4 flex items-center gap-3", children: [_jsx("span", { className: "text-2xl", children: "\uD83D\uDD10" }), _jsx("h3", { className: "font-semibold text-foreground", children: "Acc\u00E8s au dossier" }), _jsxs("span", { className: "text-xs font-medium bg-primary/10 text-primary px-2 py-0.5 rounded-full ml-auto", children: [permissions.filter((p) => p.status === "active").length, " actif(s)"] })] }), _jsxs("div", { className: "px-6 py-4 border-t border-border bg-secondary/5 space-y-3", children: [_jsx("p", { className: "text-xs text-muted-foreground", children: "Les m\u00E9decins ci-dessous ont acc\u00E8s \u00E0 votre dossier m\u00E9dical. L'acc\u00E8s est accord\u00E9 automatiquement lors de la prise de rendez-vous et expire 3 jours apr\u00E8s la consultation." }), permissions.length === 0 ? (_jsxs("div", { className: "border-2 border-dashed border-primary/30 rounded-lg p-8 text-center space-y-2", children: [_jsx(ShieldCheck, { className: "w-8 h-8 text-primary mx-auto" }), _jsx("p", { className: "font-semibold text-foreground text-sm", children: "Aucun acc\u00E8s accord\u00E9" }), _jsx("p", { className: "text-xs text-muted-foreground", children: "Aucun m\u00E9decin n'a actuellement acc\u00E8s \u00E0 votre dossier" })] })) : (_jsx("div", { className: "space-y-2", children: permissions.map((p, i) => {
+                                                        const isActive = p.status === "active";
+                                                        const isExpired = p.status === "expired";
+                                                        const hasExpiry = p.expiresAt && isActive;
+                                                        return (_jsxs("div", { className: `flex items-center justify-between p-3 rounded-lg border ${isActive
+                                                                ? "bg-green-50 border-green-200 dark:bg-green-950/20 dark:border-green-900"
+                                                                : isExpired
+                                                                    ? "bg-orange-50 border-orange-200 dark:bg-orange-950/20 dark:border-orange-900"
+                                                                    : "bg-red-50 border-red-200 dark:bg-red-950/20 dark:border-red-900"}`, children: [_jsxs("div", { className: "flex items-center gap-3", children: [isActive ? (_jsx(ShieldCheck, { size: 18, className: "text-green-600" })) : isExpired ? (_jsx(Clock, { size: 18, className: "text-orange-500" })) : (_jsx(ShieldOff, { size: 18, className: "text-red-500" })), _jsxs("div", { children: [_jsxs("p", { className: "font-medium text-sm text-foreground", children: ["Dr. ", p.doctorName || "Médecin"] }), _jsx("p", { className: "text-xs text-muted-foreground", children: isActive
+                                                                                        ? hasExpiry
+                                                                                            ? `Expire le ${new Date(p.expiresAt).toLocaleDateString("fr-FR")}`
+                                                                                            : `Accordé le ${new Date(p.grantedAt).toLocaleDateString("fr-FR")}`
+                                                                                        : isExpired
+                                                                                            ? "Accès expiré"
+                                                                                            : "Accès révoqué" })] })] }), isActive && (_jsx("button", { onClick: () => revokePermission(p.doctorId), disabled: permLoading, className: "px-3 py-1.5 text-xs font-medium text-red-600 border border-red-300 rounded-lg hover:bg-red-100 transition disabled:opacity-50", children: "R\u00E9voquer" }))] }, i));
+                                                    }) }))] })] })] })] })] }) }));
 }
 /* ── Helper Components ── */
 function Field({ label, value }) {

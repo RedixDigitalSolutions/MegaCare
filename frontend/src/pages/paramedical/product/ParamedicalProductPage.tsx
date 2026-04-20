@@ -906,9 +906,6 @@ export default function ParamedicalProductPage() {
               <span className="text-sm font-semibold text-foreground">
                 {product.rating}
               </span>
-              <span className="text-sm text-muted-foreground">
-                ({product.reviews} avis)
-              </span>
             </div>
 
             {/* Price */}

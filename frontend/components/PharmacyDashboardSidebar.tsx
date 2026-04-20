@@ -6,10 +6,14 @@ import {
   ShoppingCart,
   TrendingUp,
   Package,
+  Truck,
+  Settings,
   LogOut,
   FlaskConical,
   Menu,
   X,
+  QrCode,
+  Home,
 } from "lucide-react";
 
 const menuItems = [
@@ -23,8 +27,19 @@ const menuItems = [
     label: "Commandes",
     icon: ShoppingCart,
   },
+  {
+    href: "/pharmacy-dashboard/prescriptions",
+    label: "Ordonnances",
+    icon: QrCode,
+  },
+  {
+    href: "/pharmacy-dashboard/supplier-orders",
+    label: "Fournisseurs",
+    icon: Truck,
+  },
   { href: "/pharmacy-dashboard/sales", label: "Ventes", icon: TrendingUp },
   { href: "/pharmacy-dashboard/stock", label: "Stock", icon: Package },
+  { href: "/pharmacy-dashboard/settings", label: "Paramètres", icon: Settings },
 ];
 
 interface PharmacyDashboardSidebarProps {
@@ -116,8 +131,15 @@ export function PharmacyDashboardSidebar({
         })}
       </nav>
 
-      {/* Logout */}
-      <div className="p-4 border-t border-sidebar-border">
+      {/* Footer actions */}
+      <div className="p-4 border-t border-sidebar-border space-y-0.5">
+        <Link
+          to="/"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg w-full text-sm font-medium text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground transition"
+        >
+          <Home size={18} />
+          Retour à l’accueil
+        </Link>
         <button
           onClick={handleLogout}
           className="flex items-center gap-3 px-3 py-2.5 rounded-lg w-full text-sm font-medium text-sidebar-foreground/70 hover:bg-red-500/10 hover:text-red-500 transition"

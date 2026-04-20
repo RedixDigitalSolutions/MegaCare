@@ -34,7 +34,8 @@ export default function DoctorPrescriptionsPage() {
                 headers: { Authorization: `Bearer ${token}` },
             });
             if (res.ok) {
-                const data = await res.json();
+                const json = await res.json();
+                const data = Array.isArray(json) ? json : (json.data ?? []);
                 const mapped = data.map((p) => ({
                     id: String(p.id || p._id),
                     patientId: p.patientId || null,
@@ -77,7 +78,8 @@ export default function DoctorPrescriptionsPage() {
                 headers: { Authorization: `Bearer ${token}` },
             });
             if (res.ok) {
-                const data = await res.json();
+                const json = await res.json();
+                const data = Array.isArray(json) ? json : (json.data ?? []);
                 setPatients(data
                     .filter((u) => u.role === "patient")
                     .map((u) => ({

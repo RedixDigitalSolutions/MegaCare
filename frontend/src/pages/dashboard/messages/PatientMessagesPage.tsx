@@ -100,7 +100,8 @@ export default function PatientMessagesPage() {
           headers,
         });
         if (res.ok) {
-          setThread(await res.json());
+          const body = await res.json();
+          setThread(Array.isArray(body) ? body : (body.data ?? []));
           fetchConversations();
         }
       } catch {}
@@ -341,10 +342,10 @@ export default function PatientMessagesPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="flex flex-col md:flex-row">
+      <div className="flex flex-col md:flex-row h-screen">
         <DashboardSidebar />
 
-        <main className="flex-1 flex flex-col overflow-hidden h-screen">
+        <main className="flex-1 flex flex-col overflow-hidden">
           {/* Header */}
           <div className="bg-card border-b border-border p-6 shrink-0">
             <h1 className="text-3xl font-bold text-foreground flex items-center gap-3">

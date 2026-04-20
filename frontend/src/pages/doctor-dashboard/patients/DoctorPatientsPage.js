@@ -96,7 +96,8 @@ export default function DoctorPatientsPage() {
             });
             if (!res.ok)
                 return;
-            const allUsers = await res.json();
+            const json = await res.json();
+            const allUsers = Array.isArray(json) ? json : (json.data ?? []);
             const patientUsers = allUsers.filter((u) => u.role === "patient");
             // Also fetch dossiers to get allergy/bloodType data
             const enriched = await Promise.all(patientUsers.map(async (u) => {

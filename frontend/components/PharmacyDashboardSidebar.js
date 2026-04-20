@@ -2,7 +2,7 @@ import { jsx as _jsx, jsxs as _jsxs, Fragment as _Fragment } from "react/jsx-run
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { LayoutDashboard, ShoppingCart, TrendingUp, Package, LogOut, FlaskConical, Menu, X, } from "lucide-react";
+import { LayoutDashboard, ShoppingCart, TrendingUp, Package, Truck, Settings, LogOut, FlaskConical, Menu, X, QrCode, Home, } from "lucide-react";
 const menuItems = [
     {
         href: "/pharmacy-dashboard",
@@ -14,8 +14,19 @@ const menuItems = [
         label: "Commandes",
         icon: ShoppingCart,
     },
+    {
+        href: "/pharmacy-dashboard/prescriptions",
+        label: "Ordonnances",
+        icon: QrCode,
+    },
+    {
+        href: "/pharmacy-dashboard/supplier-orders",
+        label: "Fournisseurs",
+        icon: Truck,
+    },
     { href: "/pharmacy-dashboard/sales", label: "Ventes", icon: TrendingUp },
     { href: "/pharmacy-dashboard/stock", label: "Stock", icon: Package },
+    { href: "/pharmacy-dashboard/settings", label: "Paramètres", icon: Settings },
 ];
 export function PharmacyDashboardSidebar({ pharmacyName = "Pharmacie", }) {
     const location = useLocation();
@@ -41,6 +52,6 @@ export function PharmacyDashboardSidebar({ pharmacyName = "Pharmacie", }) {
                     return (_jsxs(Link, { to: item.href, onClick: () => setMobileOpen(false), className: `flex items-center gap-3 px-3 py-2.5 rounded-lg transition text-sm font-medium ${active
                             ? "bg-sidebar-accent text-sidebar-foreground"
                             : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"}`, children: [_jsx(Icon, { size: 18, className: active ? "text-primary" : "text-sidebar-foreground/50" }), item.label] }, item.href));
-                }) }), _jsx("div", { className: "p-4 border-t border-sidebar-border", children: _jsxs("button", { onClick: handleLogout, className: "flex items-center gap-3 px-3 py-2.5 rounded-lg w-full text-sm font-medium text-sidebar-foreground/70 hover:bg-red-500/10 hover:text-red-500 transition", children: [_jsx(LogOut, { size: 18 }), "D\u00E9connexion"] }) })] }));
+                }) }), _jsxs("div", { className: "p-4 border-t border-sidebar-border space-y-0.5", children: [_jsxs(Link, { to: "/", className: "flex items-center gap-3 px-3 py-2.5 rounded-lg w-full text-sm font-medium text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground transition", children: [_jsx(Home, { size: 18 }), "Retour \u00E0 l\u2019accueil"] }), _jsxs("button", { onClick: handleLogout, className: "flex items-center gap-3 px-3 py-2.5 rounded-lg w-full text-sm font-medium text-sidebar-foreground/70 hover:bg-red-500/10 hover:text-red-500 transition", children: [_jsx(LogOut, { size: 18 }), "D\u00E9connexion"] })] })] }));
     return (_jsxs(_Fragment, { children: [_jsx("div", { className: "md:hidden fixed top-4 left-4 z-50", children: _jsx("button", { onClick: () => setMobileOpen(true), className: "p-2 bg-card border border-border rounded-lg shadow-md", children: _jsx(Menu, { size: 20 }) }) }), mobileOpen && (_jsx("div", { className: "fixed inset-0 z-40 bg-black/50 md:hidden", onClick: () => setMobileOpen(false) })), _jsxs("aside", { className: `fixed inset-y-0 left-0 z-50 w-64 bg-sidebar transform transition-transform duration-200 md:hidden ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`, children: [_jsx("div", { className: "absolute top-4 right-4", children: _jsx("button", { onClick: () => setMobileOpen(false), className: "p-1 hover:bg-muted rounded", children: _jsx(X, { size: 18 }) }) }), _jsx(SidebarContent, {})] }), _jsx("aside", { className: "hidden md:flex flex-col w-64 bg-sidebar border-r border-sidebar-border h-screen sticky top-0 shrink-0", children: _jsx(SidebarContent, {}) })] }));
 }

@@ -1,24 +1,17 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   LayoutDashboard,
-  Calendar,
-  ClipboardList,
   Users,
-  FileHeart,
-  Activity,
-  Video,
-  MessageSquare,
-  Bell,
-  Map,
   Package,
-  BarChart3,
+  ShoppingBag,
   Settings,
   LogOut,
   Stethoscope,
   Menu,
   X,
+  Home,
 } from "lucide-react";
 
 const menuItems = [
@@ -28,47 +21,19 @@ const menuItems = [
     icon: LayoutDashboard,
   },
   {
-    href: "/paramedical-dashboard/appointments",
-    label: "Rendez-vous",
-    icon: Calendar,
+    href: "/paramedical-dashboard/clients",
+    label: "Clients",
+    icon: Users,
   },
   {
-    href: "/paramedical-dashboard/planning",
-    label: "Planning",
-    icon: ClipboardList,
-  },
-  { href: "/paramedical-dashboard/patients", label: "Patients", icon: Users },
-  {
-    href: "/paramedical-dashboard/care-record",
-    label: "Dossier de soins",
-    icon: FileHeart,
+    href: "/paramedical-dashboard/stock",
+    label: "Stock",
+    icon: Package,
   },
   {
-    href: "/paramedical-dashboard/vitals",
-    label: "Constantes",
-    icon: Activity,
-  },
-  {
-    href: "/paramedical-dashboard/teleconsultation",
-    label: "Téléconsultation",
-    icon: Video,
-  },
-  {
-    href: "/paramedical-dashboard/messaging",
-    label: "Messagerie",
-    icon: MessageSquare,
-  },
-  {
-    href: "/paramedical-dashboard/notifications",
-    label: "Notifications",
-    icon: Bell,
-  },
-  { href: "/paramedical-dashboard/map", label: "Carte", icon: Map },
-  { href: "/paramedical-dashboard/supplies", label: "Matériel", icon: Package },
-  {
-    href: "/paramedical-dashboard/reports",
-    label: "Rapports",
-    icon: BarChart3,
+    href: "/paramedical-dashboard/orders",
+    label: "Commandes",
+    icon: ShoppingBag,
   },
   {
     href: "/paramedical-dashboard/settings",
@@ -78,138 +43,151 @@ const menuItems = [
 ];
 
 export function ParamedicalDashboardSidebar() {
-  const { pathname } = useLocation();
+  const location = useLocation();
   const navigate = useNavigate();
   const { logout, user } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
-
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
-  };
-
-  const initials = user
-    ? `${user.firstName?.[0] ?? ""}${user.lastName?.[0] ?? ""}`.toUpperCase() ||
-      "PM"
-    : "PM";
 
   const displayName =
     user?.firstName && user?.lastName
       ? `${user.firstName} ${user.lastName}`
       : user?.name || "Paramédical";
 
-  const NavContent = () => (
-    <>
-      {/* Logo */}
-      <div className="flex items-center gap-3 px-5 py-5 border-b border-sidebar-border shrink-0">
-        <div className="w-9 h-9 bg-sidebar-primary/20 rounded-xl flex items-center justify-center">
-          <Stethoscope size={17} className="text-sidebar-primary" />
+  const initials = user
+    ? `${user.firstName?.[0] ?? ""}${user.lastName?.[0] ?? ""}`.toUpperCase() || "PM"
+    : "PM";
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
+
+  const isActive = (href: string) =>
+    href === "/paramedical-dashboard"
+      ? location.pathname === "/paramedical-dashboard"
+      : location.pathname.startsWith(href);
+
+  const SidebarContent = () => (
+    <div className="flex flex-col h-full">
+      {/* Logo / Brand */}
+      <div className="p-6 border-b border-sidebar-border">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
+            <Stethoscope size={20} className="text-primary" />
+          </div>
+          <div>
+            <p className="font-bold text-sidebar-foreground text-sm leading-tight">
+              MegaCare
+            </p>
+            <p className="text-xs text-sidebar-foreground/60">Paramédical</p>
+          </div>
         </div>
-        <span className="font-bold text-lg text-sidebar-foreground tracking-tight">
-          MEGA<span className="text-sidebar-primary">CARE</span>
-        </span>
       </div>
 
-      {/* Profile */}
-      <div className="px-4 py-3 border-b border-sidebar-border shrink-0">
-        <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-sidebar-accent/40">
-          <div className="relative shrink-0">
-            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-xs font-bold text-white">
-              {initials}
-            </div>
-            <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-sidebar" />
+      {/* User */}
+      <div className="p-4 border-b border-sidebar-border">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-primary-foreground font-bold text-sm shrink-0">
+            {initials}
           </div>
-          <div className="flex-1 min-w-0">
-            <p className="font-semibold text-sm text-sidebar-foreground truncate">
+          <div className="min-w-0">
+            <p className="font-semibold text-sidebar-foreground text-sm truncate">
               {displayName}
             </p>
-            <p className="text-xs text-sidebar-foreground/50">Paramédical</p>
+            <p className="text-xs text-sidebar-foreground/60">Paramédical</p>
           </div>
         </div>
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-0.5">
+      {/* Nav */}
+      <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
         {menuItems.map((item) => {
           const Icon = item.icon;
-          const isActive = pathname === item.href;
+          const active = isActive(item.href);
           return (
             <Link
               key={item.href}
               to={item.href}
               onClick={() => setMobileOpen(false)}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-sm ${
-                isActive
-                  ? "bg-sidebar-accent text-sidebar-foreground font-semibold"
-                  : "text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition text-sm font-medium ${
+                active
+                  ? "bg-sidebar-accent text-sidebar-foreground"
+                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
               }`}
             >
               <Icon
-                size={17}
-                className={isActive ? "text-sidebar-primary" : ""}
+                size={18}
+                className={
+                  active ? "text-primary" : "text-sidebar-foreground/50"
+                }
               />
-              <span className="flex-1">{item.label}</span>
+              {item.label}
             </Link>
           );
         })}
       </nav>
 
-      {/* Logout */}
-      <div className="px-3 py-3 border-t border-sidebar-border shrink-0">
+      {/* Footer actions */}
+      <div className="p-4 border-t border-sidebar-border space-y-0.5">
+        <Link
+          to="/"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg w-full text-sm font-medium text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground transition"
+        >
+          <Home size={18} />
+          Retour à l’accueil
+        </Link>
         <button
           onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-3 py-2.5 text-sidebar-foreground/50 hover:text-destructive hover:bg-destructive/10 rounded-lg transition-all text-sm font-medium"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg w-full text-sm font-medium text-sidebar-foreground/70 hover:bg-red-500/10 hover:text-red-500 transition"
         >
-          <LogOut size={17} />
-          Se déconnecter
+          <LogOut size={18} />
+          Déconnexion
         </button>
       </div>
-    </>
+    </div>
   );
 
   return (
     <>
-      {/* Desktop sidebar */}
-      <aside className="hidden md:flex flex-col w-64 shrink-0 bg-sidebar h-screen sticky top-0">
-        <NavContent />
-      </aside>
-
-      {/* Mobile top bar */}
-      <div className="md:hidden flex items-center justify-between px-4 py-3 bg-sidebar border-b border-sidebar-border sticky top-0 z-40">
-        <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 bg-sidebar-primary/20 rounded-lg flex items-center justify-center">
-            <Stethoscope size={13} className="text-sidebar-primary" />
-          </div>
-          <span className="font-bold text-sidebar-foreground tracking-tight text-sm">
-            MEGACARE
-          </span>
-        </div>
+      {/* Mobile hamburger */}
+      <div className="md:hidden fixed top-4 left-4 z-50">
         <button
           onClick={() => setMobileOpen(true)}
-          className="p-1.5 text-sidebar-foreground/70 hover:text-sidebar-foreground transition"
+          className="p-2 bg-card border border-border rounded-lg shadow-md"
         >
           <Menu size={20} />
         </button>
       </div>
 
-      {/* Mobile drawer */}
+      {/* Mobile overlay */}
       {mobileOpen && (
-        <div className="md:hidden fixed inset-0 z-50 flex">
-          <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={() => setMobileOpen(false)}
-          />
-          <aside className="relative w-72 bg-sidebar flex flex-col h-full overflow-hidden shadow-2xl animate-slide-right">
-            <button
-              onClick={() => setMobileOpen(false)}
-              className="absolute top-4 right-4 z-10 p-1.5 text-sidebar-foreground/50 hover:text-sidebar-foreground transition"
-            >
-              <X size={18} />
-            </button>
-            <NavContent />
-          </aside>
-        </div>
+        <div
+          className="fixed inset-0 z-40 bg-black/50 md:hidden"
+          onClick={() => setMobileOpen(false)}
+        />
       )}
+
+      {/* Mobile drawer */}
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-sidebar transform transition-transform duration-200 md:hidden ${
+          mobileOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <div className="absolute top-4 right-4">
+          <button
+            onClick={() => setMobileOpen(false)}
+            className="p-1 hover:bg-muted rounded"
+          >
+            <X size={18} />
+          </button>
+        </div>
+        <SidebarContent />
+      </aside>
+
+      {/* Desktop sidebar */}
+      <aside className="hidden md:flex flex-col w-64 bg-sidebar border-r border-sidebar-border h-screen sticky top-0 shrink-0">
+        <SidebarContent />
+      </aside>
     </>
   );
 }

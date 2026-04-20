@@ -123,9 +123,7 @@ const doctorPricing = [
   },
 ];
 
-const pharmacyPricing = [
-  { name: "Retrait pharmacie", price: 0, delay: "Prêt en 1 heure", icon: "🏪" },
-];
+
 
 const allFaqs = [
   {
@@ -150,7 +148,7 @@ const allFaqs = [
   },
   {
     q: "Quels sont les modes de paiement acceptés ?",
-    a: "Nous acceptons Flouci, Konnect, virement bancaire et paiement à la livraison pour les commandes pharmacie.",
+    a: "Nous acceptons le paiement par carte bancaire (Visa, Mastercard) via notre plateforme sécurisée.",
   },
   {
     q: "Ma prescription est-elle valide 24h/24 ?",
@@ -472,41 +470,7 @@ export default function GuidePage() {
               </div>
             </section>
 
-            {/* Pharmacy Delivery */}
-            <section className="py-16 bg-secondary/30">
-              <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="text-center mb-12">
-                  <h2 className="text-3xl font-bold text-foreground mb-2">
-                    Livraison pharmacie
-                  </h2>
-                  <p className="text-muted-foreground">
-                    Frais de livraison selon votre délai souhaité
-                  </p>
-                </div>
-                <div className="grid sm:grid-cols-3 gap-6 max-w-3xl mx-auto">
-                  {pharmacyPricing.map((opt, i) => (
-                    <div
-                      key={i}
-                      className="bg-card border border-border rounded-2xl p-6 text-center space-y-3 hover:border-primary/30 hover:shadow-md transition-all duration-300"
-                    >
-                      <div className="text-4xl">{opt.icon}</div>
-                      <p className="font-semibold text-foreground">
-                        {opt.name}
-                      </p>
-                      <div className="flex items-baseline justify-center gap-1">
-                        <span className="text-4xl font-bold text-primary">
-                          {opt.price}
-                        </span>
-                        <span className="text-muted-foreground">DT</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground bg-secondary rounded-lg py-1 px-2">
-                        {opt.delay}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </section>
+
 
             {/* Included + Payment */}
             <section className="py-16 bg-background">
@@ -537,23 +501,12 @@ export default function GuidePage() {
                     <h3 className="text-xl font-bold text-foreground mb-6">
                       Moyens de paiement
                     </h3>
-                    <div className="grid grid-cols-2 gap-3">
-                      {[
-                        { icon: "💳", name: "Flouci" },
-                        { icon: "💰", name: "Konnect" },
-                        { icon: "🏦", name: "Virement" },
-                        { icon: "📦", name: "À la livraison" },
-                      ].map((m, i) => (
-                        <div
-                          key={i}
-                          className="border border-border rounded-xl p-4 text-center space-y-2 hover:border-primary/30 transition-colors"
-                        >
-                          <div className="text-2xl">{m.icon}</div>
-                          <p className="text-sm font-medium text-foreground">
-                            {m.name}
-                          </p>
-                        </div>
-                      ))}
+                    <div className="flex justify-center">
+                      <div className="border border-border rounded-xl p-6 text-center space-y-2 max-w-xs w-full hover:border-primary/30 transition-colors">
+                        <div className="text-3xl">💳</div>
+                        <p className="text-sm font-medium text-foreground">Carte bancaire</p>
+                        <p className="text-xs text-muted-foreground">Visa & Mastercard — paiement sécurisé</p>
+                      </div>
                     </div>
                   </div>
                 </div>

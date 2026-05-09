@@ -16,9 +16,13 @@ import {
   X,
   MessageSquare,
   Home,
+  CalendarClock,
 } from "lucide-react";
 
-const menuItems = [
+interface SubItem { href: string; label: string; icon: React.ElementType; }
+interface MenuItem { href: string; label: string; icon: React.ElementType; children?: SubItem[]; }
+
+const menuItems: MenuItem[] = [
   {
     href: "/doctor-dashboard",
     label: "Tableau de bord",
@@ -30,6 +34,9 @@ const menuItems = [
     href: "/doctor-dashboard/consultations",
     label: "Consultations",
     icon: Video,
+    children: [
+      { href: "/doctor-dashboard/consultations?today=true", label: "Aujourd'hui", icon: CalendarClock },
+    ],
   },
   {
     href: "/doctor-dashboard/prescriptions",
@@ -61,8 +68,8 @@ export function DoctorDashboardSidebar({
 
   const displayName = user
     ? `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() ||
-      doctorName ||
-      "Médecin"
+    doctorName ||
+    "Médecin"
     : doctorName || "Médecin";
 
   const handleLogout = () => {
@@ -72,7 +79,7 @@ export function DoctorDashboardSidebar({
 
   const initials = user
     ? `${user.firstName?.[0] ?? ""}${user.lastName?.[0] ?? ""}`.toUpperCase() ||
-      displayName[0].toUpperCase()
+    displayName[0].toUpperCase()
     : displayName[0].toUpperCase();
 
   const NavContent = () => (
@@ -111,11 +118,10 @@ export function DoctorDashboardSidebar({
           <Link
             to="/doctor-dashboard/live-consultation"
             onClick={() => setMobileOpen(false)}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-sm ${
-              pathname === "/doctor-dashboard/live-consultation"
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-sm ${pathname === "/doctor-dashboard/live-consultation"
                 ? "bg-red-500/10 text-red-600 font-semibold"
                 : "text-red-500 hover:bg-red-500/10 font-medium"
-            }`}
+              }`}
           >
             <span className="relative flex h-2.5 w-2.5">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
@@ -128,22 +134,36 @@ export function DoctorDashboardSidebar({
           const Icon = item.icon;
           const isActive = pathname === item.href;
           return (
-            <Link
-              key={item.href}
-              to={item.href}
-              onClick={() => setMobileOpen(false)}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-sm ${
-                isActive
-                  ? "bg-sidebar-accent text-sidebar-foreground font-semibold"
-                  : "text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
-              }`}
-            >
-              <Icon
-                size={17}
-                className={isActive ? "text-sidebar-primary" : ""}
-              />
-              <span className="flex-1">{item.label}</span>
-            </Link>
+            <React.Fragment key={item.href}>
+              <Link
+                to={item.href}
+                onClick={() => setMobileOpen(false)}
+                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-sm ${isActive
+                    ? "bg-sidebar-accent text-sidebar-foreground font-semibold"
+                    : "text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                  }`}
+              >
+                <Icon
+                  size={17}
+                  className={isActive ? "text-sidebar-primary" : ""}
+                />
+                <span className="flex-1">{item.label}</span>
+              </Link>
+              {item.children && isActive && item.children.map((child) => {
+                const ChildIcon = child.icon;
+                return (
+                  <Link
+                    key={child.href}
+                    to={child.href}
+                    onClick={() => setMobileOpen(false)}
+                    className="flex items-center gap-3 pl-9 pr-3 py-2 rounded-lg transition-all text-xs text-sidebar-foreground/50 hover:bg-sidebar-accent/40 hover:text-sidebar-foreground"
+                  >
+                    <ChildIcon size={14} className="shrink-0" />
+                    <span>{child.label}</span>
+                  </Link>
+                );
+              })}
+            </React.Fragment>
           );
         })}
       </nav>

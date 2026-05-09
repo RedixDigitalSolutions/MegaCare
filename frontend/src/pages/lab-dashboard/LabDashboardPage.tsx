@@ -6,12 +6,7 @@ import {
   FlaskConical,
   FileText,
   Users,
-  TrendingUp,
-  Image,
   Calendar,
-  CreditCard,
-  MessageSquare,
-  BarChart3,
   Settings,
   Clock,
   CheckCircle2,
@@ -20,30 +15,6 @@ import {
 } from "lucide-react";
 
 const quickLinks = [
-  {
-    href: "/lab-dashboard/tests",
-    label: "Analyses",
-    desc: "Gérer les demandes d'analyse",
-    icon: FlaskConical,
-    color: "text-blue-500",
-    bg: "bg-blue-50",
-  },
-  {
-    href: "/lab-dashboard/results",
-    label: "Résultats",
-    desc: "Consulter et partager les résultats",
-    icon: FileText,
-    color: "text-green-500",
-    bg: "bg-green-50",
-  },
-  {
-    href: "/lab-dashboard/imaging",
-    label: "Imagerie",
-    desc: "Radiologies et imagerie diagnostique",
-    icon: Image,
-    color: "text-purple-500",
-    bg: "bg-purple-50",
-  },
   {
     href: "/lab-dashboard/patients",
     label: "Patients",
@@ -59,30 +30,6 @@ const quickLinks = [
     icon: Calendar,
     color: "text-pink-500",
     bg: "bg-pink-50",
-  },
-  {
-    href: "/lab-dashboard/billing",
-    label: "Facturation",
-    desc: "Gérer factures et paiements",
-    icon: CreditCard,
-    color: "text-amber-500",
-    bg: "bg-amber-50",
-  },
-  {
-    href: "/lab-dashboard/messaging",
-    label: "Messagerie",
-    desc: "Communication avec l'équipe",
-    icon: MessageSquare,
-    color: "text-teal-500",
-    bg: "bg-teal-50",
-  },
-  {
-    href: "/lab-dashboard/analytics",
-    label: "Statistiques",
-    desc: "Rapports d'activité",
-    icon: BarChart3,
-    color: "text-red-500",
-    bg: "bg-red-50",
   },
   {
     href: "/lab-dashboard/settings",
@@ -151,7 +98,7 @@ export default function LabDashboardPage() {
     fetch("/api/lab/partner-doctors", { headers })
       .then((r) => r.json())
       .then((data) => setPartnerDoctors(data.count ?? 0))
-      .catch(() => {});
+      .catch(() => { });
 
     fetch("/api/lab/activity", { headers })
       .then((r) => r.json())

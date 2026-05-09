@@ -8,7 +8,7 @@ interface LookupResult {
   id: string;
   doctorName: string;
   patientName: string;
-  medicines: { name: string; dosage?: string; duration?: string }[];
+  medicines: { name: string; dosage?: string; duration?: string; instructions?: string }[];
   status: string;
   purchaseStatus: string;
   secretCode: string;
@@ -129,15 +129,26 @@ export default function PrescriptionLookupPage() {
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <h2 className="text-lg font-bold text-foreground">Ordonnance vérifiée</h2>
-                      <p className="text-sm text-muted-foreground mt-0.5">Code: {result.secretCode}</p>
+                      <p className="text-sm text-muted-foreground font-mono mt-0.5">Code: {result.secretCode}</p>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap justify-end">
+                      {result.purchaseStatus !== "purchased" && (() => {
+                        const issuedMinutesAgo = (Date.now() - new Date(result.createdAt).getTime()) / 60000;
+                        if (issuedMinutesAgo < 60) {
+                          return (
+                            <span className="text-xs font-medium px-2.5 py-1 rounded-full border bg-emerald-100 text-emerald-700 border-emerald-200 flex items-center gap-1">
+                              <CheckCircle2 size={11} /> Vient d'être émise
+                            </span>
+                          );
+                        }
+                        return null;
+                      })()}
                       <span className={`text-xs font-medium px-2.5 py-1 rounded-full border ${
                         result.purchaseStatus === "purchased"
                           ? "bg-blue-100 text-blue-700 border-blue-200"
                           : "bg-orange-100 text-orange-700 border-orange-200"
                       }`}>
-                        {result.purchaseStatus === "purchased" ? "Achetée" : "Non achetée"}
+                        {result.purchaseStatus === "purchased" ? "✓ Achetée" : "Non achetée"}
                       </span>
                       <span className={`text-xs font-medium px-2.5 py-1 rounded-full border ${
                         result.status === "validée"
@@ -185,9 +196,12 @@ export default function PrescriptionLookupPage() {
                       {result.medicines.map((med, i) => (
                         <div key={i} className="flex items-start gap-2 bg-secondary/50 rounded-lg px-4 py-3">
                           <Pill size={14} className="text-primary shrink-0 mt-0.5" />
-                          <div>
+                          <div className="space-y-0.5">
                             <p className="text-sm font-semibold text-foreground">{med.name}</p>
                             {med.dosage && <p className="text-xs text-muted-foreground">{med.dosage}</p>}
+                            {med.instructions && (
+                              <p className="text-xs text-purple-700 dark:text-purple-300 italic">{med.instructions}</p>
+                            )}
                             {med.duration && (
                               <p className="text-xs text-muted-foreground flex items-center gap-1">
                                 <Clock size={10} /> {med.duration}

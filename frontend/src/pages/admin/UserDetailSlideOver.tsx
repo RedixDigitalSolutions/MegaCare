@@ -135,14 +135,14 @@ export function UserDetailSlideOver({
 
           {/* Role-specific extra info */}
           {user.role === "doctor" && (
-            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-sm text-emerald-800">
+            <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/40 rounded-xl p-4 text-sm text-emerald-800 dark:text-emerald-300">
               <p className="font-semibold mb-1">Informations médicales</p>
               <p>Licence : {user.doctorId ?? "Non renseignée"}</p>
               {user.specialization && <p>Spécialité : {user.specialization}</p>}
             </div>
           )}
           {user.role === "pharmacy" && (
-            <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-sm text-green-800">
+            <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800/40 rounded-xl p-4 text-sm text-green-800 dark:text-green-300">
               <p className="font-semibold mb-1">Informations pharmacie</p>
               <p>Agrément : {user.pharmacyId ?? "Non renseigné"}</p>
               {user.address && <p>Adresse : {user.address}</p>}
@@ -150,7 +150,7 @@ export function UserDetailSlideOver({
           )}
           {(user.role === "medical_service" ||
             user.role === "lab_radiology") && (
-            <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 text-sm text-purple-800">
+            <div className="bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800/40 rounded-xl p-4 text-sm text-purple-800 dark:text-purple-300">
               <p className="font-semibold mb-1">Informations établissement</p>
               {user.companyName && <p>Établissement : {user.companyName}</p>}
               {user.address && <p>Adresse : {user.address}</p>}
@@ -193,7 +193,7 @@ export function UserDetailSlideOver({
               <button
                 onClick={() => onAction(user.id, "suspend")}
                 disabled={actionLoading === user.id + "suspend"}
-                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-slate-300 text-slate-600 hover:bg-slate-50 text-sm font-semibold transition disabled:opacity-50"
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 text-sm font-semibold transition disabled:opacity-50"
               >
                 <FaBan size={13} />
                 Suspendre
@@ -212,7 +212,7 @@ export function UserDetailSlideOver({
             <button
               onClick={() => onAction(user.id, "reactivate")}
               disabled={actionLoading === user.id + "reactivate"}
-              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-emerald-300 text-emerald-600 hover:bg-emerald-50 text-sm font-semibold transition disabled:opacity-50"
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-emerald-300 dark:border-emerald-700 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-sm font-semibold transition disabled:opacity-50"
             >
               <FaCheckCircle size={13} />
               Réactiver
@@ -222,7 +222,7 @@ export function UserDetailSlideOver({
             <button
               onClick={() => onAction(user.id, "approve")}
               disabled={actionLoading === user.id + "approve"}
-              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-emerald-300 text-emerald-600 hover:bg-emerald-50 text-sm font-semibold transition disabled:opacity-50"
+              className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border border-emerald-300 dark:border-emerald-700 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-sm font-semibold transition disabled:opacity-50"
             >
               <FaCheckCircle size={13} />
               Ré-approuver

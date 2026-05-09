@@ -78,7 +78,7 @@ export default function PrescriptionsPage() {
         setPrescriptions(
           rxs.map((rx) => {
             const created = new Date(rx.createdAt);
-            const expiry = new Date(created.getTime() + 90 * 24 * 3600000);
+            const expiry = new Date(created.getTime() + 7 * 24 * 3600000);
             return {
               id: rx.id,
               doctor: names[rx.doctorId] || "Médecin",

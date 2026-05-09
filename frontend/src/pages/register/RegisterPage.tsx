@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -40,6 +40,7 @@ export default function RegisterPage() {
     lastName: "",
     email: "",
     phone: "",
+    gender: "",
     password: "",
     confirmPassword: "",
     specialization: "",
@@ -86,6 +87,7 @@ export default function RegisterPage() {
           lastName: formData.lastName,
           phone: formData.phone,
           role: userType,
+          ...(formData.gender && { gender: formData.gender }),
           ...(formData.specialization && {
             specialization: formData.specialization,
           }),
@@ -192,7 +194,7 @@ export default function RegisterPage() {
     },
   ];
 
-  const specializations = [
+  const FALLBACK_SPECIALIZATIONS = [
     "Cardiologie",
     "Dermatologie",
     "Neurologie",
@@ -205,6 +207,17 @@ export default function RegisterPage() {
     "Thérapie",
     "Généraliste",
   ];
+  const [specializations, setSpecializations] = useState<string[]>(FALLBACK_SPECIALIZATIONS);
+  const [customSpeciality, setCustomSpeciality] = useState("");
+
+  useEffect(() => {
+    fetch("/api/specialities")
+      .then((r) => r.json())
+      .then((data: string[]) => {
+        if (Array.isArray(data) && data.length > 0) setSpecializations(data);
+      })
+      .catch(() => { /* keep fallback */ });
+  }, []);
 
   if (!userType) {
     return (
@@ -634,6 +647,30 @@ export default function RegisterPage() {
               </div>
             </div>
 
+            {/* Gender */}
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-foreground">Genre</label>
+              <div className="flex gap-3">
+                {(["male", "female", "other"] as const).map((g) => {
+                  const labels: Record<string, string> = { male: "Homme", female: "Femme", other: "Autre" };
+                  return (
+                    <button
+                      key={g}
+                      type="button"
+                      onClick={() => setFormData((prev) => ({ ...prev, gender: prev.gender === g ? "" : g }))}
+                      className={`flex-1 py-2.5 rounded-xl border text-sm font-medium transition ${
+                        formData.gender === g
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-input border-border text-foreground hover:border-primary/50"
+                      }`}
+                    >
+                      {labels[g]}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             {userType === "doctor" && (
               <>
                 <div className="space-y-1.5">
@@ -646,13 +683,16 @@ export default function RegisterPage() {
                   <select
                     id="specialization"
                     name="specialization"
-                    value={formData.specialization}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        specialization: e.target.value,
-                      }))
-                    }
+                    value={formData.specialization === customSpeciality && customSpeciality ? "__other__" : formData.specialization}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === "__other__") {
+                        setFormData((prev) => ({ ...prev, specialization: customSpeciality }));
+                      } else {
+                        setCustomSpeciality("");
+                        setFormData((prev) => ({ ...prev, specialization: val }));
+                      }
+                    }}
                     className="w-full px-4 py-3 bg-input border border-border rounded-xl text-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition"
                     required
                   >
@@ -662,7 +702,24 @@ export default function RegisterPage() {
                         {s}
                       </option>
                     ))}
+                    <option value="__other__">Autre (préciser)</option>
                   </select>
+                  {(formData.specialization === customSpeciality && customSpeciality) ||
+                   (formData.specialization === "__other__") ||
+                   (!specializations.includes(formData.specialization) && formData.specialization) ? (
+                    <input
+                      type="text"
+                      value={customSpeciality}
+                      onChange={(e) => {
+                        setCustomSpeciality(e.target.value);
+                        setFormData((prev) => ({ ...prev, specialization: e.target.value }));
+                      }}
+                      placeholder="Entrez votre spécialité"
+                      className="w-full px-4 py-3 bg-input border border-primary/50 rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition"
+                      required
+                      autoFocus
+                    />
+                  ) : null}
                 </div>
                 <div className="space-y-1.5">
                   <label

@@ -1,21 +1,21 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from 'react-router-dom';
 import {
   X,
-  Star,
   MapPin,
-  Video,
   Phone,
   Calendar,
   Clock,
   CheckCircle,
   User,
-  Award,
   Stethoscope,
   ChevronLeft,
   ChevronRight,
+  Loader2,
+  AlertCircle,
+  Info,
 } from "lucide-react";
 
 export interface Doctor {
@@ -26,8 +26,8 @@ export interface Doctor {
   reviews: number;
   location: string;
   governorate: string;
+  delegation?: string;
   distance: number;
-  price: number;
   availability: string;
   certified: boolean;
   videoConsultation: boolean;
@@ -47,84 +47,128 @@ interface DoctorModalProps {
   onClose: () => void;
 }
 
-// Generate a week of availability slots per doctor
-function generateSlots(doctorId: string) {
-  const days: { date: Date; slots: string[] }[] = [];
-  const allSlots = [
-    "08:00",
-    "08:30",
-    "09:00",
-    "09:30",
-    "10:00",
-    "10:30",
-    "11:00",
-    "14:00",
-    "14:30",
-    "15:00",
-    "15:30",
-    "16:00",
-    "16:30",
-  ];
-  const seed = parseInt(doctorId, 10) || 1;
-  for (let d = 0; d < 7; d++) {
-    const date = new Date();
-    date.setDate(date.getDate() + d);
-    // deterministic pseudo-random slots per day/doctor
-    const available = allSlots.filter((_, i) => (i + d + seed) % 3 !== 0);
-    days.push({ date, slots: available });
-  }
-  return days;
-}
-
 const DAY_LABELS = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];
 const MONTH_LABELS = [
-  "Jan",
-  "Fév",
-  "Mar",
-  "Avr",
-  "Mai",
-  "Jun",
-  "Jul",
-  "Aoû",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Déc",
+  "Jan", "Fév", "Mar", "Avr", "Mai", "Jun",
+  "Jul", "Aoû", "Sep", "Oct", "Nov", "Déc",
 ];
+
+const ALL_SLOTS = [
+  "08:00", "08:30", "09:00", "09:30", "10:00", "10:30", "11:00", "11:30",
+  "14:00", "14:30", "15:00", "15:30", "16:00", "16:30", "17:00",
+];
+
+// Mon–Fri are working days
+const WORKING_DAYS = new Set([1, 2, 3, 4, 5]);
+
+function getWeekDays(offset: number): Date[] {
+  const today = new Date();
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(today);
+    d.setDate(today.getDate() + offset * 7 + i);
+    return d;
+  });
+}
+
+function dateKey(d: Date): string {
+  return d.toISOString().split("T")[0];
+}
 
 export function DoctorModal({ doctor, isOpen, onClose }: DoctorModalProps) {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
+
   const [tab, setTab] = useState<"profile" | "rdv">("profile");
+  const [weekOffset, setWeekOffset] = useState(0);
   const [selectedDayIdx, setSelectedDayIdx] = useState(0);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
+
+  const [bookedSlots, setBookedSlots] = useState<Record<string, Set<string>>>({});
+  const [slotsLoading, setSlotsLoading] = useState(false);
+
+  const [hasPriorConsultation, setHasPriorConsultation] = useState<boolean | null>(null);
+
+  const [booking, setBooking] = useState(false);
   const [booked, setBooked] = useState(false);
-  const [weekOffset, setWeekOffset] = useState(0);
+  const [bookingError, setBookingError] = useState<string | null>(null);
+
+  const weekDays = getWeekDays(weekOffset);
+  const currentDay = weekDays[selectedDayIdx];
+
+  // Fetch real booked slots for the current week
+  useEffect(() => {
+    if (!isOpen || !doctor) return;
+    setSlotsLoading(true);
+    const from = dateKey(weekDays[0]);
+    const to = dateKey(weekDays[6]);
+    fetch(`/api/doctors/${doctor.id}/booked-slots?from=${from}&to=${to}`)
+      .then((r) => r.json())
+      .then((data: { date: string; time: string }[]) => {
+        const map: Record<string, Set<string>> = {};
+        data.forEach(({ date, time }) => {
+          if (!map[date]) map[date] = new Set();
+          map[date].add(time);
+        });
+        setBookedSlots(map);
+      })
+      .catch(() => setBookedSlots({}))
+      .finally(() => setSlotsLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, doctor?.id, weekOffset]);
+
+  // Check if authenticated patient has a prior completed consultation
+  useEffect(() => {
+    if (!isOpen || !doctor || !isAuthenticated) {
+      setHasPriorConsultation(null);
+      return;
+    }
+    const token = localStorage.getItem("megacare_token");
+    if (!token) { setHasPriorConsultation(null); return; }
+    fetch("/api/appointments", { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => r.json())
+      .then((json) => {
+        const list = Array.isArray(json) ? json : (json.data ?? []);
+        const prior = list.some(
+          (a: { doctorId: string; status: string }) =>
+            a.doctorId === doctor.id && a.status === "completed",
+        );
+        setHasPriorConsultation(prior);
+      })
+      .catch(() => setHasPriorConsultation(null));
+  }, [isOpen, doctor?.id, isAuthenticated]);
 
   if (!isOpen || !doctor) return null;
 
-  const allWeekDays = generateSlots(doctor.id);
-  // shift by weekOffset * 7 conceptually — just re-use same 7 for simplicity, offset the displayed dates
-  const weekDays = allWeekDays.map((d) => {
-    const shifted = new Date(d.date);
-    shifted.setDate(shifted.getDate() + weekOffset * 7);
-    return { ...d, date: shifted };
-  });
+  const dayKey = dateKey(currentDay);
+  const dayBooked = bookedSlots[dayKey] ?? new Set<string>();
+  const isWorkingDay = WORKING_DAYS.has(currentDay.getDay());
+  const availableSlots = isWorkingDay ? ALL_SLOTS.filter((s) => !dayBooked.has(s)) : [];
 
-  const currentDay = weekDays[selectedDayIdx];
-
-  const handleBook = () => {
-    if (!isAuthenticated) {
-      navigate("/login");
-      return;
-    }
+  const handleBook = async () => {
+    if (!isAuthenticated) { navigate("/login"); return; }
     if (!selectedSlot) return;
-    setBooked(true);
-    setTimeout(() => {
-      setBooked(false);
-      setSelectedSlot(null);
-      onClose();
-    }, 1800);
+    if (hasPriorConsultation === false) return;
+    const token = localStorage.getItem("megacare_token");
+    if (!token) { navigate("/login"); return; }
+    setBooking(true);
+    setBookingError(null);
+    try {
+      const res = await fetch("/api/appointments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ doctorId: doctor.id, date: dayKey, time: selectedSlot, reason: "" }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || "Erreur lors de la réservation");
+      }
+      setBooked(true);
+      setTimeout(() => { setBooked(false); setSelectedSlot(null); onClose(); }, 2200);
+    } catch (err) {
+      setBookingError(err instanceof Error ? err.message : "Erreur inconnue");
+    } finally {
+      setBooking(false);
+    }
   };
 
   return (
@@ -148,18 +192,7 @@ export function DoctorModal({ doctor, isOpen, onClose }: DoctorModalProps) {
 
         {/* Hero */}
         <div
-          className={`relative h-48 flex items-center justify-center overflow-hidden ${
-            doctor.specialty === "Cardiologie"
-              ? "bg-gradient-to-br from-red-50 to-rose-100"
-              : doctor.specialty === "Dermatologie"
-                ? "bg-gradient-to-br from-peach-50 to-orange-100"
-                : doctor.specialty === "Psychiatrie" ||
-                    doctor.specialty === "Psychologie"
-                  ? "bg-gradient-to-br from-purple-50 to-violet-100"
-                  : doctor.specialty === "Pédiatrie"
-                    ? "bg-gradient-to-br from-yellow-50 to-amber-100"
-                    : "bg-gradient-to-br from-blue-50 to-indigo-100"
-          }`}
+          className="relative h-48 flex items-center justify-center overflow-hidden bg-gradient-to-br from-primary/10 via-accent/5 to-primary/5"
         >
           {doctor.imageUrl ? (
             <img
@@ -168,23 +201,13 @@ export function DoctorModal({ doctor, isOpen, onClose }: DoctorModalProps) {
               className="h-full w-full object-cover"
             />
           ) : (
-            <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center shadow-lg text-5xl">
-              👨‍⚕️
-            </div>
-          )}
-          {doctor.certified && (
-            <div className="absolute top-4 left-4 bg-primary text-primary-foreground px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
-              <Award size={12} /> Certifié
-            </div>
-          )}
-          {doctor.videoConsultation && (
-            <div className="absolute top-4 right-12 bg-green-500 text-white px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1">
-              <Video size={12} /> Vidéo
+            <div className="w-24 h-24 bg-white rounded-full flex items-center justify-center shadow-lg">
+              <Stethoscope size={40} className="text-primary/60" />
             </div>
           )}
         </div>
 
-        {/* Name + Rating */}
+        {/* Name + Price */}
         <div className="px-6 pt-5 pb-3 border-b border-border">
           <div className="flex items-start justify-between gap-3 flex-wrap">
             <div>
@@ -199,30 +222,6 @@ export function DoctorModal({ doctor, isOpen, onClose }: DoctorModalProps) {
                   {doctor.experience} ans d'expérience
                 </p>
               )}
-            </div>
-            <div className="text-right">
-              <div className="flex items-center gap-1 justify-end">
-                {[...Array(5)].map((_, i) => (
-                  <Star
-                    key={i}
-                    size={13}
-                    className={
-                      i < Math.floor(doctor.rating)
-                        ? "fill-yellow-400 text-yellow-400"
-                        : "fill-gray-200 text-gray-200"
-                    }
-                  />
-                ))}
-                <span className="text-sm font-bold text-foreground ml-1">
-                  {doctor.rating}
-                </span>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {doctor.reviews} avis
-              </p>
-              <p className="text-xl font-bold text-primary mt-1">
-                {doctor.price} DT
-              </p>
             </div>
           </div>
 
@@ -268,7 +267,7 @@ export function DoctorModal({ doctor, isOpen, onClose }: DoctorModalProps) {
                     {doctor.location}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {doctor.governorate} • à {doctor.distance} km
+                    {doctor.delegation ? `${doctor.delegation}, ` : ""}{doctor.governorate}
                   </p>
                 </div>
 
@@ -379,7 +378,7 @@ export function DoctorModal({ doctor, isOpen, onClose }: DoctorModalProps) {
                   <p className="text-muted-foreground text-sm">
                     Votre RDV avec <strong>Dr. {doctor.name}</strong> le{" "}
                     <strong>
-                      {currentDay.date.toLocaleDateString("fr-FR", {
+                      {currentDay.toLocaleDateString("fr-FR", {
                         weekday: "long",
                         day: "numeric",
                         month: "long",
@@ -391,6 +390,22 @@ export function DoctorModal({ doctor, isOpen, onClose }: DoctorModalProps) {
                 </div>
               ) : (
                 <>
+                  {/* Prior consultation notice */}
+                  {isAuthenticated && hasPriorConsultation === false && (
+                    <div className="flex items-start gap-3 p-4 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl text-sm">
+                      <Info size={16} className="text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-semibold text-amber-800 dark:text-amber-300">
+                          Première consultation physique requise
+                        </p>
+                        <p className="text-amber-700 dark:text-amber-400 text-xs mt-0.5">
+                          Une première consultation en présentiel avec ce médecin est
+                          nécessaire avant de prendre un rendez-vous en ligne.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
                   <h3 className="text-base font-bold text-foreground">
                     Choisissez une date
                   </h3>
@@ -416,20 +431,21 @@ export function DoctorModal({ doctor, isOpen, onClose }: DoctorModalProps) {
                             setSelectedDayIdx(idx);
                             setSelectedSlot(null);
                           }}
-                          className={`flex flex-col items-center py-2 px-1 rounded-lg transition text-xs ${
+                          disabled={!WORKING_DAYS.has(d.getDay())}
+                          className={`flex flex-col items-center py-2 px-1 rounded-lg transition text-xs disabled:opacity-40 disabled:cursor-not-allowed ${
                             selectedDayIdx === idx
                               ? "bg-primary text-primary-foreground"
                               : "bg-secondary hover:bg-secondary/80 text-foreground"
                           }`}
                         >
                           <span className="font-medium">
-                            {DAY_LABELS[d.date.getDay()]}
+                            {DAY_LABELS[d.getDay()]}
                           </span>
                           <span className="font-bold text-sm">
-                            {d.date.getDate()}
+                            {d.getDate()}
                           </span>
                           <span className="opacity-70">
-                            {MONTH_LABELS[d.date.getMonth()]}
+                            {MONTH_LABELS[d.getMonth()]}
                           </span>
                         </button>
                       ))}
@@ -451,23 +467,32 @@ export function DoctorModal({ doctor, isOpen, onClose }: DoctorModalProps) {
                     <h4 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-1.5">
                       <Clock size={14} className="text-primary" />
                       Créneaux disponibles —{" "}
-                      {currentDay.date.toLocaleDateString("fr-FR", {
+                      {currentDay.toLocaleDateString("fr-FR", {
                         weekday: "long",
                         day: "numeric",
                         month: "long",
                       })}
                     </h4>
-                    {currentDay.slots.length === 0 ? (
+                    {slotsLoading ? (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader2 size={24} className="animate-spin text-primary" />
+                      </div>
+                    ) : !isWorkingDay ? (
+                      <p className="text-sm text-muted-foreground italic py-4 text-center">
+                        Le médecin ne consulte pas ce jour.
+                      </p>
+                    ) : availableSlots.length === 0 ? (
                       <p className="text-sm text-muted-foreground italic py-4 text-center">
                         Aucun créneau disponible ce jour.
                       </p>
                     ) : (
                       <div className="grid grid-cols-4 gap-2">
-                        {currentDay.slots.map((slot) => (
+                        {availableSlots.map((slot) => (
                           <button
                             key={slot}
                             onClick={() => setSelectedSlot(slot)}
-                            className={`py-2 rounded-lg text-sm font-medium border transition ${
+                            disabled={hasPriorConsultation === false}
+                            className={`py-2 rounded-lg text-sm font-medium border transition disabled:opacity-40 disabled:cursor-not-allowed ${
                               selectedSlot === slot
                                 ? "bg-primary text-primary-foreground border-primary"
                                 : "bg-secondary border-border text-foreground hover:border-primary hover:bg-primary/5"
@@ -480,12 +505,20 @@ export function DoctorModal({ doctor, isOpen, onClose }: DoctorModalProps) {
                     )}
                   </div>
 
+                  {/* Error */}
+                  {bookingError && (
+                    <div className="flex items-center gap-2 p-3 bg-destructive/10 border border-destructive/30 rounded-xl text-sm text-destructive">
+                      <AlertCircle size={16} className="shrink-0" />
+                      {bookingError}
+                    </div>
+                  )}
+
                   {/* Summary + Book */}
-                  {selectedSlot && (
+                  {selectedSlot && hasPriorConsultation !== false && (
                     <div className="bg-primary/5 border border-primary/20 rounded-xl p-4 space-y-3">
                       <p className="text-sm text-foreground">
                         <strong>Dr. {doctor.name}</strong> —{" "}
-                        {currentDay.date.toLocaleDateString("fr-FR", {
+                        {currentDay.toLocaleDateString("fr-FR", {
                           weekday: "long",
                           day: "numeric",
                           month: "long",
@@ -493,16 +526,18 @@ export function DoctorModal({ doctor, isOpen, onClose }: DoctorModalProps) {
                         à <strong>{selectedSlot}</strong>
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        Tarif :{" "}
-                        <strong className="text-primary">
-                          {doctor.price} DT
-                        </strong>
+                        Consultation avec <strong>Dr. {doctor.name}</strong>
                       </p>
                       <button
                         onClick={handleBook}
-                        className="w-full py-3 bg-primary text-primary-foreground rounded-xl font-semibold hover:bg-primary/90 active:scale-95 transition-all flex items-center justify-center gap-2"
+                        disabled={booking}
+                        className="w-full py-3 bg-primary text-primary-foreground rounded-xl font-semibold hover:bg-primary/90 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-70"
                       >
-                        <Calendar size={18} />
+                        {booking ? (
+                          <Loader2 size={18} className="animate-spin" />
+                        ) : (
+                          <Calendar size={18} />
+                        )}
                         {isAuthenticated
                           ? "Confirmer le rendez-vous"
                           : "Se connecter pour confirmer"}

@@ -510,7 +510,14 @@ router.get("/orders", auth, async (req, res) => {
 // PATCH /api/paramedical/orders/:id — update order status
 router.patch("/orders/:id", auth, async (req, res) => {
     const { status } = req.body;
-    const validStatuses = ["pending", "confirmed", "ready", "delivered", "cancelled"];
+    const validStatuses = ["pending", "confirmed", "in_delivery", "delivered", "cancelled"];
+    const validTransitions = {
+        pending: ["confirmed", "cancelled"],
+        confirmed: ["in_delivery", "cancelled"],
+        in_delivery: ["delivered"],
+        delivered: [],
+        cancelled: [],
+    };
     if (!validStatuses.includes(status)) {
         return res.status(400).json({ message: "Statut invalide" });
     }
@@ -518,6 +525,10 @@ router.patch("/orders/:id", auth, async (req, res) => {
     if (!order) return res.status(404).json({ message: "Commande non trouvée" });
     if (order.paramedicalId !== req.user.id) {
         return res.status(403).json({ message: "Accès refusé" });
+    }
+    const allowed = validTransitions[order.status] || [];
+    if (!allowed.includes(status)) {
+        return res.status(400).json({ message: `Transition invalide : ${order.status} → ${status}` });
     }
     order.status = status;
     await order.save();

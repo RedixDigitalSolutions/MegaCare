@@ -4,10 +4,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   LayoutDashboard,
   Calendar,
-  Video,
   FileText,
   Pill,
-  Bell,
   Settings,
   LogOut,
   Menu,
@@ -16,28 +14,30 @@ import {
   MessageSquare,
   User,
   Home,
+  ShoppingBag,
+  History,
+  Building2,
+  FlaskConical,
 } from "lucide-react";
 
-const menuItems = [
-  { href: "/", label: "Accueil", icon: Home },
+const mainMenuItems = [
   { href: "/dashboard", label: "Tableau de bord", icon: LayoutDashboard },
-  { href: "/dashboard/appointments", label: "Mes rendez-vous", icon: Calendar },
-  { href: "/dashboard/consultations", label: "Mes consultations", icon: Video },
-  {
-    href: "/dashboard/medical-records",
-    label: "Mon dossier médical",
-    icon: FileText,
-  },
+  { href: "/dashboard/appointments", label: "Mes rendez-vous (médecins)", icon: Calendar },
+  { href: "/dashboard/medical-records", label: "Mon dossier médical", icon: FileText },
   { href: "/dashboard/messages", label: "Messages", icon: MessageSquare },
   { href: "/dashboard/prescriptions", label: "Mes ordonnances", icon: Pill },
-  {
-    href: "/dashboard/notifications",
-    label: "Notifications",
-    icon: Bell,
-    badge: 3,
-  },
   { href: "/dashboard/profile", label: "Mon profil", icon: User },
   { href: "/dashboard/settings", label: "Paramètres", icon: Settings },
+];
+
+const externalAppointmentsItems = [
+  { href: "/dashboard/appointments/medical-services", label: "Services Médicaux", icon: Building2 },
+  { href: "/dashboard/appointments/labs", label: "Laboratoires & Radios", icon: FlaskConical },
+];
+
+const parapharmacyItems = [
+  { href: "/dashboard/parapharmacy-orders", label: "Suivi des commandes", icon: ShoppingBag },
+  { href: "/dashboard/parapharmacy-history", label: "Historique achats", icon: History },
 ];
 
 interface DashboardSidebarProps {
@@ -65,7 +65,7 @@ export function DashboardSidebar({
 
   const initials = user
     ? `${user.firstName?.[0] ?? ""}${user.lastName?.[0] ?? ""}`.toUpperCase() ||
-      displayName[0].toUpperCase()
+    displayName[0].toUpperCase()
     : displayName[0].toUpperCase();
 
   const NavContent = () => (
@@ -104,11 +104,10 @@ export function DashboardSidebar({
           <Link
             to="/dashboard/live-consultation"
             onClick={() => setMobileOpen(false)}
-            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-sm ${
-              pathname === "/dashboard/live-consultation"
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-sm ${pathname === "/dashboard/live-consultation"
                 ? "bg-red-500/10 text-red-600 font-semibold"
                 : "text-red-500 hover:bg-red-500/10 font-medium"
-            }`}
+              }`}
           >
             <span className="relative flex h-2.5 w-2.5">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
@@ -117,7 +116,7 @@ export function DashboardSidebar({
             <span className="flex-1 truncate">Live — Dr. {liveDoctorName}</span>
           </Link>
         )}
-        {menuItems.map((item) => {
+        {mainMenuItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href;
           return (
@@ -125,35 +124,78 @@ export function DashboardSidebar({
               key={item.href}
               to={item.href}
               onClick={() => setMobileOpen(false)}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-sm ${
-                isActive
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-sm ${isActive
                   ? "bg-sidebar-accent text-sidebar-foreground font-semibold"
                   : "text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
-              }`}
+                }`}
             >
-              <Icon
-                size={17}
-                className={isActive ? "text-sidebar-primary" : ""}
-              />
+              <Icon size={17} className={isActive ? "text-sidebar-primary" : ""} />
               <span className="flex-1">{item.label}</span>
-              {item.badge !== undefined && (
-                <span
-                  className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-                    typeof item.badge === "string"
-                      ? "bg-amber-400/20 text-amber-400"
-                      : "bg-destructive text-white"
-                  }`}
-                >
-                  {item.badge}
-                </span>
-              )}
+            </Link>
+          );
+        })}
+
+        {/* External appointments section */}
+        <div className="pt-3 pb-1">
+          <p className="px-3 text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/40">
+            Rendez-vous externes
+          </p>
+        </div>
+        {externalAppointmentsItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = pathname === item.href;
+          return (
+            <Link
+              key={item.href}
+              to={item.href}
+              onClick={() => setMobileOpen(false)}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-sm ${isActive
+                  ? "bg-sidebar-accent text-sidebar-foreground font-semibold"
+                  : "text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                }`}
+            >
+              <Icon size={17} className={isActive ? "text-sidebar-primary" : ""} />
+              <span className="flex-1">{item.label}</span>
+            </Link>
+          );
+        })}
+
+        {/* Parapharmacy section */}
+        <div className="pt-3 pb-1">
+          <p className="px-3 text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/40">
+            Parapharmacie
+          </p>
+        </div>
+        {parapharmacyItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = pathname === item.href;
+          return (
+            <Link
+              key={item.href}
+              to={item.href}
+              onClick={() => setMobileOpen(false)}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-sm ${isActive
+                  ? "bg-sidebar-accent text-sidebar-foreground font-semibold"
+                  : "text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                }`}
+            >
+              <Icon size={17} className={isActive ? "text-sidebar-primary" : ""} />
+              <span className="flex-1">{item.label}</span>
             </Link>
           );
         })}
       </nav>
 
       {/* Logout */}
-      <div className="px-3 py-3 border-t border-sidebar-border shrink-0">
+      <div className="px-3 py-3 border-t border-sidebar-border shrink-0 space-y-0.5">
+        <Link
+          to="/"
+          onClick={() => setMobileOpen(false)}
+          className="w-full flex items-center gap-3 px-3 py-2.5 text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground rounded-lg transition-all text-sm font-medium"
+        >
+          <Home size={17} />
+          Retour à l'accueil
+        </Link>
         <button
           onClick={handleLogout}
           className="w-full flex items-center gap-3 px-3 py-2.5 text-sidebar-foreground/50 hover:text-destructive hover:bg-destructive/10 rounded-lg transition-all text-sm font-medium"

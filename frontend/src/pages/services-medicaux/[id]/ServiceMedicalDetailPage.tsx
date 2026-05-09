@@ -5,35 +5,34 @@ import { Footer } from "@/components/Footer";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   MapPin,
-  Star,
   Phone,
-  Clock,
   CheckCircle,
   Calendar,
   ChevronLeft,
   ChevronRight,
+  ArrowLeft,
   Building2,
   Shield,
   Users,
-  X,
   Mail,
-  ArrowLeft,
   Award,
   Stethoscope,
   Activity,
+  AlertCircle,
+  BedDouble,
+  ExternalLink,
 } from "lucide-react";
 
-// ─── Shared data (same as listing page) ──────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
 interface MedicalEstablishment {
   id: string;
   name: string;
-  type: "Clinique" | "Hôpital" | "HAD" | "Centre médical";
+  type: "Clinique" | "Hospitalisation À Domicile" | "Centre médical" | string;
   governorate: string;
   city: string;
   address: string;
   phone: string;
   email?: string;
-  website?: string;
   rating: number;
   reviews: number;
   price: number;
@@ -41,521 +40,39 @@ interface MedicalEstablishment {
   accredited: boolean;
   emergencies: boolean;
   imageUrl: string;
-  gallery?: string[];
   description: string;
   beds?: number;
   doctors?: number;
   founded?: number;
-  schedule?: { day: string; hours: string }[];
-  team?: { name: string; specialty: string; image?: string }[];
-  patientReviews?: {
-    author: string;
-    rating: number;
-    comment: string;
-    date: string;
-  }[];
+  mapUrl?: string;
 }
 
-const establishments: MedicalEstablishment[] = []; /* MOCK DATA REMOVED — fetched from API
-[
-  {
-    id: "1",
-    name: "Clinique Hannibal",
-    type: "Clinique",
-    governorate: "Tunis",
-    city: "Carthage",
-    address: "Route de la Marsa, Carthage, Tunis",
-    phone: "+216 71 777 888",
-    email: "contact@clinique-hannibal.tn",
-    rating: 4.8,
-    reviews: 312,
-    price: 60,
-    services: [
-      "Cardiologie",
-      "Chirurgie",
-      "Obstétrique",
-      "Réanimation",
-      "Imagerie",
-      "Orthopédie",
-      "Neurologie",
-    ],
-    accredited: true,
-    emergencies: true,
-    imageUrl:
-      "https://images.unsplash.com/photo-1586773860418-d37222d8fce3?w=1200&fit=crop&q=80",
-    gallery: [
-      "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=600&fit=crop&q=80",
-      "https://images.unsplash.com/photo-1538108149393-fbbd81895907?w=600&fit=crop&q=80",
-      "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=600&fit=crop&q=80",
-    ],
-    description:
-      "Clinique médicale privée de référence depuis 1994, la Clinique Hannibal offre une prise en charge globale avec un plateau technique de pointe. Avec 180 lits et une équipe de 120 médecins spécialistes, elle est reconnue pour la qualité de ses soins chirurgicaux, cardiologiques et obstétricaux. La clinique est dotée d'un bloc opératoire de 8 salles, d'une unité de réanimation, d'un service d'imagerie complet (IRM 3T, scanner, mammographie) et d'une maternité de niveau 3.",
-    beds: 180,
-    doctors: 120,
-    founded: 1994,
-    schedule: [
-      { day: "Lundi – Vendredi", hours: "07h00 – 22h00" },
-      { day: "Samedi", hours: "08h00 – 18h00" },
-      { day: "Dimanche & Jours fériés", hours: "Urgences uniquement" },
-    ],
-    team: [
-      {
-        name: "Dr Amira Ben Salah",
-        specialty: "Cardiologie",
-        image:
-          "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=200&fit=crop&q=80",
-      },
-      {
-        name: "Dr Karim Trabelsi",
-        specialty: "Chirurgie générale",
-        image:
-          "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=200&fit=crop&q=80",
-      },
-      {
-        name: "Dr Fatima Chérif",
-        specialty: "Gynécologie-Obstétrique",
-        image:
-          "https://images.unsplash.com/photo-1594824476967-48c8b964273f?w=200&fit=crop&q=80",
-      },
-      {
-        name: "Dr Riadh Hamrouni",
-        specialty: "Neurologie",
-        image:
-          "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=200&fit=crop&q=80",
-      },
-    ],
-    patientReviews: [
-      {
-        author: "Sonia M.",
-        rating: 5,
-        comment:
-          "Personnel extrêmement professionnel. Mon intervention chirurgicale s'est parfaitement déroulée et le suivi post-op était irréprochable.",
-        date: "Mars 2026",
-      },
-      {
-        author: "Ahmed B.",
-        rating: 5,
-        comment:
-          "Les urgences sont réactives, j'ai été pris en charge en moins de 10 minutes. Matériel moderne et équipe compétente.",
-        date: "Fév 2026",
-      },
-      {
-        author: "Leïla K.",
-        rating: 4,
-        comment:
-          "Très bonne clinique, excellent service de cardiologie. Légère attente à l'accueil mais rien d'alarmant.",
-        date: "Jan 2026",
-      },
-      {
-        author: "Mohamed T.",
-        rating: 5,
-        comment:
-          "La maternité est au top. Ma femme a accouché dans les meilleures conditions. On recommande vivement!",
-        date: "Déc 2025",
-      },
-    ],
-  },
-  {
-    id: "2",
-    name: "Hôpital Aziza Othmana",
-    type: "Hôpital",
-    governorate: "Tunis",
-    city: "Tunis Centre",
-    address: "Place de la Kasbah, Tunis",
-    phone: "+216 71 562 344",
-    email: "contact@aziza-othmana.tn",
-    rating: 4.3,
-    reviews: 540,
-    price: 30,
-    services: [
-      "Urgences",
-      "Médecine interne",
-      "Pédiatrie",
-      "Chirurgie",
-      "Maternité",
-      "Cardiologie",
-    ],
-    accredited: true,
-    emergencies: true,
-    imageUrl:
-      "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=1200&fit=crop&q=80",
-    description:
-      "Grand hôpital public universitaire fondé en 1949, l'Hôpital Aziza Othmana est l'un des plus anciens et des plus importants établissements de santé de Tunis. Il offre des soins de qualité dans 15 services spécialisés, avec des conventions CNAM permettant une prise en charge intégrale. L'hôpital forme également des médecins résidents en collaboration avec la Faculté de Médecine de Tunis.",
-    beds: 450,
-    doctors: 280,
-    founded: 1949,
-    schedule: [
-      { day: "Tous les jours", hours: "Urgences 24h/24" },
-      { day: "Consultations Lun – Ven", hours: "08h00 – 16h00" },
-      { day: "Consultations Samedi", hours: "08h00 – 12h00" },
-    ],
-    team: [
-      {
-        name: "Dr Habib Saidani",
-        specialty: "Médecine interne",
-        image:
-          "https://images.unsplash.com/photo-1537368910025-700350fe46c7?w=200&fit=crop&q=80",
-      },
-      {
-        name: "Dr Wafa Jlassi",
-        specialty: "Pédiatrie",
-        image:
-          "https://images.unsplash.com/photo-1651008376811-b90baee60c1f?w=200&fit=crop&q=80",
-      },
-    ],
-    patientReviews: [
-      {
-        author: "Rim A.",
-        rating: 4,
-        comment:
-          "Bon suivi médical, personnel dévoué. La prise en charge CNAM est parfaite.",
-        date: "Fév 2026",
-      },
-      {
-        author: "Sofien B.",
-        rating: 4,
-        comment:
-          "Service des urgences efficace. Quelques attentes mais inévitables dans un hôpital public.",
-        date: "Jan 2026",
-      },
-    ],
-  },
-  {
-    id: "3",
-    name: "Centre Médical des Berges du Lac",
-    type: "Centre médical",
-    governorate: "Tunis",
-    city: "Les Berges du Lac",
-    address: "Immeuble Médical, Les Berges du Lac 2, Tunis",
-    phone: "+216 71 964 100",
-    email: "info@centreberges.tn",
-    rating: 4.9,
-    reviews: 198,
-    price: 50,
-    services: [
-      "Dermatologie",
-      "Ophtalmologie",
-      "ORL",
-      "Gynécologie",
-      "Radiologie",
-      "Cardiologie",
-    ],
-    accredited: true,
-    emergencies: false,
-    imageUrl:
-      "https://images.unsplash.com/photo-1538108149393-fbbd81895907?w=1200&fit=crop&q=80",
-    description:
-      "Centre multi-spécialités d'excellence au cœur des Berges du Lac, ouvert en 2012. Ses équipements de dernière génération incluant un IRM 3T, un scanner 128 coupes et un plateau d'imagerie complet en font une référence pour le diagnostic et le suivi ambulatoire.",
-    beds: 0,
-    doctors: 45,
-    founded: 2012,
-    schedule: [
-      { day: "Lundi – Vendredi", hours: "08h00 – 20h00" },
-      { day: "Samedi", hours: "09h00 – 15h00" },
-      { day: "Dimanche", hours: "Fermé" },
-    ],
-    team: [
-      {
-        name: "Dr Nadia Hadj Ali",
-        specialty: "Dermatologie",
-        image:
-          "https://images.unsplash.com/photo-1614608682850-e0d6ed316d47?w=200&fit=crop&q=80",
-      },
-      {
-        name: "Dr Fares Marzouk",
-        specialty: "Ophtalmologie",
-        image:
-          "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=200&fit=crop&q=80",
-      },
-    ],
-    patientReviews: [
-      {
-        author: "Lina T.",
-        rating: 5,
-        comment:
-          "Centre magnifique, équipements top de gamme. Prise en charge rapide et médecins à l'écoute.",
-        date: "Mars 2026",
-      },
-      {
-        author: "Youssef K.",
-        rating: 5,
-        comment:
-          "IRM réalisée dans les 48h, résultats en ligne le lendemain. Service impeccable!",
-        date: "Fév 2026",
-      },
-    ],
-  },
-  {
-    id: "4",
-    name: "Clinique El Menzah",
-    type: "Clinique",
-    governorate: "Tunis",
-    city: "Menzah",
-    address: "Avenue Tahar Ben Ammar, El Menzah 6, Tunis",
-    phone: "+216 71 238 900",
-    rating: 4.6,
-    reviews: 241,
-    price: 55,
-    services: [
-      "Orthopédie",
-      "Cardiologie",
-      "Neurologie",
-      "Urologie",
-      "Chirurgie",
-    ],
-    accredited: true,
-    emergencies: true,
-    imageUrl:
-      "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=1200&fit=crop&q=80",
-    description:
-      "Clinique pluridisciplinaire au nord de Tunis offrant chirurgie mini-invasive, soins de rééducation et consultations spécialisées depuis 2003.",
-    beds: 120,
-    doctors: 80,
-    founded: 2003,
-    schedule: [
-      { day: "Lundi – Vendredi", hours: "07h30 – 21h00" },
-      { day: "Samedi", hours: "08h00 – 18h00" },
-      { day: "Dimanche", hours: "Urgences 08h00 – 16h00" },
-    ],
-    team: [],
-    patientReviews: [
-      {
-        author: "Ines B.",
-        rating: 5,
-        comment:
-          "Excellent service orthopédique, chirurgien très compétent. Rétablissement parfait.",
-        date: "Jan 2026",
-      },
-    ],
-  },
-  {
-    id: "5",
-    name: "HAD MédiHome Sfax",
-    type: "HAD",
-    governorate: "Sfax",
-    city: "Sfax",
-    address: "Rue des Palmiers, Sfax",
-    phone: "+216 74 225 300",
-    rating: 4.7,
-    reviews: 89,
-    price: 45,
-    services: [
-      "Hospitalisation à domicile",
-      "Soins infirmiers",
-      "Perfusions",
-      "Soins palliatifs",
-      "Rééducation",
-    ],
-    accredited: true,
-    emergencies: false,
-    imageUrl:
-      "https://images.unsplash.com/photo-1631815589968-fdb09a223b1e?w=1200&fit=crop&q=80",
-    description:
-      "Premier réseau d'hospitalisation à domicile à Sfax, opérationnel depuis 2018. Des équipes soignantes qualifiées se déplacent chez vous 7j/7.",
-    beds: 0,
-    doctors: 22,
-    founded: 2018,
-    schedule: [
-      { day: "Tous les jours", hours: "07h00 – 22h00" },
-      { day: "Astreinte nocturne", hours: "22h00 – 07h00 (sur appel)" },
-    ],
-    team: [],
-    patientReviews: [
-      {
-        author: "Khaled M.",
-        rating: 5,
-        comment:
-          "Service HAD exceptionnel. Les infirmières sont ponctuelles, professionnelles et très attentionnées.",
-        date: "Mars 2026",
-      },
-    ],
-  },
-  {
-    id: "6",
-    name: "Polyclinique de Sousse",
-    type: "Clinique",
-    governorate: "Sousse",
-    city: "Sousse",
-    address: "Boulevard du 7 Novembre, Sousse",
-    phone: "+216 73 228 600",
-    rating: 4.5,
-    reviews: 176,
-    price: 45,
-    services: [
-      "Cardiologie",
-      "Gastro-entérologie",
-      "Endocrinologie",
-      "Radiologie",
-      "Réanimation",
-    ],
-    accredited: true,
-    emergencies: true,
-    imageUrl:
-      "https://images.unsplash.com/photo-1599045118108-bf9954418b76?w=1200&fit=crop&q=80",
-    description:
-      "Principale clinique privée du Sahel depuis 1989, offrant une gamme complète de services médicaux et chirurgicaux.",
-    beds: 200,
-    doctors: 95,
-    founded: 1989,
-    schedule: [
-      { day: "Lundi – Vendredi", hours: "07h00 – 22h00" },
-      { day: "Samedi – Dimanche", hours: "Urgences 24h/24" },
-    ],
-    team: [],
-    patientReviews: [],
-  },
-  {
-    id: "7",
-    name: "Centre Médical Nabeul",
-    type: "Centre médical",
-    governorate: "Nabeul",
-    city: "Nabeul",
-    address: "Avenue Habib Bourguiba, Nabeul",
-    phone: "+216 72 285 700",
-    rating: 4.4,
-    reviews: 134,
-    price: 40,
-    services: [
-      "Médecine générale",
-      "Pédiatrie",
-      "Gynécologie",
-      "Dentisterie",
-      "Radiologie",
-    ],
-    accredited: false,
-    emergencies: false,
-    imageUrl:
-      "https://images.unsplash.com/photo-1587351021759-3e566b6af7cc?w=1200&fit=crop&q=80",
-    description:
-      "Centre de santé accessible offrant consultations de médecine générale et spécialisée avec des tarifs conventionnés CNAM.",
-    beds: 0,
-    doctors: 18,
-    founded: 2008,
-    schedule: [
-      { day: "Lundi – Vendredi", hours: "08h00 – 18h00" },
-      { day: "Samedi", hours: "08h00 – 13h00" },
-      { day: "Dimanche", hours: "Fermé" },
-    ],
-    team: [],
-    patientReviews: [],
-  },
-  {
-    id: "8",
-    name: "Hôpital Farhat Hached",
-    type: "Hôpital",
-    governorate: "Sousse",
-    city: "Sousse",
-    address: "Rue Ibn El Jazzar, Sousse",
-    phone: "+216 73 221 411",
-    rating: 4.2,
-    reviews: 480,
-    price: 25,
-    services: [
-      "Urgences",
-      "Neurochirurgie",
-      "Cardiologie",
-      "Oncologie",
-      "Maternité",
-    ],
-    accredited: true,
-    emergencies: true,
-    imageUrl:
-      "https://images.unsplash.com/photo-1536064479547-7ee40b74b807?w=1200&fit=crop&q=80",
-    description:
-      "Centre hospitalier universitaire régional desservant le Sahel. 800 lits, 20 services spécialisés.",
-    beds: 800,
-    doctors: 380,
-    founded: 1983,
-    schedule: [{ day: "Tous les jours", hours: "Urgences 24h/24" }],
-    team: [],
-    patientReviews: [],
-  },
-  {
-    id: "9",
-    name: "Clinique Bizerte Santé",
-    type: "Clinique",
-    governorate: "Bizerte",
-    city: "Bizerte",
-    address: "Avenue Taieb Mhiri, Bizerte",
-    phone: "+216 72 432 100",
-    rating: 4.6,
-    reviews: 112,
-    price: 50,
-    services: [
-      "Chirurgie",
-      "Maternité",
-      "Pédiatrie",
-      "Cardiologie",
-      "Imagerie",
-    ],
-    accredited: true,
-    emergencies: true,
-    imageUrl:
-      "https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=1200&fit=crop&q=80",
-    description:
-      "Principale clinique privée de la région nord, offrant maternité, chirurgie programmée et urgences médicales.",
-    beds: 90,
-    doctors: 55,
-    founded: 2007,
-    schedule: [
-      { day: "Lundi – Vendredi", hours: "07h30 – 21h00" },
-      { day: "Samedi – Dimanche", hours: "Urgences 24h/24" },
-    ],
-    team: [],
-    patientReviews: [],
-  },
-]*/
-
+// ─── Colors ───────────────────────────────────────────────────────────────────
 const typeColors: Record<string, string> = {
-  Clinique: "bg-blue-500/10 text-blue-700 dark:text-blue-400",
-  Hôpital: "bg-purple-500/10 text-purple-700 dark:text-purple-400",
-  HAD: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
-  "Centre médical": "bg-amber-500/10 text-amber-700 dark:text-amber-400",
+  Clinique: "bg-blue-500/20 text-blue-100 border border-blue-400/30",
+  "Hospitalisation À Domicile": "bg-emerald-500/20 text-emerald-100 border border-emerald-400/30",
+  "Centre médical": "bg-amber-500/20 text-amber-100 border border-amber-400/30",
 };
 
 // ─── Booking helpers ──────────────────────────────────────────────────────────
 const DAY_LABELS = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];
-const MONTH_LABELS = [
-  "Jan",
-  "Fév",
-  "Mar",
-  "Avr",
-  "Mai",
-  "Jun",
-  "Jul",
-  "Aoû",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Déc",
-];
+const MONTH_LABELS = ["Jan", "Fév", "Mar", "Avr", "Mai", "Jun", "Jul", "Aoû", "Sep", "Oct", "Nov", "Déc"];
 
-function generateSlots(id: string) {
-  const allSlots = [
-    "08:00",
-    "08:30",
-    "09:00",
-    "09:30",
-    "10:00",
-    "10:30",
-    "11:00",
-    "14:00",
-    "14:30",
-    "15:00",
-    "15:30",
-    "16:00",
-    "16:30",
-  ];
-  const seed = parseInt(id, 10) || 1;
-  return Array.from({ length: 7 }, (_, d) => {
-    const date = new Date();
-    date.setDate(date.getDate() + d);
-    const slots = allSlots.filter((_, i) => (i + d + seed) % 3 !== 0);
-    return { date, slots };
+/** Returns "YYYY-MM-DD" using the user's LOCAL timezone (avoids UTC off-by-one). */
+function toDateStr(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function buildWeekDates(offset: number) {
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    // Start from tomorrow — today and past dates are not bookable
+    d.setDate(d.getDate() + 1 + offset * 7 + i);
+    return d;
   });
 }
 
-// ─── Main Page ─────────────────────────────────────────────────────────────────
+// ─── Main Page ────────────────────────────────────────────────────────────────
 export default function ServiceMedicalDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { isAuthenticated } = useAuth();
@@ -563,7 +80,9 @@ export default function ServiceMedicalDetailPage() {
 
   const [estab, setEstab] = useState<MedicalEstablishment | null>(null);
   const [loading, setLoading] = useState(true);
+
   useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "instant" });
     setLoading(true);
     fetch(`/api/public/establishments/${id}`)
       .then((r) => (r.ok ? r.json() : null))
@@ -571,584 +90,606 @@ export default function ServiceMedicalDetailPage() {
       .catch(() => setLoading(false));
   }, [id]);
 
-  const [tab, setTab] = useState<"about" | "team" | "schedule">(
-    "about",
-  );
-  const [galleryIdx, setGalleryIdx] = useState(0);
   const [selectedDayIdx, setSelectedDayIdx] = useState(0);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
-  const [selectedService, setSelectedService] = useState<string>("");
+  const [noteText, setNoteText] = useState("");
   const [weekOffset, setWeekOffset] = useState(0);
   const [booked, setBooked] = useState(false);
+  const [booking, setBooking] = useState(false);
+  const [bookError, setBookError] = useState<string | null>(null);
+  const [imgError, setImgError] = useState(false);
 
+  // Slot state: map of dateStr → { available, booked, blocked }
+  type DaySlots = { available: string[]; booked: string[]; blocked: string[] };
+  const [slotMap, setSlotMap] = useState<Record<string, DaySlots>>({});
+  const [loadingSlots, setLoadingSlots] = useState(false);
+
+  const weekDates = buildWeekDates(weekOffset);
+
+  // When the week changes, auto-select the first bookable (non-Sunday) day
+  useEffect(() => {
+    const firstIdx = weekDates.findIndex((d) => d.getDay() !== 0);
+    setSelectedDayIdx(firstIdx >= 0 ? firstIdx : 0);
+    setSelectedSlot(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [weekOffset]);
+
+  // Fetch slots for the whole visible week whenever week or estab changes
+  useEffect(() => {
+    if (!estab) return;
+    let cancelled = false;
+    setSelectedSlot(null);
+    setLoadingSlots(true);
+    Promise.all(
+      weekDates.map(async (d) => {
+        const ds = toDateStr(d);
+        try {
+          const r = await fetch(`/api/public/establishments/${estab.id}/slots?date=${ds}`);
+          const data = r.ok ? await r.json() : { available: [], booked: [], blocked: [] };
+          return [ds, {
+            available: (data.available ?? data.slots ?? []) as string[],
+            booked: (data.booked ?? []) as string[],
+            blocked: (data.blocked ?? []) as string[],
+          }] as const;
+        } catch {
+          return [ds, { available: [], booked: [], blocked: [] }] as const;
+        }
+      })
+    ).then((results) => {
+      if (!cancelled) {
+        setSlotMap(Object.fromEntries(results));
+        setLoadingSlots(false);
+      }
+    });
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [estab?.id, weekOffset]);
+
+  const currentDate = weekDates[selectedDayIdx];
+  const currentDaySlots = slotMap[toDateStr(currentDate)] ?? { available: [], booked: [], blocked: [] };
+  // Only available slots are shown to patients; booked and admin-blocked slots are hidden
+  const currentAvailable = currentDaySlots.available;
+
+  // ── Loading ────────────────────────────────────────────────────────────────
   if (loading) return (
     <div className="min-h-screen bg-background flex flex-col">
-      <Header />
-      <main className="flex-1 flex items-center justify-center py-20">
-        <div className="animate-pulse text-muted-foreground text-sm">Chargement…</div>
+      <Header forceOpaque />
+      <main className="flex-1 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 border-4 border-primary/30 border-t-primary rounded-full animate-spin" />
+          <p className="text-sm text-muted-foreground">Chargement…</p>
+        </div>
       </main>
       <Footer />
     </div>
   );
 
-  if (!estab) {
-    return (
-      <div className="min-h-screen bg-background flex flex-col">
-        <Header />
-        <main className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <Building2
-              size={48}
-              className="text-muted-foreground/30 mx-auto mb-4"
-            />
-            <h1 className="text-2xl font-bold text-foreground mb-2">
-              Établissement introuvable
-            </h1>
-            <p className="text-muted-foreground mb-6">
-              Cet établissement n'existe pas ou n'est plus disponible.
-            </p>
-            <Link
-              to="/services-medicaux"
-              className="px-6 py-3 bg-primary text-primary-foreground rounded-xl font-semibold text-sm hover:bg-primary/90 transition"
-            >
-              Retour à la liste
-            </Link>
+  // ── Not found ──────────────────────────────────────────────────────────────
+  if (!estab) return (
+    <div className="min-h-screen bg-background flex flex-col">
+      <Header forceOpaque />
+      <main className="flex-1 flex items-center justify-center py-24">
+        <div className="text-center max-w-sm px-6">
+          <div className="w-16 h-16 bg-secondary rounded-2xl flex items-center justify-center mx-auto mb-5">
+            <Building2 size={28} className="text-muted-foreground/50" />
           </div>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
+          <h1 className="text-2xl font-bold text-foreground mb-2">Établissement introuvable</h1>
+          <p className="text-muted-foreground text-sm mb-6">Cet établissement n'existe pas ou n'est plus disponible.</p>
+          <Link to="/services-medicaux" className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-xl font-semibold text-sm hover:bg-primary/90 transition">
+            <ArrowLeft size={15} /> Retour à la liste
+          </Link>
+        </div>
+      </main>
+      <Footer />
+    </div>
+  );
 
-  const serviceSelected = selectedService || estab.services[0];
-  const allDays = generateSlots(estab.id);
-  const weekDays = allDays.map((d) => {
-    const shifted = new Date(d.date);
-    shifted.setDate(shifted.getDate() + weekOffset * 7);
-    return { ...d, date: shifted };
-  });
-  const currentDay = weekDays[selectedDayIdx];
-
-  const handleBook = () => {
-    if (!isAuthenticated) {
-      navigate("/login");
-      return;
+  const handleBook = async () => {
+    if (!isAuthenticated) { navigate("/login"); return; }
+    if (!selectedSlot) return;
+    setBooking(true);
+    setBookError(null);
+    try {
+      const token = localStorage.getItem("megacare_token");
+      const r = await fetch(`/api/public/establishments/${estab.id}/book`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          service: estab.services[0] ?? "",
+          date: toDateStr(currentDate),
+          time: selectedSlot,
+          notes: noteText.trim(),
+        }),
+      });
+      if (!r.ok) {
+        const d = await r.json().catch(() => ({}));
+        setBookError(d.message || "Erreur lors de la réservation");
+        return;
+      }
+      setBooked(true);
+      // Remove the booked slot from local state to prevent re-booking
+      const ds = toDateStr(currentDate);
+      setSlotMap((prev) => {
+        const prevDay = prev[ds] ?? { available: [], booked: [], blocked: [] };
+        return {
+          ...prev,
+          [ds]: {
+            available: prevDay.available.filter((s) => s !== selectedSlot),
+            booked: [...prevDay.booked, selectedSlot!],
+            blocked: prevDay.blocked,
+          },
+        };
+      });
+    } finally {
+      setBooking(false);
     }
-    setBooked(true);
   };
-
-  const gallery = estab.gallery ?? [];
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <Header />
-      <main className="flex-1 pt-20">
-        {/* ── Hero Banner ─────────────────────────────────────────────── */}
-        <div className="relative h-64 lg:h-80 overflow-hidden">
-          <img
-            src={estab.imageUrl}
-            alt={estab.name}
-            className="w-full h-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-background/30 to-transparent" />
-          <div className="absolute bottom-0 left-0 right-0 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-6">
-            <Link
-              to="/services-medicaux"
-              className="inline-flex items-center gap-2 text-white/80 hover:text-white text-sm font-medium mb-4 transition-colors"
-            >
-              <ArrowLeft size={15} />
-              Retour aux établissements
-            </Link>
-          </div>
-        </div>
+      <Header forceOpaque />
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-6 pb-16">
-          <div className="grid lg:grid-cols-3 gap-8">
-            {/* ── Left: Info + Tabs ────────────────────────────────────── */}
-            <div className="lg:col-span-2 space-y-6">
-              {/* Identity card */}
-              <div className="bg-card rounded-2xl border border-border p-6">
-                <div className="flex flex-wrap gap-2 mb-3">
-                  <span
-                    className={`px-3 py-1 text-xs font-semibold rounded-full ${typeColors[estab.type]}`}
-                  >
-                    {estab.type}
-                  </span>
-                  {estab.emergencies && (
-                    <span className="px-3 py-1 text-xs font-semibold rounded-full bg-red-500/10 text-red-600 dark:text-red-400">
-                      Urgences 24h/24
-                    </span>
-                  )}
-                  {estab.accredited && (
-                    <span className="px-3 py-1 text-xs font-semibold rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
-                      <Shield size={11} />
-                      Accrédité
-                    </span>
-                  )}
-                </div>
+      <main className="flex-1 pt-16">
+        {/* ══════════════════════════════════════════════════════════════════
+            HERO — full-width banner, navbar is always opaque on this page
+        ══════════════════════════════════════════════════════════════════ */}
+        <section className="relative h-[380px] md:h-[460px] overflow-hidden bg-gray-900">
+          {/* Banner image */}
+          {!imgError && estab.imageUrl ? (
+            <img
+              src={estab.imageUrl}
+              alt={estab.name}
+              className="absolute inset-0 w-full h-full object-cover"
+              onError={() => setImgError(true)}
+            />
+          ) : (
+            <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-primary/10" />
+          )}
 
-                <h1 className="text-2xl lg:text-3xl font-bold text-foreground mb-1">
-                  {estab.name}
-                </h1>
+          {/* Gradient overlay — strong bottom gradient so text is always readable */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-black/20" />
 
-                <div className="flex items-center gap-4 flex-wrap mt-2 mb-4">
-                  <div className="flex items-center gap-1.5 text-muted-foreground text-sm">
-                    <MapPin size={14} />
-                    <span>{estab.address}</span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-6 flex-wrap">
-                  <div className="flex items-center gap-1.5">
-                    <div className="flex">
-                      {Array.from({ length: 5 }, (_, i) => (
-                        <Star
-                          key={i}
-                          size={16}
-                          className={
-                            i < Math.round(estab.rating)
-                              ? "text-amber-400 fill-amber-400"
-                              : "text-muted-foreground/30"
-                          }
-                        />
-                      ))}
-                    </div>
-                    <span className="font-bold text-foreground text-sm">
-                      {estab.rating}
-                    </span>
-
-                  </div>
-                  {estab.founded && (
-                    <div className="flex items-center gap-1.5 text-muted-foreground text-xs">
-                      <Award size={13} />
-                      Fondé en {estab.founded}
-                    </div>
-                  )}
-                  {estab.doctors && estab.doctors > 0 && (
-                    <div className="flex items-center gap-1.5 text-muted-foreground text-xs">
-                      <Users size={13} />
-                      {estab.doctors} médecins
-                    </div>
-                  )}
-                  {estab.beds && estab.beds > 0 && (
-                    <div className="flex items-center gap-1.5 text-muted-foreground text-xs">
-                      <Activity size={13} />
-                      {estab.beds} lits
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Gallery */}
-              {gallery.length > 0 && (
-                <div className="bg-card rounded-2xl border border-border p-5">
-                  <h2 className="font-semibold text-foreground mb-4">
-                    Galerie
-                  </h2>
-                  <div className="relative">
-                    <img
-                      src={gallery[galleryIdx]}
-                      alt={`${estab.name} ${galleryIdx + 1}`}
-                      className="w-full h-52 object-cover rounded-xl"
-                    />
-                    {gallery.length > 1 && (
-                      <>
-                        <button
-                          onClick={() =>
-                            setGalleryIdx(
-                              (galleryIdx - 1 + gallery.length) %
-                              gallery.length,
-                            )
-                          }
-                          className="absolute left-3 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/50 rounded-full flex items-center justify-center text-white hover:bg-black/70 transition"
-                        >
-                          <ChevronLeft size={16} />
-                        </button>
-                        <button
-                          onClick={() =>
-                            setGalleryIdx((galleryIdx + 1) % gallery.length)
-                          }
-                          className="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 bg-black/50 rounded-full flex items-center justify-center text-white hover:bg-black/70 transition"
-                        >
-                          <ChevronRight size={16} />
-                        </button>
-                      </>
-                    )}
-                    <div className="flex gap-2 mt-3">
-                      {gallery.map((src, i) => (
-                        <button
-                          key={i}
-                          onClick={() => setGalleryIdx(i)}
-                          className={`relative overflow-hidden rounded-lg w-16 h-12 ${i === galleryIdx ? "ring-2 ring-primary" : "opacity-60 hover:opacity-100"} transition`}
-                        >
-                          <img
-                            src={src}
-                            alt=""
-                            className="w-full h-full object-cover"
-                          />
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
+          {/* Establishment info overlaid at bottom of hero */}
+          <div className="absolute bottom-0 left-0 right-0 px-4 sm:px-6 lg:px-8 pb-8 max-w-7xl mx-auto">
+            {/* Badges row */}
+            <div className="flex flex-wrap gap-2 mb-3">
+              <span className={`px-3 py-1 text-xs font-semibold rounded-full backdrop-blur-sm ${typeColors[estab.type] ?? "bg-white/20 text-white border border-white/30"}`}>
+                {estab.type}
+              </span>
+              {estab.emergencies && (
+                <span className="px-3 py-1 text-xs font-semibold rounded-full bg-red-500/25 text-red-200 border border-red-400/30 backdrop-blur-sm flex items-center gap-1.5">
+                  <AlertCircle size={11} />
+                  Urgences 24h/24
+                </span>
               )}
-
-              {/* Tabs */}
-              <div className="bg-card rounded-2xl border border-border overflow-hidden">
-                <div className="flex border-b border-border">
-                  {(["about", "team", "schedule"] as const).map(
-                    (t) => {
-                      const labels: Record<string, string> = {
-                        about: "À propos",
-                        team: "Équipe",
-                        schedule: "Horaires",
-                      };
-                      return (
-                        <button
-                          key={t}
-                          onClick={() => setTab(t)}
-                          className={`flex-1 py-3.5 text-sm font-semibold transition-colors ${tab === t
-                              ? "text-primary border-b-2 border-primary bg-primary/5"
-                              : "text-muted-foreground hover:text-foreground hover:bg-secondary/30"
-                            }`}
-                        >
-                          {labels[t]}
-                        </button>
-                      );
-                    },
-                  )}
-                </div>
-
-                <div className="p-6">
-                  {/* About */}
-                  {tab === "about" && (
-                    <div className="space-y-5">
-                      <p className="text-muted-foreground leading-relaxed text-sm">
-                        {estab.description}
-                      </p>
-                      <div>
-                        <h3 className="font-semibold text-foreground text-sm mb-3">
-                          Services disponibles
-                        </h3>
-                        <div className="flex flex-wrap gap-2">
-                          {estab.services.map((s) => (
-                            <span
-                              key={s}
-                              className="flex items-center gap-1.5 px-3 py-1.5 bg-secondary text-sm text-foreground rounded-full"
-                            >
-                              <Stethoscope size={13} className="text-primary" />
-                              {s}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Team */}
-                  {tab === "team" && (
-                    <div>
-                      {!estab.team || estab.team.length === 0 ? (
-                        <p className="text-sm text-muted-foreground text-center py-6">
-                          Informations sur l'équipe non disponibles.
-                        </p>
-                      ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          {estab.team.map((member) => (
-                            <div
-                              key={member.name}
-                              className="flex items-center gap-4 p-4 bg-secondary/30 rounded-xl"
-                            >
-                              {member.image ? (
-                                <img
-                                  src={member.image}
-                                  alt={member.name}
-                                  className="w-14 h-14 rounded-full object-cover shrink-0"
-                                />
-                              ) : (
-                                <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                                  <Users className="text-primary" size={22} />
-                                </div>
-                              )}
-                              <div>
-                                <p className="font-semibold text-foreground text-sm">
-                                  {member.name}
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                  {member.specialty}
-                                </p>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Schedule */}
-                  {tab === "schedule" && (
-                    <div className="space-y-3">
-                      {estab.schedule?.map((s) => (
-                        <div
-                          key={s.day}
-                          className="flex items-center justify-between py-3 border-b border-border/50 last:border-0"
-                        >
-                          <div className="flex items-center gap-2 text-sm text-foreground">
-                            <Clock size={15} className="text-primary" />
-                            {s.day}
-                          </div>
-                          <span className="text-sm font-semibold text-foreground">
-                            {s.hours}
-                          </span>
-                        </div>
-                      ))}
-                      <div className="mt-4 flex items-start gap-3 p-3 bg-primary/5 rounded-xl">
-                        <Phone
-                          size={15}
-                          className="text-primary mt-0.5 shrink-0"
-                        />
-                        <div>
-                          <p className="text-sm font-semibold text-foreground">
-                            Standard
-                          </p>
-                          <p className="text-sm text-muted-foreground">
-                            {estab.phone}
-                          </p>
-                        </div>
-                      </div>
-                      {estab.email && (
-                        <div className="flex items-start gap-3 p-3 bg-secondary/40 rounded-xl">
-                          <Mail
-                            size={15}
-                            className="text-muted-foreground mt-0.5 shrink-0"
-                          />
-                          <div>
-                            <p className="text-sm font-semibold text-foreground">
-                              Email
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              {estab.email}
-                            </p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-
-                </div>
-              </div>
+              {estab.accredited && (
+                <span className="px-3 py-1 text-xs font-semibold rounded-full bg-emerald-500/25 text-emerald-200 border border-emerald-400/30 backdrop-blur-sm flex items-center gap-1.5">
+                  <Shield size={11} />
+                  Accrédité
+                </span>
+              )}
             </div>
 
-            {/* ── Right: Booking Widget ────────────────────────────────── */}
-            <div className="lg:col-span-1">
-              <div className="bg-card rounded-2xl border border-border p-5 sticky top-24 space-y-5">
-                <div>
-                  <p className="text-sm text-muted-foreground mb-0.5">
-                    Consultation à partir de
-                  </p>
-                  <p className="text-3xl font-bold text-foreground">
-                    {estab.price}{" "}
-                    <span className="text-base font-normal text-muted-foreground">
-                      TND
-                    </span>
-                  </p>
+            {/* Name */}
+            <h1 className="text-3xl md:text-4xl font-bold text-white mb-3 leading-tight drop-shadow-lg">
+              {estab.name}
+            </h1>
+
+            {/* Meta row */}
+            <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+              <div className="flex items-center gap-1.5 text-white/80 text-sm">
+                <MapPin size={14} className="shrink-0" />
+                <span>{estab.city}, {estab.governorate}</span>
+              </div>
+              {estab.founded && (
+                <div className="flex items-center gap-1.5 text-white/70 text-sm">
+                  <Award size={13} className="shrink-0" />
+                  <span>Fondé en {estab.founded}</span>
                 </div>
+              )}
+              {estab.doctors != null && estab.doctors > 0 && (
+                <div className="flex items-center gap-1.5 text-white/70 text-sm">
+                  <Users size={13} className="shrink-0" />
+                  <span>{estab.doctors} médecins</span>
+                </div>
+              )}
+              {estab.beds != null && estab.beds > 0 && (
+                <div className="flex items-center gap-1.5 text-white/70 text-sm">
+                  <BedDouble size={13} className="shrink-0" />
+                  <span>{estab.beds} lits</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
 
-                {booked ? (
-                  <div className="text-center py-6">
-                    <div className="w-14 h-14 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-3">
-                      <CheckCircle className="text-emerald-500" size={28} />
-                    </div>
-                    <h3 className="font-bold text-foreground mb-1">
-                      Rendez-vous confirmé!
-                    </h3>
-                    <p className="text-sm text-muted-foreground mb-1">
-                      {DAY_LABELS[currentDay.date.getDay()]}{" "}
-                      {currentDay.date.getDate()}{" "}
-                      {MONTH_LABELS[currentDay.date.getMonth()]} à{" "}
-                      {selectedSlot}
-                    </p>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      {serviceSelected} · {estab.name}
-                    </p>
-                    <button
-                      onClick={() => {
-                        setBooked(false);
-                        setSelectedSlot(null);
-                      }}
-                      className="px-5 py-2 border border-border rounded-xl text-sm font-medium hover:bg-secondary/50 transition"
-                    >
-                      Nouveau RDV
-                    </button>
-                  </div>
-                ) : (
-                  <>
-                    {/* Service select */}
-                    <div>
-                      <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide block mb-2">
-                        Service
-                      </label>
-                      <select
-                        value={serviceSelected}
-                        onChange={(e) => setSelectedService(e.target.value)}
-                        className="w-full px-3 py-2.5 bg-secondary/50 border border-border rounded-xl text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
-                      >
-                        {estab.services.map((s) => (
-                          <option key={s} value={s}>
-                            {s}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+        {/* ══════════════════════════════════════════════════════════════════
+            BODY — two-column layout
+        ══════════════════════════════════════════════════════════════════ */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+          <div className="grid lg:grid-cols-3 gap-8 items-start">
 
-                    {/* Week nav */}
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
-                          Date
-                        </label>
-                        <div className="flex items-center gap-1">
-                          <button
-                            onClick={() => {
-                              setWeekOffset(Math.max(0, weekOffset - 1));
-                              setSelectedSlot(null);
-                            }}
-                            disabled={weekOffset === 0}
-                            className="p-1.5 rounded-lg hover:bg-secondary/50 transition disabled:opacity-40"
-                          >
-                            <ChevronLeft
-                              size={14}
-                              className="text-muted-foreground"
-                            />
-                          </button>
-                          <button
-                            onClick={() => {
-                              setWeekOffset(weekOffset + 1);
-                              setSelectedSlot(null);
-                            }}
-                            className="p-1.5 rounded-lg hover:bg-secondary/50 transition"
-                          >
-                            <ChevronRight
-                              size={14}
-                              className="text-muted-foreground"
-                            />
-                          </button>
+            {/* ── LEFT COLUMN ───────────────────────────────────────────── */}
+            <div className="lg:col-span-2 space-y-6">
+
+              {/* À propos */}
+              <div className="bg-card rounded-2xl border border-border overflow-hidden">
+                <div className="px-6 py-4 border-b border-border flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center"><Building2 size={14} className="text-primary" /></div>
+                  <h2 className="font-bold text-foreground text-base">À propos</h2>
+                </div>
+                <div className="p-6 space-y-6">
+                  {/* Description */}
+                  <p className="text-muted-foreground leading-relaxed text-sm">
+                    {estab.description}
+                  </p>
+
+                  {/* Stats grid */}
+                  {(estab.founded || (estab.doctors && estab.doctors > 0) || (estab.beds && estab.beds > 0) || estab.accredited || estab.emergencies) && (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                      {estab.founded && (
+                        <div className="text-center p-4 bg-secondary/40 rounded-xl">
+                          <p className="text-xl font-bold text-foreground">{estab.founded}</p>
+                          <p className="text-xs text-muted-foreground mt-1">Fondé en</p>
                         </div>
-                      </div>
-                      <div className="grid grid-cols-7 gap-1">
-                        {weekDays.map((d, i) => (
-                          <button
-                            key={i}
-                            onClick={() => {
-                              setSelectedDayIdx(i);
-                              setSelectedSlot(null);
-                            }}
-                            disabled={d.slots.length === 0}
-                            className={`flex flex-col items-center py-2 rounded-xl text-xs font-medium transition-all ${i === selectedDayIdx
-                                ? "bg-primary text-primary-foreground"
-                                : "hover:bg-secondary/70 text-foreground/70"
-                              } ${d.slots.length === 0 ? "opacity-40 cursor-not-allowed" : ""}`}
-                          >
-                            <span className="text-[9px] opacity-70">
-                              {DAY_LABELS[d.date.getDay()]}
-                            </span>
-                            <span className="font-bold text-sm">
-                              {d.date.getDate()}
-                            </span>
-                            <span className="text-[9px] opacity-60">
-                              {MONTH_LABELS[d.date.getMonth()]}
-                            </span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Slots */}
-                    <div>
-                      <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide block mb-2">
-                        Créneaux —{" "}
-                        <span className="font-normal normal-case">
-                          {currentDay.slots.length} disponibles
-                        </span>
-                      </label>
-                      {currentDay.slots.length === 0 ? (
-                        <p className="text-sm text-muted-foreground text-center py-3">
-                          Aucun créneau ce jour
-                        </p>
-                      ) : (
-                        <div className="grid grid-cols-3 gap-1.5">
-                          {currentDay.slots.map((slot) => (
-                            <button
-                              key={slot}
-                              onClick={() => setSelectedSlot(slot)}
-                              className={`py-2.5 rounded-xl text-xs font-semibold transition-all ${selectedSlot === slot
-                                  ? "bg-primary text-primary-foreground"
-                                  : "bg-secondary/60 text-foreground/80 hover:bg-secondary"
-                                }`}
-                            >
-                              {slot}
-                            </button>
-                          ))}
+                      )}
+                      {estab.doctors != null && estab.doctors > 0 && (
+                        <div className="text-center p-4 bg-secondary/40 rounded-xl">
+                          <p className="text-xl font-bold text-foreground">{estab.doctors}</p>
+                          <p className="text-xs text-muted-foreground mt-1">Médecins</p>
+                        </div>
+                      )}
+                      {estab.beds != null && estab.beds > 0 && (
+                        <div className="text-center p-4 bg-secondary/40 rounded-xl">
+                          <p className="text-xl font-bold text-foreground">{estab.beds}</p>
+                          <p className="text-xs text-muted-foreground mt-1">Lits</p>
+                        </div>
+                      )}
+                      {estab.accredited && (
+                        <div className="flex flex-col items-center justify-center p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl border border-emerald-200 dark:border-emerald-800">
+                          <Shield size={18} className="text-emerald-600 dark:text-emerald-400 mb-1" />
+                          <p className="text-xs font-semibold text-emerald-700 dark:text-emerald-300">Accrédité</p>
+                          <p className="text-[11px] text-emerald-600/70 dark:text-emerald-400/70">National</p>
+                        </div>
+                      )}
+                      {estab.emergencies && (
+                        <div className="flex flex-col items-center justify-center p-4 bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-200 dark:border-red-800">
+                          <AlertCircle size={18} className="text-red-600 dark:text-red-400 mb-1" />
+                          <p className="text-xs font-semibold text-red-700 dark:text-red-300">Urgences</p>
+                          <p className="text-[11px] text-red-600/70 dark:text-red-400/70">24h/24</p>
                         </div>
                       )}
                     </div>
+                  )}
 
-                    <button
-                      onClick={handleBook}
-                      disabled={!selectedSlot}
-                      className="w-full py-3.5 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:bg-primary/90 transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                    >
-                      <Calendar size={16} />
-                      {!isAuthenticated
-                        ? "Se connecter pour réserver"
-                        : selectedSlot
-                          ? `Confirmer à ${selectedSlot}`
-                          : "Choisissez un créneau"}
-                    </button>
-                  </>
-                )}
+                  {/* Contact row */}
+                  <div className="flex flex-wrap gap-4 pt-1 border-t border-border">
+                    <a href={`tel:${estab.phone}`} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors">
+                      <Phone size={14} className="text-primary shrink-0" />
+                      {estab.phone}
+                    </a>
+                    {estab.email && (
+                      <a href={`mailto:${estab.email}`} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-primary transition-colors">
+                        <Mail size={14} className="shrink-0" />
+                        {estab.email}
+                      </a>
+                    )}
+                  </div>
+                </div>
+              </div>
 
-                <div className="h-px bg-border" />
+              {/* Services */}
+              <div className="bg-card rounded-2xl border border-border overflow-hidden">
+                <div className="px-6 py-4 border-b border-border">
+                  <h2 className="font-bold text-foreground text-base flex items-center gap-2">
+                    <Stethoscope size={16} className="text-primary" />
+                    Services disponibles
+                  </h2>
+                </div>
+                <div className="p-6">
+                  <div className="flex flex-wrap gap-2">
+                    {estab.services.map((s) => (
+                      <span
+                        key={s}
+                        className="flex items-center gap-1.5 px-3 py-2 bg-primary/[0.08] text-primary text-sm font-medium rounded-xl border border-primary/[0.15] hover:bg-primary/[0.12] transition-colors"
+                      >
+                        <Activity size={12} className="shrink-0" />
+                        {s}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
 
-                {/* Contact info */}
-                <div className="space-y-3">
+              {/* Localisation */}
+              {estab.mapUrl && (
+                <div className="bg-card rounded-2xl border border-border p-5 flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                      <MapPin size={18} className="text-primary" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-foreground">Localisation</p>
+                      <p className="text-xs text-muted-foreground mt-0.5 truncate">{estab.address || estab.city}</p>
+                    </div>
+                  </div>
                   <a
-                    href={`tel:${estab.phone}`}
-                    className="flex items-center gap-3 p-3 bg-secondary/30 rounded-xl hover:bg-secondary/50 transition group"
+                    href={estab.mapUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl text-sm font-semibold hover:bg-primary/90 transition shrink-0"
                   >
-                    <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
-                      <Phone size={14} className="text-primary" />
+                    <ExternalLink size={14} />Voir la localisation
+                  </a>
+                </div>
+              )}
+            </div>
+
+            {/* ── RIGHT COLUMN: Booking widget ──────────────────────────── */}
+            <div className="lg:col-span-1">
+              <div className="bg-card rounded-2xl border border-border overflow-hidden sticky top-24">
+
+                {/* Header */}
+                <div className="px-5 pt-5 pb-4 border-b border-border">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center shrink-0">
+                      <Calendar size={18} className="text-primary" />
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">Téléphone</p>
-                      <p className="text-sm font-semibold text-foreground group-hover:text-primary transition">
-                        {estab.phone}
-                      </p>
+                      <p className="font-semibold text-foreground text-sm leading-tight">{estab.name}</p>
+                      <p className="text-xs text-muted-foreground">{estab.city}</p>
                     </div>
-                  </a>
-                  {estab.email && (
-                    <a
-                      href={`mailto:${estab.email}`}
-                      className="flex items-center gap-3 p-3 bg-secondary/30 rounded-xl hover:bg-secondary/50 transition group"
-                    >
-                      <div className="w-8 h-8 bg-secondary flex items-center justify-center rounded-lg">
-                        <Mail size={14} className="text-muted-foreground" />
+                  </div>
+                </div>
+
+                <div className="p-5 space-y-5">
+                  {booked ? (
+                    /* ── Success confirmation ── */
+                    <div className="text-center py-6">
+                      <div className="w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <CheckCircle className="text-emerald-500" size={32} />
                       </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Email</p>
-                        <p className="text-sm font-semibold text-foreground group-hover:text-primary transition">
-                          {estab.email}
+                      <h3 className="font-bold text-foreground text-lg mb-1">RDV confirmé !</h3>
+                      <p className="text-sm font-medium text-foreground mb-0.5">
+                        {DAY_LABELS[currentDate.getDay()]} {currentDate.getDate()} {MONTH_LABELS[currentDate.getMonth()]} · {selectedSlot}
+                      </p>
+                      <p className="text-xs text-muted-foreground mb-6">{estab.name}</p>
+                      <div className="bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded-xl px-4 py-3 mb-5 text-left">
+                        <p className="text-xs text-emerald-700 dark:text-emerald-400 leading-relaxed">
+                          Votre demande est en attente de confirmation par l'établissement. Vous serez notifié par téléphone.
                         </p>
                       </div>
-                    </a>
+                      <button
+                        onClick={() => { setBooked(false); setSelectedSlot(null); setNoteText(""); }}
+                        className="px-5 py-2.5 border border-border rounded-xl text-sm font-medium hover:bg-secondary/50 transition"
+                      >
+                        Prendre un autre RDV
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      {/* ── Date picker ─────────────────────────────────── */}
+                      <div>
+                        <div className="flex items-center justify-between mb-3">
+                          <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
+                            Choisir une date
+                          </label>
+                          <div className="flex items-center gap-0.5">
+                            <button
+                              onClick={() => setWeekOffset((w) => Math.max(0, w - 1))}
+                              disabled={weekOffset === 0}
+                              className="p-1.5 rounded-lg hover:bg-secondary/50 transition disabled:opacity-30"
+                              aria-label="Semaine précédente"
+                            >
+                              <ChevronLeft size={14} className="text-muted-foreground" />
+                            </button>
+                            <button
+                              onClick={() => setWeekOffset((w) => w + 1)}
+                              className="p-1.5 rounded-lg hover:bg-secondary/50 transition"
+                              aria-label="Semaine suivante"
+                            >
+                              <ChevronRight size={14} className="text-muted-foreground" />
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-7 gap-1">
+                          {weekDates.map((d, i) => {
+                            const ds = toDateStr(d);
+                            const isSunday = d.getDay() === 0;
+                            const daySlots = slotMap[ds] ?? { available: [], booked: [], blocked: [] };
+                            const hasAvailable = daySlots.available.length > 0;
+                            const isActive = i === selectedDayIdx;
+                            return (
+                              <button
+                                key={i}
+                                onClick={() => { if (!isSunday && !loadingSlots) { setSelectedDayIdx(i); setSelectedSlot(null); } }}
+                                disabled={isSunday || loadingSlots || !hasAvailable}
+                                title={isSunday ? "Fermé le dimanche" : !hasAvailable && !loadingSlots ? "Complet" : undefined}
+                                className={`flex flex-col items-center py-2 rounded-xl text-xs font-medium transition-all
+                                  ${isSunday
+                                    ? "opacity-25 cursor-not-allowed text-foreground/50"
+                                    : isActive
+                                      ? "bg-primary text-primary-foreground shadow-sm"
+                                      : !hasAvailable && !loadingSlots
+                                        ? "opacity-35 cursor-not-allowed text-foreground/40"
+                                        : "hover:bg-secondary/70 text-foreground/70 cursor-pointer"
+                                  }`}
+                              >
+                                <span className="text-[9px] opacity-70 font-medium">{DAY_LABELS[d.getDay()]}</span>
+                                <span className="font-bold text-sm mt-0.5">{d.getDate()}</span>
+                                <span className="text-[9px] opacity-60">{MONTH_LABELS[d.getMonth()]}</span>
+                                {!isSunday && !loadingSlots && hasAvailable && !isActive && (
+                                  <span className="w-1 h-1 rounded-full bg-primary/60 mt-0.5" />
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        {/* Selected date pill */}
+                        {currentDate && (
+                          <div className="mt-2.5 flex items-center gap-1.5 px-3 py-1.5 bg-primary/[0.07] rounded-lg">
+                            <Calendar size={11} className="text-primary shrink-0" />
+                            <p className="text-xs text-primary font-medium">
+                              {DAY_LABELS[currentDate.getDay()]} {currentDate.getDate()} {MONTH_LABELS[currentDate.getMonth()]} {currentDate.getFullYear()}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* ── Time slots ──────────────────────────────────── */}
+                      <div>
+                        <div className="flex items-center justify-between mb-2.5">
+                          <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
+                            Horaire
+                          </label>
+                          {!loadingSlots && currentAvailable.length > 0 && (
+                            <span className="text-[10px] text-muted-foreground bg-secondary/60 px-2 py-0.5 rounded-full">
+                              {currentAvailable.length} créneau{currentAvailable.length > 1 ? "x" : ""} libre{currentAvailable.length > 1 ? "s" : ""}
+                            </span>
+                          )}
+                        </div>
+
+                        {loadingSlots ? (
+                          <div className="flex justify-center py-6">
+                            <div className="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                          </div>
+                        ) : currentAvailable.length === 0 ? (
+                          <div className="flex flex-col items-center py-5 text-center">
+                            <div className="w-8 h-8 bg-secondary rounded-lg flex items-center justify-center mb-2">
+                              <Calendar size={14} className="text-muted-foreground/60" />
+                            </div>
+                            <p className="text-xs text-muted-foreground">Aucun créneau disponible ce jour</p>
+                            <p className="text-[10px] text-muted-foreground/70 mt-0.5">Essayez une autre date</p>
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-3 gap-1.5">
+                            {currentAvailable.map((slot) => {
+                              const isSelected = selectedSlot === slot;
+                              return (
+                                <button
+                                  key={slot}
+                                  onClick={() => setSelectedSlot(isSelected ? null : slot)}
+                                  className={`py-2.5 rounded-xl text-xs font-semibold transition-all border ${isSelected
+                                      ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                                      : "bg-secondary/50 text-foreground/80 border-border/40 hover:bg-secondary hover:border-border cursor-pointer"
+                                    }`}
+                                >
+                                  {slot}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* ── Note (optional) ──────────────────────────────── */}
+                      <div>
+                        <label className="text-xs font-bold text-muted-foreground uppercase tracking-wide block mb-2">
+                          Note <span className="font-normal normal-case text-muted-foreground/70">(facultatif)</span>
+                        </label>
+                        <textarea
+                          value={noteText}
+                          onChange={(e) => setNoteText(e.target.value)}
+                          placeholder="Décrivez votre motif de consultation…"
+                          rows={2}
+                          maxLength={500}
+                          className="w-full px-3 py-2.5 bg-secondary/50 border border-border rounded-xl text-sm text-foreground placeholder:text-muted-foreground/50 resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 transition"
+                        />
+                      </div>
+
+                      {/* ── Error message ───────────────────────────────── */}
+                      {bookError && (
+                        <div className="flex items-start gap-2 p-3 bg-destructive/10 border border-destructive/20 rounded-xl">
+                          <AlertCircle size={14} className="text-destructive shrink-0 mt-0.5" />
+                          <p className="text-xs text-destructive leading-relaxed">{bookError}</p>
+                        </div>
+                      )}
+
+                      {/* ── Confirm button ──────────────────────────────── */}
+                      <button
+                        onClick={handleBook}
+                        disabled={!selectedSlot || booking}
+                        className="w-full py-3.5 bg-primary text-primary-foreground rounded-xl font-bold text-sm hover:bg-primary/90 active:scale-[0.98] transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                      >
+                        {booking ? (
+                          <>
+                            <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                            Réservation en cours…
+                          </>
+                        ) : !isAuthenticated ? (
+                          <>
+                            <Calendar size={15} />
+                            Se connecter pour réserver
+                          </>
+                        ) : selectedSlot ? (
+                          <>
+                            <CheckCircle size={15} />
+                            Confirmer — {selectedSlot}
+                          </>
+                        ) : (
+                          <>
+                            <Calendar size={15} />
+                            Sélectionnez un horaire
+                          </>
+                        )}
+                      </button>
+
+                      {/* Auth nudge */}
+                      {!isAuthenticated && (
+                        <p className="text-[10px] text-muted-foreground text-center -mt-2">
+                          Vous devez être connecté pour prendre un rendez-vous.
+                        </p>
+                      )}
+                    </>
                   )}
+
+                  {/* ── Contact shortcuts ───────────────────────────────── */}
+                  <div className="border-t border-border pt-4 space-y-2">
+                    <a
+                      href={`tel:${estab.phone}`}
+                      className="flex items-center gap-3 p-3 bg-secondary/30 rounded-xl hover:bg-secondary/50 transition group"
+                    >
+                      <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center shrink-0">
+                        <Phone size={14} className="text-primary" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[11px] text-muted-foreground">Téléphone</p>
+                        <p className="text-sm font-semibold text-foreground group-hover:text-primary transition truncate">{estab.phone}</p>
+                      </div>
+                    </a>
+                    {estab.email && (
+                      <a
+                        href={`mailto:${estab.email}`}
+                        className="flex items-center gap-3 p-3 bg-secondary/30 rounded-xl hover:bg-secondary/50 transition group"
+                      >
+                        <div className="w-8 h-8 bg-secondary rounded-lg flex items-center justify-center shrink-0">
+                          <Mail size={14} className="text-muted-foreground" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-[11px] text-muted-foreground">Email</p>
+                          <p className="text-sm font-semibold text-foreground group-hover:text-primary transition truncate">{estab.email}</p>
+                        </div>
+                      </a>
+                    )}
+                    <div className="flex items-center gap-3 p-3 bg-secondary/30 rounded-xl">
+                      <div className="w-8 h-8 bg-secondary rounded-lg flex items-center justify-center shrink-0">
+                        <MapPin size={14} className="text-muted-foreground" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[11px] text-muted-foreground">Adresse</p>
+                        <p className="text-sm font-medium text-foreground truncate">{estab.address}</p>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
       </main>
+
       <Footer />
     </div>
   );

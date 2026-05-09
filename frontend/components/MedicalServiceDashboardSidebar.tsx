@@ -13,6 +13,7 @@ import {
   Menu,
   X,
   Home,
+  CalendarCheck,
 } from "lucide-react";
 
 const menuItems = [
@@ -25,6 +26,11 @@ const menuItems = [
     href: "/medical-service-dashboard/patients",
     label: "Patients",
     icon: Users,
+  },
+  {
+    href: "/medical-service-dashboard/appointments",
+    label: "Rendez-vous",
+    icon: CalendarCheck,
   },
   {
     href: "/medical-service-dashboard/schedule",

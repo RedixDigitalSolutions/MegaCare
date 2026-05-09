@@ -3,6 +3,7 @@ require("express-async-errors");
 const express = require("express");
 const cors = require("cors");
 const http = require("http");
+const path = require("path");
 const { Server } = require("socket.io");
 const jwt = require("jsonwebtoken");
 const helmet = require("helmet");
@@ -16,7 +17,12 @@ const PORT = process.env.PORT || 5000;
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
 
 // #13 — Security headers via helmet
-app.use(helmet());
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "same-site" },
+}));
+
+// Static file serving for uploaded assets
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // Middleware
 app.use(
@@ -64,6 +70,8 @@ app.use("/api/paramedical", require("./routes/paramedical"));
 app.use("/api/paramedical-catalog", require("./routes/paramedicalCatalog"));
 app.use("/api/messages", require("./routes/messages"));
 app.use("/api/dossier", require("./routes/dossier"));
+app.use("/api/cart", require("./routes/cart"));
+app.use("/api/specialities", require("./routes/specialities"));
 app.use("/api/public", require("./routes/public"));
 
 // Health check

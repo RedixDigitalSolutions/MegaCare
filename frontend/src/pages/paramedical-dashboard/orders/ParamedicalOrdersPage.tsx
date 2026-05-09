@@ -34,22 +34,22 @@ interface Order {
   deliveryGovernorate: string;
   deliveryDelegation: string;
   deliveryPhone: string;
-  status: "pending" | "confirmed" | "ready" | "delivered" | "cancelled";
+  status: "pending" | "confirmed" | "in_delivery" | "delivered" | "cancelled";
   createdAt: string;
 }
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any; bg: string }> = {
-  pending: { label: "En attente", color: "text-amber-600", icon: Clock, bg: "bg-amber-50 dark:bg-amber-950/30" },
-  confirmed: { label: "Confirmée", color: "text-blue-600", icon: CheckCircle, bg: "bg-blue-50 dark:bg-blue-950/30" },
-  ready: { label: "Prête", color: "text-emerald-600", icon: Package, bg: "bg-emerald-50 dark:bg-emerald-950/30" },
-  delivered: { label: "Livrée", color: "text-green-600", icon: Truck, bg: "bg-green-50 dark:bg-green-950/30" },
+const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any; bg: string; hint?: string }> = {
+  pending: { label: "Passée", color: "text-amber-600", icon: Clock, bg: "bg-amber-50 dark:bg-amber-950/30", hint: "En attente de confirmation" },
+  confirmed: { label: "Confirmée", color: "text-blue-600", icon: CheckCircle, bg: "bg-blue-50 dark:bg-blue-950/30", hint: "Vérification téléphonique effectuée" },
+  in_delivery: { label: "En livraison", color: "text-violet-600", icon: Truck, bg: "bg-violet-50 dark:bg-violet-950/30", hint: "Colis en route" },
+  delivered: { label: "Livrée", color: "text-green-600", icon: Package, bg: "bg-green-50 dark:bg-green-950/30" },
   cancelled: { label: "Annulée", color: "text-red-500", icon: XCircle, bg: "bg-red-50 dark:bg-red-950/30" },
 };
 
 const STATUS_TRANSITIONS: Record<string, string[]> = {
   pending: ["confirmed", "cancelled"],
-  confirmed: ["ready", "cancelled"],
-  ready: ["delivered"],
+  confirmed: ["in_delivery", "cancelled"],
+  in_delivery: ["delivered"],
   delivered: [],
   cancelled: [],
 };
@@ -105,11 +105,11 @@ export default function ParamedicalOrdersPage() {
 
   const filtered = filter === "all" ? orders : orders.filter((o) => o.status === filter);
 
-  const counts = {
+  const counts: Record<string, number> = {
     all: orders.length,
     pending: orders.filter((o) => o.status === "pending").length,
     confirmed: orders.filter((o) => o.status === "confirmed").length,
-    ready: orders.filter((o) => o.status === "ready").length,
+    in_delivery: orders.filter((o) => o.status === "in_delivery").length,
     delivered: orders.filter((o) => o.status === "delivered").length,
     cancelled: orders.filter((o) => o.status === "cancelled").length,
   };
@@ -129,18 +129,17 @@ export default function ParamedicalOrdersPage() {
 
           {/* Stats */}
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-            {(["pending", "confirmed", "ready", "delivered", "cancelled"] as const).map((s) => {
+            {(["pending", "confirmed", "in_delivery", "delivered", "cancelled"] as const).map((s) => {
               const cfg = STATUS_CONFIG[s];
               const Icon = cfg.icon;
               return (
                 <button
                   key={s}
                   onClick={() => setFilter(filter === s ? "all" : s)}
-                  className={`flex items-center gap-3 p-3 rounded-xl border transition ${
-                    filter === s
+                  className={`flex items-center gap-3 p-3 rounded-xl border transition ${filter === s
                       ? "border-primary bg-primary/5"
                       : "border-border hover:border-primary/30"
-                  }`}
+                    }`}
                 >
                   <div className={`p-2 rounded-lg ${cfg.bg}`}>
                     <Icon size={16} className={cfg.color} />
@@ -166,7 +165,7 @@ export default function ParamedicalOrdersPage() {
               <p className="text-sm text-muted-foreground">
                 {filter === "all"
                   ? "Vous n'avez pas encore reçu de commandes"
-                  : `Aucune commande avec le statut "${STATUS_CONFIG[filter]?.label}"`}
+                  : `Aucune commande avec le statut "${STATUS_CONFIG[filter]?.label ?? filter}"`}
               </p>
             </div>
           ) : (
@@ -254,6 +253,13 @@ export default function ParamedicalOrdersPage() {
                       ))}
                     </div>
 
+                    {/* Phone verification hint for pending → confirmed */}
+                    {order.status === "pending" && (
+                      <p className="text-xs text-amber-600 bg-amber-50 dark:bg-amber-950/30 rounded-lg px-3 py-2">
+                        Appelez le client pour confirmer la commande avant de changer le statut.
+                      </p>
+                    )}
+
                     {/* Actions */}
                     {transitions.length > 0 && (
                       <div className="flex items-center gap-2 flex-wrap">
@@ -266,11 +272,10 @@ export default function ParamedicalOrdersPage() {
                               key={next}
                               onClick={() => updateStatus(order.id, next)}
                               disabled={updatingId === order.id}
-                              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition disabled:opacity-50 ${
-                                isCancel
+                              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition disabled:opacity-50 ${isCancel
                                   ? "border border-red-300 text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30"
                                   : "bg-primary text-primary-foreground hover:bg-primary/90"
-                              }`}
+                                }`}
                             >
                               {updatingId === order.id ? (
                                 <Loader2 size={12} className="animate-spin" />

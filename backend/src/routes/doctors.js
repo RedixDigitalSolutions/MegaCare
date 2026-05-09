@@ -26,6 +26,15 @@ router.get("/", async (req, res) => {
       $options: "i",
     };
   }
+  if (req.query.delegation) {
+    filter.delegation = {
+      $regex: String(req.query.delegation).replace(
+        /[.*+?^${}()|[\]\\]/g,
+        "\\$&",
+      ),
+      $options: "i",
+    };
+  }
   const users = await User.find(filter).select("-password").lean();
   const result = users.map((u) => ({
     id: u._id,
@@ -33,16 +42,17 @@ router.get("/", async (req, res) => {
     name: `${u.firstName} ${u.lastName}`,
     specialty: u.specialization || "",
     governorate: u.governorate || "",
-    location: u.location || u.governorate || "",
+    delegation: u.delegation || "",
+    location: u.location || u.delegation || u.governorate || "",
     phone: u.phone || "",
     email: u.email,
     avatar: u.avatar || "",
+    imageUrl: u.avatar || "",
     doctorId: u.doctorId || "",
     certified: !!u.doctorId,
     videoConsultation: true,
     rating: u.rating || 4.5,
     reviews: u.reviewCount || 0,
-    price: u.price || 50,
     distance: u.distance || 0,
     availability: u.availability || "",
   }));
@@ -61,23 +71,49 @@ router.get("/:id", async (req, res) => {
     name: `${user.firstName} ${user.lastName}`,
     specialty: user.specialization || "",
     governorate: user.governorate || "",
-    location: user.location || user.governorate || "",
+    delegation: user.delegation || "",
+    location: user.location || user.delegation || user.governorate || "",
     phone: user.phone || "",
     email: user.email,
     avatar: user.avatar || "",
+    imageUrl: user.avatar || "",
     doctorId: user.doctorId || "",
     certified: !!user.doctorId,
     videoConsultation: true,
     rating: user.rating || 4.5,
     reviews: user.reviewCount || 0,
-    price: user.price || 50,
     distance: user.distance || 0,
     availability: user.availability || "",
     bio: user.bio || "",
     experience: user.experience || "",
     education: user.education || [],
     languages: user.languages || ["Français", "Arabe"],
+    mapsUrl: user.mapsUrl || "",
   });
+});
+
+// GET /api/doctors/:id/booked-slots — returns booked date+time pairs for a doctor (no auth)
+router.get("/:id/booked-slots", async (req, res) => {
+  const Appointment = require("../models/Appointment");
+  const filter = {
+    doctorId: req.params.id,
+    status: { $in: ["pending", "confirmed"] },
+  };
+  if (req.query.from || req.query.to) {
+    filter.date = {};
+    if (req.query.from) filter.date.$gte = new Date(req.query.from);
+    if (req.query.to) filter.date.$lte = new Date(req.query.to);
+  }
+  const appts = await Appointment.find(filter).select("date time").lean();
+  res.json(
+    appts.map((a) => ({
+      date:
+        a.date instanceof Date
+          ? a.date.toISOString().split("T")[0]
+          : String(a.date).split("T")[0],
+      time: a.time,
+    })),
+  );
 });
 
 // POST /api/doctors

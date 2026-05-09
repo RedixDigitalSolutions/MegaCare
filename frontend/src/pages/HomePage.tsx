@@ -27,6 +27,10 @@ import {
   MousePointer,
   ChevronRight,
   X,
+  Microscope,
+  Building2,
+  HeartPulse,
+  Calendar,
 } from "lucide-react";
 
 export default function HomePage() {
@@ -226,8 +230,8 @@ function HeroSection() {
               }`}
             >
               <h1 className="text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-bold leading-[1.1] tracking-tight">
-                <span className="text-foreground block">Votre sante,</span>
-                <span className="gradient-text block">connectee</span>
+                <span className="text-foreground block">Votre Santé,</span>
+                <span className="gradient-text block">connectée</span>
               </h1>
             </div>
 
@@ -264,7 +268,7 @@ function HeroSection() {
               </Link>
 
               <Link
-                to="/how-it-works"
+                to="/guide"
                 className="group inline-flex items-center justify-center gap-3 px-8 py-4 glass border-2 border-border hover:border-primary/50 rounded-2xl font-semibold transition-all duration-500 hover:bg-primary/5 hover:scale-[1.02]"
               >
                 <span className="p-2.5 bg-primary/10 rounded-xl group-hover:bg-primary group-hover:scale-110 transition-all duration-500">
@@ -273,7 +277,7 @@ function HeroSection() {
                     className="text-primary group-hover:text-primary-foreground-current"
                   />
                 </span>
-                Comment ca marche
+                Comment ça marche
               </Link>
             </div>
 
@@ -525,26 +529,26 @@ function StatsSection() {
   const { ref, isInView } = useInView();
 
   const stats = [
-    { end: 15000, suffix: "+", label: "Patients actifs", icon: Users },
-    { end: 800, suffix: "+", label: "Medecins certifies", icon: Stethoscope },
-    { end: 200, suffix: "+", label: "Pharmacies partenaires", icon: Pill },
-    { end: 98, suffix: "%", label: "Taux de satisfaction", icon: Award },
+    { end: 15000, suffix: "+", label: "Patients actifs",        icon: Users,       color: "from-sky-400 to-blue-500" },
+    { end: 800,   suffix: "+", label: "Médecins certifiés",     icon: Stethoscope, color: "from-violet-400 to-purple-500" },
+    { end: 200,   suffix: "+", label: "Pharmacies partenaires", icon: Pill,        color: "from-emerald-400 to-green-500" },
+    { end: 50,    suffix: "+", label: "Laboratoires & Radios",  icon: Microscope,  color: "from-amber-400 to-orange-500" },
+    { end: 98,    suffix: "%", label: "Taux de satisfaction",   icon: Award,       color: "from-rose-400 to-pink-500" },
   ];
 
   return (
     <section
       ref={ref}
-      className="relative py-24 bg-foreground text-background overflow-hidden"
+      className="relative py-20 bg-foreground text-background overflow-hidden"
     >
-      {/* Background Pattern */}
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:60px_60px]" />
-
-      {/* Animated Gradients */}
-      <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-primary/20 rounded-full blur-[150px] -translate-x-1/2 -translate-y-1/2" />
-      <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-accent/20 rounded-full blur-[150px] translate-x-1/2 translate-y-1/2" />
+      {/* Grid texture */}
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.025)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.025)_1px,transparent_1px)] bg-[size:48px_48px]" />
+      {/* Top/bottom edge glows */}
+      <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
+      <div className="absolute bottom-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-accent/40 to-transparent" />
 
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 lg:gap-12">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 lg:gap-0 lg:divide-x lg:divide-white/10">
           {stats.map((stat, idx) => (
             <StatCard key={idx} stat={stat} index={idx} isInView={isInView} />
           ))}
@@ -559,7 +563,7 @@ function StatCard({
   index,
   isInView,
 }: {
-  stat: { end: number; suffix: string; label: string; icon: React.ElementType };
+  stat: { end: number; suffix: string; label: string; icon: React.ElementType; color: string };
   index: number;
   isInView: boolean;
 }) {
@@ -575,19 +579,34 @@ function StatCard({
 
   return (
     <div
-      className={`text-center group transition-all duration-700 ${
-        isInView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-12"
+      className={`flex flex-col items-center text-center px-6 py-10 group transition-all duration-700 ${
+        isInView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
       }`}
       style={{ transitionDelay: `${index * 150}ms` }}
     >
-      <div className="inline-flex items-center justify-center w-16 h-16 mb-4 rounded-2xl bg-background/10 group-hover:bg-background/20 group-hover:scale-110 transition-all duration-300">
-        <Icon size={28} className="text-accent" />
+      {/* Icon — gradient border ring + dark center */}
+      <div className={`relative mb-5 p-0.5 rounded-2xl bg-gradient-to-br ${stat.color} group-hover:scale-110 transition-transform duration-300 shrink-0`}>
+        <div className="w-12 h-12 rounded-[14px] bg-foreground flex items-center justify-center">
+          <Icon size={22} className="text-white" />
+        </div>
+        {/* Glow behind icon on hover */}
+        <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br ${stat.color} opacity-0 group-hover:opacity-50 blur-lg transition-opacity duration-300 -z-10`} />
       </div>
-      <p className="text-5xl sm:text-6xl lg:text-7xl font-bold mb-2 bg-gradient-to-r from-background via-accent to-background bg-clip-text text-transparent">
-        {count.toLocaleString()}
-        {stat.suffix}
+
+      {/* Rolling number */}
+      <p className={`text-4xl sm:text-5xl font-extrabold tracking-tight mb-1 bg-gradient-to-r ${stat.color} bg-clip-text text-transparent tabular-nums`}>
+        {count.toLocaleString()}{stat.suffix}
       </p>
-      <p className="text-background/60 text-sm sm:text-base font-medium">
+
+      {/* Expanding accent underline */}
+      <div className={`h-0.5 rounded-full bg-gradient-to-r ${stat.color} mb-3 transition-all duration-500 ${
+        isInView ? "w-10" : "w-0"
+      } group-hover:w-16`}
+        style={{ transitionDelay: `${index * 150 + 400}ms` }}
+      />
+
+      {/* Label */}
+      <p className="text-background/55 text-sm font-medium leading-snug">
         {stat.label}
       </p>
     </div>
@@ -612,91 +631,158 @@ function ServicesSection() {
 
   const services: ServiceItem[] = [
     {
+      icon: Stethoscope,
+      title: "Médecins & Spécialistes",
+      description: "Trouvez et consultez le spécialiste qu'il vous faut, près de chez vous.",
+      color: "from-blue-500 to-blue-600",
+      link: "/doctors",
+      modalTitle: "Trouvez votre Médecin",
+      modalBody: "Accédez à un réseau de médecins généralistes et spécialistes certifiés à travers toute la Tunisie. Consultez les profils, vérifiez les disponibilités et prenez rendez-vous en quelques clics.",
+      features: ["Médecins généralistes et 20+ spécialités", "Fiches détaillées avec disponibilités", "Créneaux en temps réel", "Prise de RDV instantanée en ligne"],
+    },
+    {
       icon: Video,
-      title: "Teleconsultation",
-      description: "Consultez un medecin en video depuis chez vous",
-      color: "from-blue-500 to-cyan-500",
+      title: "Téléconsultation Vidéo",
+      description: "Consultez un médecin par vidéo, depuis votre domicile, 7j/7.",
+      color: "from-cyan-500 to-teal-500",
       link: "/consultation",
-      modalTitle: "Teleconsultation Video",
-      modalBody:
-        "Notre service de teleconsultation vous connecte en temps reel avec des medecins certifies via une plateforme video securisee. Recevez un diagnostic, une ordonnance et un suivi — sans quitter votre domicile.",
-      features: [
-        "Rendez-vous disponibles 7j/7, 24h/24",
-        "Ordonnances electroniques delivrees instantanement",
-        "Medecins generalistes et specialistes",
-        "Connexion chiffree de bout en bout",
-      ],
+      modalTitle: "Téléconsultation Vidéo",
+      modalBody: "Notre service de téléconsultation vous connecte en temps réel avec des médecins certifiés via une plateforme vidéo sécurisée. Recevez un diagnostic, une ordonnance et un suivi — sans quitter votre domicile.",
+      features: ["Disponible 7j/7, 24h/24", "Ordonnances électroniques instantanées", "Généralistes et spécialistes", "Connexion chiffrée de bout en bout"],
     },
     {
       icon: Pill,
-      title: "Pharmacie en ligne",
-      description: "Commandez vos medicaments et recevez-les chez vous",
-      color: "from-green-500 to-emerald-500",
+      title: "Pharmacie Numérique",
+      description: "Commandez vos médicaments et retirez-les dans la pharmacie de votre choix.",
+      color: "from-emerald-500 to-green-600",
       link: "/pharmacy",
-      modalTitle: "Pharmacie Numerique",
-      modalBody:
-        "Achetez vos medicaments en toute simplicite depuis notre pharmacie en ligne partenaire. Importez votre ordonnance, choisissez votre pharmacie et retirez votre commande en quelques heures.",
-      features: [
-        "Catalogue de plus de 5 000 references",
-        "Scan et validation d'ordonnance integres",
-        "Retrait rapide en pharmacie",
-        "Rappels de prise de medicaments",
-      ],
+      modalTitle: "Pharmacie Numérique",
+      modalBody: "Achetez vos médicaments en toute simplicité depuis notre pharmacie en ligne partenaire. Importez votre ordonnance, choisissez votre pharmacie et retirez votre commande en quelques heures.",
+      features: ["Catalogue de plus de 5 000 références", "Scan et validation d'ordonnance", "Retrait rapide en pharmacie", "Rappels de prise de médicaments"],
+    },
+    {
+      icon: Building2,
+      title: "Services Médicaux",
+      description: "Accédez aux meilleures cliniques et centres médicaux de Tunisie.",
+      color: "from-violet-500 to-purple-600",
+      link: "/services-medicaux",
+      modalTitle: "Services Médicaux",
+      modalBody: "Accédez aux meilleures cliniques et centres médicaux de Tunisie. Prenez rendez-vous facilement et gérez vos soins en toute sérénité.",
+      features: ["Cliniques et centres certifiés", "Prise de rendez-vous en ligne", "Suivi des dossiers patients", "Disponible partout en Tunisie"],
+    },
+    {
+      icon: Microscope,
+      title: "Labos & Radiologie",
+      description: "Réservez vos analyses biologiques et examens d'imagerie médicale.",
+      color: "from-amber-500 to-orange-500",
+      link: "/labos-radiologie",
+      modalTitle: "Laboratoires & Radiologie",
+      modalBody: "Réservez vos analyses biologiques et examens d'imagerie auprès des meilleurs laboratoires et centres de radiologie partenaires.",
+      features: ["Laboratoires d'analyses accrédités", "Radiologie et imagerie médicale", "Résultats sécurisés en ligne", "Joindre une ordonnance au RDV"],
+    },
+    {
+      icon: HeartPulse,
+      title: "Paramédicaux & Soins",
+      description: "Infirmiers, kinésithérapeutes et soignants qualifiés à domicile.",
+      color: "from-pink-500 to-rose-600",
+      link: "/paramedical-services",
+      modalTitle: "Paramédicaux & Soins",
+      modalBody: "Trouvez des professionnels paramédicaux qualifiés près de chez vous. Infirmiers, kinésithérapeutes, orthophonistes et bien plus encore.",
+      features: ["Infirmiers et aides-soignants", "Kinésithérapeutes et rééducation", "Soins à domicile disponibles", "Profils vérifiés et certifiés"],
     },
     {
       icon: FileText,
-      title: "Dossier medical",
-      description: "Acces securise a votre historique medical complet",
-      color: "from-purple-500 to-pink-500",
+      title: "Dossier Médical",
+      description: "Historique de santé complet, sécurisé et partageable avec vos médecins.",
+      color: "from-indigo-500 to-blue-600",
       link: "/dashboard/medical-records",
-      modalTitle: "Dossier Medical Numerique",
-      modalBody:
-        "Centralisez l'ensemble de votre historique de sante dans un dossier medical personnel securise. Partagez vos donnees avec vos medecins en un clic pour des consultations plus efficaces.",
-      features: [
-        "Stockage des ordonnances, analyses et radios",
-        "Partage securise avec vos praticiens",
-        "Suivi de vos constantes et vaccinations",
-        "Conformite RGPD et donnees hebergees en Tunisie",
-      ],
+      modalTitle: "Dossier Médical Numérique",
+      modalBody: "Centralisez l'ensemble de votre historique de santé dans un dossier médical personnel sécurisé. Partagez vos données avec vos médecins en un clic pour des consultations plus efficaces.",
+      features: ["Ordonnances, analyses et radios", "Partage sécurisé avec vos praticiens", "Suivi constantes et vaccinations", "Données hébergées en Tunisie"],
+    },
+    {
+      icon: Calendar,
+      title: "Mes Rendez-vous",
+      description: "Gérez et suivez tous vos rendez-vous médicaux en un seul endroit.",
+      color: "from-sky-500 to-cyan-500",
+      link: "/dashboard",
+      modalTitle: "Gestion des Rendez-vous",
+      modalBody: "Retrouvez l'ensemble de vos rendez-vous médicaux passés et à venir dans un tableau de bord centralisé. Annulez, reprogrammez ou ajoutez facilement un nouveau rendez-vous.",
+      features: ["Vue agenda hebdomadaire et mensuelle", "Rappels automatiques par notification", "Historique complet des consultations", "Annulation et reprogrammation faciles"],
+    },
+    {
+      icon: Sparkles,
+      title: "Guide Santé",
+      description: "Conseils de prévention et fiches santé rédigés par des médecins certifiés.",
+      color: "from-purple-500 to-violet-600",
+      link: "/guide",
+      modalTitle: "Guide Santé MegaCare",
+      modalBody: "Accédez à des guides pratiques, conseils de prévention et fiches santé rédigés par des médecins certifiés. Tout ce qu'il faut savoir pour prendre soin de vous.",
+      features: ["Guides rédigés par des professionnels", "Conseils de prévention et bien-être", "Fiches maladies et symptômes", "Contenu mis à jour régulièrement"],
     },
   ];
 
+  // Double the list for seamless infinite loop
+  const doubled = [...services, ...services];
+
   return (
     <>
-      <section ref={ref} className="py-24 bg-background">
+      <style>{`
+        @keyframes marquee-scroll {
+          0%   { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+      `}</style>
+
+      <section ref={ref} className="py-24 bg-background overflow-hidden">
+        {/* Section header */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
+          <div className="text-center mb-14">
             <span
-              className={`inline-block px-4 py-2 bg-accent/10 text-accent rounded-full text-sm font-semibold mb-4 transition-all duration-700 ${
-                isInView
-                  ? "opacity-100 translate-y-0"
-                  : "opacity-0 translate-y-8"
+              className={`inline-block px-4 py-1.5 bg-primary/10 text-primary rounded-full text-sm font-semibold mb-5 transition-all duration-700 ${
+                isInView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
               }`}
             >
               Nos Services
             </span>
             <h2
               className={`text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground mb-4 text-balance transition-all duration-700 delay-100 ${
-                isInView
-                  ? "opacity-100 translate-y-0"
-                  : "opacity-0 translate-y-8"
+                isInView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
               }`}
             >
-              Une solution complete pour
-              <span className="gradient-text block sm:inline">
-                {" "}
-                votre sante
-              </span>
+              Une solution{" "}
+              <span className="gradient-text">complète</span>
+              {" "}pour votre{" "}
+              <span className="gradient-text">santé</span>
             </h2>
+            <p
+              className={`text-muted-foreground text-base sm:text-lg max-w-2xl mx-auto transition-all duration-700 delay-200 ${
+                isInView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+              }`}
+            >
+              Tout ce dont vous avez besoin, réuni en une seule plateforme.
+              Survolez une carte pour en savoir plus.
+            </p>
           </div>
+        </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {services.map((service, idx) => (
+        {/* Marquee track */}
+        <div className="relative">
+          {/* Edge fade masks */}
+          <div className="absolute left-0 inset-y-0 w-28 bg-gradient-to-r from-background to-transparent z-10 pointer-events-none" />
+          <div className="absolute right-0 inset-y-0 w-28 bg-gradient-to-l from-background to-transparent z-10 pointer-events-none" />
+
+          <div
+            className="flex gap-5 py-3"
+            style={{
+              width: "max-content",
+              animation: `marquee-scroll 36s linear infinite`,
+            }}
+          >
+            {doubled.map((service, idx) => (
               <ServiceCard
                 key={idx}
                 service={service}
-                index={idx}
-                isInView={isInView}
                 onClick={() => setActiveService(service)}
               />
             ))}
@@ -716,13 +802,9 @@ function ServicesSection() {
 
 function ServiceCard({
   service,
-  index,
-  isInView,
   onClick,
 }: {
   service: ServiceItem;
-  index: number;
-  isInView: boolean;
   onClick: () => void;
 }) {
   const Icon = service.icon;
@@ -730,45 +812,54 @@ function ServiceCard({
   return (
     <button
       onClick={onClick}
-      className={`group relative p-8 bg-card rounded-3xl border border-border overflow-hidden transition-all duration-700 hover:shadow-2xl hover:scale-[1.02] hover:border-transparent text-left w-full cursor-pointer ${
-        isInView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-12"
-      }`}
-      style={{ transitionDelay: `${index * 100}ms` }}
+      className="group relative shrink-0 w-80 h-80 rounded-2xl overflow-hidden cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-white/50"
+      aria-label={service.title}
     >
-      {/* Gradient Background on Hover */}
-      <div
-        className={`absolute inset-0 bg-gradient-to-br ${service.color} opacity-0 group-hover:opacity-10 transition-opacity duration-500`}
-      />
+      {/* Full-card gradient background */}
+      <div className={`absolute inset-0 bg-gradient-to-br ${service.color} transition-all duration-500`} />
 
-      {/* Icon */}
-      <div
-        className={`relative w-16 h-16 mb-6 rounded-2xl bg-gradient-to-br ${service.color} p-0.5`}
-      >
-        <div className="w-full h-full bg-card rounded-[14px] flex items-center justify-center group-hover:bg-transparent transition-colors duration-500">
-          <Icon
-            size={28}
-            className={`text-transparent bg-gradient-to-br ${service.color} bg-clip-text group-hover:text-white transition-colors duration-500`}
-          />
-          <Icon
-            size={28}
-            className={`absolute bg-gradient-to-br ${service.color} bg-clip-text [-webkit-text-fill-color:transparent] group-hover:text-white transition-all duration-500`}
-          />
+      {/* Subtle grid texture */}
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.055)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.055)_1px,transparent_1px)] bg-[size:20px_20px]" />
+
+      {/* Light sweep */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_20%_10%,rgba(255,255,255,0.28),transparent_58%)]" />
+
+      {/* Decorative orbs */}
+      <div className="absolute -top-10 -right-10 w-36 h-36 rounded-full bg-white/10 blur-sm" />
+      <div className="absolute -bottom-8 -left-8 w-28 h-28 rounded-full bg-black/15" />
+
+      {/* ── FRONT: giant icon, center stage ── */}
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 transition-all duration-400 group-hover:opacity-0 group-hover:scale-75 group-hover:blur-sm">
+        <div className="w-20 h-20 bg-white/20 backdrop-blur-md rounded-[22px] flex items-center justify-center border border-white/40 shadow-[0_8px_32px_rgba(0,0,0,0.25)] group-hover:scale-90 transition-transform duration-300">
+          <Icon size={38} className="text-white drop-shadow-lg" />
         </div>
+        <p className="text-white font-bold text-sm px-4 text-center leading-snug drop-shadow">
+          {service.title}
+        </p>
       </div>
 
-      <h3 className="text-xl font-bold text-foreground mb-2 group-hover:text-foreground transition-colors duration-300">
-        {service.title}
-      </h3>
-      <p className="text-muted-foreground text-sm leading-relaxed mb-4">
-        {service.description}
-      </p>
+      {/* ── BACK: slides up on hover ── */}
+      <div
+        className="absolute inset-0 flex flex-col justify-end p-5 translate-y-full group-hover:translate-y-0 transition-transform duration-400 ease-out"
+        style={{ background: "linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.55) 60%, transparent 100%)" }}
+      >
+        {/* Compact icon badge */}
+        <div className="w-9 h-9 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center border border-white/30 mb-3 shadow-lg">
+          <Icon size={18} className="text-white" />
+        </div>
 
-      <div className="flex items-center gap-2 text-primary font-semibold text-sm group-hover:gap-4 transition-all duration-300">
-        En savoir plus
-        <ChevronRight
-          size={16}
-          className="group-hover:translate-x-1 transition-transform duration-300"
-        />
+        <h3 className="text-white font-bold text-[15px] leading-snug mb-2">
+          {service.title}
+        </h3>
+        <p className="text-white/75 text-xs leading-relaxed mb-5 line-clamp-3">
+          {service.description}
+        </p>
+
+        {/* CTA pill */}
+        <div className="inline-flex items-center gap-1.5 self-start px-3.5 py-2 rounded-full bg-white/20 backdrop-blur-sm border border-white/35 text-white text-xs font-semibold shadow-lg group-hover:bg-white/30 transition-colors duration-200">
+          Découvrir
+          <ChevronRight size={12} />
+        </div>
       </div>
     </button>
   );
@@ -799,56 +890,77 @@ function ServiceModal({
 
   return (
     <div
-      className={`fixed inset-0 z-50 flex items-center justify-center p-4 backdrop-blur-sm transition-colors duration-300 ${visible ? "bg-black/60" : "bg-black/0"}`}
+      className={`fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 transition-colors duration-300 ${visible ? "bg-black/70 backdrop-blur-md" : "bg-black/0 backdrop-blur-none"}`}
       onClick={onClose}
     >
       <div
-        className={`relative bg-card rounded-3xl border border-border shadow-2xl max-w-lg w-full p-8 transition-all duration-300 ease-out ${visible ? "opacity-100 scale-100 translate-y-0" : "opacity-0 scale-95 translate-y-6"}`}
+        className={`relative w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-[0_32px_80px_rgba(0,0,0,0.55)] transition-all duration-400 ease-out ${visible ? "opacity-100 translate-y-0 scale-100" : "opacity-0 translate-y-8 scale-[0.97]"}`}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Close button */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors duration-200"
-          aria-label="Fermer"
-        >
-          <X size={20} />
-        </button>
+        {/* ── Hero banner ── */}
+        <div className={`relative h-48 bg-gradient-to-br ${service.color} overflow-hidden`}>
+          {/* Grid texture */}
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[size:24px_24px]" />
+          {/* Radial light */}
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_20%_20%,rgba(255,255,255,0.30),transparent_60%)]" />
+          {/* Decorative orbs */}
+          <div className="absolute -top-12 -right-12 w-48 h-48 rounded-full bg-white/10 blur-sm" />
+          <div className="absolute -bottom-10 -left-10 w-36 h-36 rounded-full bg-black/15" />
 
-        {/* Icon */}
-        <div
-          className={`w-16 h-16 mb-6 rounded-2xl bg-gradient-to-br ${service.color} flex items-center justify-center`}
-        >
-          <Icon size={28} className="text-white" />
+          {/* Icon badge */}
+          <div className="absolute bottom-5 left-6 w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center border border-white/35 shadow-xl">
+            <Icon size={30} className="text-white drop-shadow-lg" />
+          </div>
+
+          {/* Close button */}
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 w-9 h-9 rounded-full bg-black/25 backdrop-blur-sm flex items-center justify-center text-white/80 hover:text-white hover:bg-black/40 transition-all duration-200"
+            aria-label="Fermer"
+          >
+            <X size={18} />
+          </button>
         </div>
 
-        <h3 className="text-2xl font-bold text-foreground mb-3">
-          {service.modalTitle}
-        </h3>
-        <p className="text-muted-foreground leading-relaxed mb-6">
-          {service.modalBody}
-        </p>
+        {/* ── Body ── */}
+        <div className="bg-card p-6 sm:p-8">
+          <h3 className="text-xl sm:text-2xl font-bold text-foreground mb-2 leading-snug">
+            {service.modalTitle}
+          </h3>
+          <p className="text-muted-foreground text-sm leading-relaxed mb-6">
+            {service.modalBody}
+          </p>
 
-        <ul className="space-y-3 mb-8">
-          {service.features.map((feat, i) => (
-            <li
-              key={i}
-              className="flex items-start gap-3 text-sm text-foreground"
+          {/* Feature list */}
+          <ul className="space-y-2.5 mb-8">
+            {service.features.map((feat, i) => (
+              <li key={i} className="flex items-start gap-3">
+                <span className={`mt-0.5 shrink-0 w-5 h-5 rounded-full bg-gradient-to-br ${service.color} flex items-center justify-center`}>
+                  <CheckCircle size={11} className="text-white" />
+                </span>
+                <span className="text-sm text-foreground leading-snug">{feat}</span>
+              </li>
+            ))}
+          </ul>
+
+          {/* CTA row */}
+          <div className="flex items-center gap-3">
+            <Link
+              to={service.link}
+              className={`flex-1 inline-flex items-center justify-center gap-2 py-3 rounded-xl bg-gradient-to-r ${service.color} text-white font-semibold text-sm shadow-lg hover:opacity-90 hover:-translate-y-0.5 transition-all duration-200`}
+              onClick={() => { onClose(); window.scrollTo({ top: 0, behavior: "instant" }); }}
             >
-              <CheckCircle size={16} className="text-primary mt-0.5 shrink-0" />
-              {feat}
-            </li>
-          ))}
-        </ul>
-
-        <Link
-          to={service.link}
-          className={`inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r ${service.color} text-white font-semibold text-sm hover:opacity-90 transition-opacity duration-200`}
-          onClick={onClose}
-        >
-          Acceder au service
-          <ChevronRight size={16} />
-        </Link>
+              Accéder au service
+              <ChevronRight size={16} />
+            </Link>
+            <button
+              onClick={onClose}
+              className="px-4 py-3 rounded-xl border border-border text-muted-foreground text-sm font-medium hover:bg-secondary hover:text-foreground transition-colors duration-200"
+            >
+              Fermer
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -857,57 +969,76 @@ function ServiceModal({
 // Specialties Section
 function SpecialtiesSection() {
   const { ref, isInView } = useInView();
+  const [specialties, setSpecialties] = useState<
+    { name: string; icon: React.ElementType; doctors: number; color: string; description: string }[]
+  >([]);
 
-  const specialties = [
-    {
-      name: "Cardiologie",
-      icon: Heart,
-      doctors: 24,
-      color: "bg-red-500/10 text-red-500 hover:bg-red-500",
-    },
-    {
-      name: "Dermatologie",
-      icon: Activity,
-      doctors: 18,
-      color: "bg-pink-500/10 text-pink-500 hover:bg-pink-500",
-    },
-    {
-      name: "Pediatrie",
-      icon: Baby,
-      doctors: 22,
-      color: "bg-blue-500/10 text-blue-500 hover:bg-blue-500",
-    },
-    {
-      name: "Neurologie",
-      icon: Brain,
-      doctors: 15,
-      color: "bg-purple-500/10 text-purple-500 hover:bg-purple-500",
-    },
-    {
-      name: "Ophtalmologie",
-      icon: Eye,
-      doctors: 18,
-      color: "bg-cyan-500/10 text-cyan-500 hover:bg-cyan-500",
-    },
-    {
-      name: "Orthopedie",
-      icon: Bone,
-      doctors: 19,
-      color: "bg-orange-500/10 text-orange-500 hover:bg-orange-500",
-    },
-    {
-      name: "Medecine Generale",
-      icon: Stethoscope,
-      doctors: 45,
-      color: "bg-green-500/10 text-green-500 hover:bg-green-500",
-    },
-    {
-      name: "Psychiatrie",
-      icon: Brain,
-      doctors: 14,
-      color: "bg-indigo-500/10 text-indigo-500 hover:bg-indigo-500",
-    },
+  const iconMap: Record<string, { icon: React.ElementType; description: string }> = {
+    cardiologie:        { icon: Heart,       description: "Cœur et système cardiovasculaire" },
+    dermatologie:       { icon: Activity,     description: "Peau, cheveux et ongles" },
+    pédiatrie:          { icon: Baby,         description: "Santé des enfants" },
+    pediatrie:          { icon: Baby,         description: "Santé des enfants" },
+    neurologie:         { icon: Brain,        description: "Cerveau et système nerveux" },
+    ophtalmologie:      { icon: Eye,          description: "Santé oculaire" },
+    orthopédie:         { icon: Bone,         description: "Os et articulations" },
+    orthopedie:         { icon: Bone,         description: "Os et articulations" },
+    "médecine générale": { icon: Stethoscope, description: "Médecin de famille" },
+    "medecine generale": { icon: Stethoscope, description: "Médecin de famille" },
+    psychiatrie:        { icon: Brain,        description: "Santé mentale" },
+    gynécologie:        { icon: Stethoscope,  description: "Santé des femmes" },
+    gynecologie:        { icon: Stethoscope,  description: "Santé des femmes" },
+    rhumatologie:       { icon: Bone,         description: "Articulations et tissu conjonctif" },
+    "chirurgie generale": { icon: Activity,   description: "Interventions chirurgicales" },
+  };
+
+  const colorPool = [
+    "bg-red-500/10 text-red-500 hover:bg-red-500",
+    "bg-pink-500/10 text-pink-500 hover:bg-pink-500",
+    "bg-blue-500/10 text-blue-500 hover:bg-blue-500",
+    "bg-purple-500/10 text-purple-500 hover:bg-purple-500",
+    "bg-cyan-500/10 text-cyan-500 hover:bg-cyan-500",
+    "bg-orange-500/10 text-orange-500 hover:bg-orange-500",
+    "bg-green-500/10 text-green-500 hover:bg-green-500",
+    "bg-indigo-500/10 text-indigo-500 hover:bg-indigo-500",
+    "bg-amber-500/10 text-amber-500 hover:bg-amber-500",
+    "bg-teal-500/10 text-teal-500 hover:bg-teal-500",
   ];
+
+  useEffect(() => {
+    fetch("/api/doctors")
+      .then((r) => r.json())
+      .then((doctors: { specialty?: string }[]) => {
+        const counts: Record<string, number> = {};
+        doctors.forEach((d) => {
+          const s = d.specialty?.trim();
+          if (s) counts[s] = (counts[s] || 0) + 1;
+        });
+        const list = Object.entries(counts).map(([name, count], idx) => {
+          const entry = iconMap[name.toLowerCase()];
+          return {
+            name,
+            icon: entry?.icon ?? Stethoscope,
+            description: entry?.description ?? "",
+            doctors: count,
+            color: colorPool[idx % colorPool.length],
+          };
+        });
+        setSpecialties(list);
+      })
+      .catch(() => {
+        // fallback to defaults if API unavailable
+        setSpecialties([
+          { name: "Cardiologie",      icon: Heart,       description: "Cœur et système cardiovasculaire", doctors: 0, color: colorPool[0] },
+          { name: "Dermatologie",     icon: Activity,    description: "Peau, cheveux et ongles",          doctors: 0, color: colorPool[1] },
+          { name: "Pédiatrie",        icon: Baby,        description: "Santé des enfants",               doctors: 0, color: colorPool[2] },
+          { name: "Neurologie",       icon: Brain,       description: "Cerveau et système nerveux",       doctors: 0, color: colorPool[3] },
+          { name: "Ophtalmologie",    icon: Eye,         description: "Santé oculaire",                  doctors: 0, color: colorPool[4] },
+          { name: "Orthopédie",       icon: Bone,        description: "Os et articulations",             doctors: 0, color: colorPool[5] },
+          { name: "Médecine Générale",icon: Stethoscope, description: "Médecin de famille",              doctors: 0, color: colorPool[6] },
+          { name: "Psychiatrie",      icon: Brain,       description: "Santé mentale",                   doctors: 0, color: colorPool[7] },
+        ]);
+      });
+  }, []);
 
   return (
     <section ref={ref} className="py-24 bg-secondary/30">
@@ -937,11 +1068,12 @@ function SpecialtiesSection() {
 
           <Link
             to="/doctors"
+            onClick={() => window.scrollTo({ top: 0, behavior: "instant" })}
             className={`group inline-flex items-center gap-2 text-primary hover:text-accent font-semibold transition-all duration-500 ${
               isInView ? "opacity-100 translate-x-0" : "opacity-0 translate-x-8"
             }`}
           >
-            Voir toutes les specialites
+            Voir toutes les spécialités
             <ArrowRight
               size={18}
               className="transition-transform duration-300 group-hover:translate-x-2"
@@ -974,31 +1106,58 @@ function SpecialtyCard({
     icon: React.ElementType;
     doctors: number;
     color: string;
+    description: string;
   };
   index: number;
   isInView: boolean;
 }) {
   const Icon = specialty.icon;
+  // Extract base color class for glow effect (e.g. "red" from "bg-red-500/10")
+  const colorBase = specialty.color.match(/bg-(\w+)-/)?.[1] ?? "primary";
 
   return (
     <Link
-      to={`/doctors?specialty=${specialty.name}`}
-      className={`group p-6 bg-card rounded-2xl border border-border hover:border-transparent hover:shadow-2xl transition-all duration-500 hover:scale-[1.02] ${
+      to={`/doctors?specialty=${encodeURIComponent(specialty.name)}`}
+      onClick={() => window.scrollTo({ top: 0, behavior: "instant" })}
+      className={`group relative overflow-hidden p-6 bg-card rounded-2xl border border-border hover:border-transparent hover:shadow-2xl transition-all duration-500 hover:-translate-y-1 ${
         isInView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-12"
       }`}
       style={{ transitionDelay: `${index * 75}ms` }}
     >
+      {/* Subtle glow on hover */}
+      <div className={`absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-${colorBase}-500/5 rounded-2xl`} />
+
+      {/* Icon badge */}
       <div
-        className={`w-14 h-14 ${specialty.color.split(" ").slice(0, 2).join(" ")} rounded-2xl flex items-center justify-center mb-4 transition-all duration-500 group-hover:scale-110 group-hover:text-white ${specialty.color.split(" ")[2]}`}
+        className={`relative w-14 h-14 ${
+          specialty.color.split(" ").slice(0, 2).join(" ")
+        } rounded-2xl flex items-center justify-center mb-4 transition-all duration-500 group-hover:scale-110 group-hover:text-white ${
+          specialty.color.split(" ")[2]
+        }`}
       >
         <Icon size={26} />
       </div>
-      <h3 className="font-semibold text-foreground group-hover:text-primary transition-colors duration-300 mb-1">
+
+      {/* Text */}
+      <h3 className="relative font-bold text-foreground group-hover:text-primary transition-colors duration-300 mb-1 leading-snug">
         {specialty.name}
       </h3>
-      <p className="text-sm text-muted-foreground">
-        {specialty.doctors} medecins disponibles
-      </p>
+      {specialty.description && (
+        <p className="relative text-xs text-muted-foreground mb-3 leading-relaxed">
+          {specialty.description}
+        </p>
+      )}
+
+      {/* Footer row */}
+      <div className="relative flex items-center justify-between mt-auto">
+        <span className="inline-flex items-center gap-1 text-xs font-semibold text-primary bg-primary/10 px-2.5 py-1 rounded-full">
+          {specialty.doctors} médecin{specialty.doctors !== 1 ? "s" : ""}
+        </span>
+        <ArrowRight
+          size={16}
+          className="text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all duration-300"
+        />
+      </div>
     </Link>
   );
 }
@@ -1259,52 +1418,164 @@ function StepCard({
 }
 
 // Testimonials Section
-function TestimonialsSection() {
-  const { ref, isInView } = useInView();
 
-  const testimonials = [
-    {
-      name: "Fatima Ben Ali",
-      role: "Patiente",
-      text: "MegaCare a change ma facon de gerer ma sante. Plus besoin de perdre des heures a l'hopital pour une simple consultation. Tout est rapide et efficace!",
-      rating: 5,
-      avatar: "F",
-      location: "Tunis",
-    },
-    {
-      name: "Dr. Amira Mansouri",
-      role: "Cardiologue",
-      text: "Interface professionnelle et intuitive. Mes patients sont ravis de pouvoir me consulter depuis chez eux. Une revolution dans la pratique medicale!",
-      rating: 5,
-      avatar: "A",
-      location: "Sfax",
-    },
-    {
-      name: "Mohamed Karim",
-      role: "Patient",
-      text: "Service impeccable, pharmaciens compétents et retrait rapide. Ma commande était prête en moins d'une heure. Je recommande vivement !",
-      rating: 5,
-      avatar: "M",
-      location: "Sousse",
-    },
-  ];
+type TestimonialData = {
+  id: string;
+  name: string;
+  role: string;
+  text: string;
+  rating: number;
+  avatar: string;
+  imageUrl: string;
+  location: string;
+};
+
+const AVATAR_GRADIENTS = [
+  "from-primary to-accent",
+  "from-emerald-500 to-teal-500",
+  "from-violet-500 to-purple-600",
+  "from-rose-500 to-pink-500",
+  "from-amber-500 to-orange-500",
+  "from-sky-500 to-blue-600",
+];
+
+function getTestimonialInitials(name: string, fallback: string): string {
+  if (fallback && fallback.length <= 3) return fallback.toUpperCase();
+  return name
+    .split(" ")
+    .map((w) => w[0] ?? "")
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+}
+
+function TestimonialCard({
+  t,
+  index,
+  isInView,
+  gradient,
+}: {
+  t: TestimonialData;
+  index: number;
+  isInView: boolean;
+  gradient: string;
+}) {
+  const [imgError, setImgError] = useState(false);
+  const showImg = !!t.imageUrl && !imgError;
+  const initials = getTestimonialInitials(t.name, t.avatar);
 
   return (
-    <section ref={ref} className="py-24 bg-background relative overflow-hidden">
-      {/* Background */}
-      <div className="absolute inset-0">
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-accent/5 rounded-full blur-[150px]" />
-        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[150px]" />
+    <div
+      className={`group relative flex flex-col bg-card rounded-3xl p-7 border border-border overflow-hidden transition-all duration-700 hover:shadow-2xl hover:border-primary/20 hover:-translate-y-1 ${
+        isInView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-12"
+      }`}
+      style={{ transitionDelay: `${index * 100}ms` }}
+    >
+      {/* Gradient hover glow */}
+      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-3xl pointer-events-none" />
+
+      {/* Decorative large quote mark */}
+      <div className="absolute top-4 right-5 opacity-[0.07] group-hover:opacity-[0.12] transition-opacity duration-300 pointer-events-none select-none">
+        <svg width="48" height="36" viewBox="0 0 48 36" fill="currentColor" className="text-primary">
+          <path d="M0 36V22C0 10 7 3.333 21 0l3.5 5.333C17.333 7.333 13.333 11.667 12.333 18H21V36H0zm27 0V22C27 10 34 3.333 48 0l3.5 5.333C44.333 7.333 40.333 11.667 39.333 18H48V36H27z" />
+        </svg>
       </div>
 
+      {/* Stars */}
+      <div className="flex gap-0.5 mb-5 relative z-10">
+        {[1, 2, 3, 4, 5].map((n) => (
+          <Star
+            key={n}
+            size={13}
+            className={n <= t.rating ? "fill-amber-400 text-amber-400" : "fill-border text-border"}
+          />
+        ))}
+      </div>
+
+      {/* Quote text */}
+      <p className="relative z-10 text-sm sm:text-[15px] text-foreground/80 leading-relaxed flex-1 mb-7">
+        &ldquo;{t.text}&rdquo;
+      </p>
+
+      {/* Author row */}
+      <div className="relative z-10 flex items-center gap-3 pt-5 border-t border-border/60">
+        {/* Avatar */}
+        <div className="shrink-0 w-12 h-12 rounded-full overflow-hidden ring-2 ring-border group-hover:ring-primary/30 transition-all duration-300">
+          {showImg ? (
+            <img
+              src={t.imageUrl}
+              alt={t.name}
+              className="w-full h-full object-cover"
+              onError={() => setImgError(true)}
+            />
+          ) : (
+            <div
+              className={`w-full h-full bg-gradient-to-br ${gradient} flex items-center justify-center text-white font-bold text-sm`}
+            >
+              {initials}
+            </div>
+          )}
+        </div>
+
+        <div className="min-w-0 flex-1">
+          <p className="font-semibold text-sm text-foreground leading-tight truncate">
+            {t.name}
+          </p>
+          <p className="text-xs text-muted-foreground truncate mt-0.5">
+            {t.role}
+            {t.location ? (
+              <span className="text-muted-foreground/60"> · {t.location}</span>
+            ) : null}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TestimonialsSection() {
+  const { ref, isInView } = useInView();
+  const [testimonials, setTestimonials] = useState<TestimonialData[]>([]);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/public/testimonials")
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data: TestimonialData[]) => {
+        if (!cancelled) {
+          setTestimonials(data);
+          setLoaded(true);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setTestimonials([]);
+          setLoaded(true);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return (
+    <div ref={ref}>
+      {loaded && testimonials.length > 0 && (
+      <section className="py-24 bg-secondary/30 relative overflow-hidden">
+      {/* Background blobs */}
+      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[140px] -translate-y-1/2 translate-x-1/4 pointer-events-none" />
+      <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-accent/5 rounded-full blur-[120px] translate-y-1/2 -translate-x-1/4 pointer-events-none" />
+
       <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-16">
+        {/* Header — matching other section headers exactly */}
+        <div className="text-center mb-14">
           <span
-            className={`inline-block px-4 py-2 bg-primary/10 text-primary rounded-full text-sm font-semibold mb-4 transition-all duration-700 ${
+            className={`inline-block px-4 py-1.5 bg-primary/10 text-primary rounded-full text-sm font-semibold mb-5 transition-all duration-700 ${
               isInView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
             }`}
           >
-            Temoignages
+            Témoignages
           </span>
           <h2
             className={`text-3xl sm:text-4xl lg:text-5xl font-bold text-foreground mb-4 text-balance transition-all duration-700 delay-100 ${
@@ -1315,79 +1586,29 @@ function TestimonialsSection() {
             <span className="gradient-text"> nos utilisateurs</span>
           </h2>
           <p
-            className={`text-muted-foreground text-lg max-w-2xl mx-auto transition-all duration-700 delay-200 ${
+            className={`text-muted-foreground text-base sm:text-lg max-w-2xl mx-auto transition-all duration-700 delay-200 ${
               isInView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
             }`}
           >
-            Rejoignez des milliers de patients et medecins satisfaits
+            Ils nous font confiance pour prendre soin de leur santé.
           </p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-8">
-          {testimonials.map((testimonial, idx) => (
+        {/* Cards grid */}
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {testimonials.map((t, i) => (
             <TestimonialCard
-              key={idx}
-              testimonial={testimonial}
-              index={idx}
+              key={t.id}
+              t={t}
+              index={i}
               isInView={isInView}
+              gradient={AVATAR_GRADIENTS[i % AVATAR_GRADIENTS.length]}
             />
           ))}
         </div>
       </div>
     </section>
-  );
-}
-
-function TestimonialCard({
-  testimonial,
-  index,
-  isInView,
-}: {
-  testimonial: {
-    name: string;
-    role: string;
-    text: string;
-    rating: number;
-    avatar: string;
-    location: string;
-  };
-  index: number;
-  isInView: boolean;
-}) {
-  return (
-    <div
-      className={`group relative bg-card rounded-3xl p-8 border border-border overflow-hidden transition-all duration-700 hover:shadow-2xl hover:border-primary/20 hover:scale-[1.02] ${
-        isInView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-12"
-      }`}
-      style={{ transitionDelay: `${index * 150}ms` }}
-    >
-      {/* Quote Mark */}
-      <div className="absolute top-6 right-6 text-8xl font-serif text-primary/10 leading-none group-hover:text-primary/20 transition-colors duration-300">
-        "
-      </div>
-
-      {/* Rating */}
-      <div className="flex gap-1 mb-6">
-        {[...Array(testimonial.rating)].map((_, i) => (
-          <Star key={i} size={18} className="fill-amber-400 text-amber-400" />
-        ))}
-      </div>
-
-      <p className="text-foreground mb-8 leading-relaxed relative z-10">
-        "{testimonial.text}"
-      </p>
-
-      <div className="flex items-center gap-4">
-        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center text-primary-foreground font-bold text-lg shadow-lg group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
-          {testimonial.avatar}
-        </div>
-        <div>
-          <p className="font-semibold text-foreground">{testimonial.name}</p>
-          <p className="text-sm text-muted-foreground">
-            {testimonial.role} - {testimonial.location}
-          </p>
-        </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -1483,7 +1704,8 @@ function CTASection() {
             />
           </Link>
           <Link
-            to="/how-it-works"
+            to="/guide"
+            onClick={() => window.scrollTo({ top: 0, behavior: "instant" })}
             className="inline-flex items-center justify-center gap-3 px-10 py-5 border-2 border-white/30 text-primary-foreground rounded-2xl font-bold text-lg transition-all duration-500 hover:bg-white/10 hover:border-white/50 hover:scale-[1.03]"
           >
             En savoir plus

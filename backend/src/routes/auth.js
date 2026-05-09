@@ -4,6 +4,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const { randomUUID } = require("crypto");
 const User = require("../models/User");
+const Speciality = require("../models/Speciality");
 const { addToBlacklist } = require("../middleware/tokenBlacklist");
 
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -19,6 +20,7 @@ router.post("/register", async (req, res) => {
     password,
     phone,
     role,
+    gender,
     specialization,
     doctorId,
     pharmacyId,
@@ -64,6 +66,7 @@ router.post("/register", async (req, res) => {
     role: userRole,
     phone: phone || "",
     status: userRole === "patient" ? "approved" : "pending",
+    ...(gender && { gender }),
     ...(specialization && { specialization }),
     ...(doctorId && { doctorId }),
     ...(pharmacyId && { pharmacyId }),
@@ -72,6 +75,13 @@ router.post("/register", async (req, res) => {
     ...(paramedicalId && { paramedicalId }),
     ...(companyName && { companyName }),
   });
+
+  // Auto-register new doctor speciality for future reuse
+  if (userRole === "doctor" && specialization) {
+    const name = specialization.trim();
+    const exists = await Speciality.findOne({ name: { $regex: `^${name}$`, $options: "i" } });
+    if (!exists) await Speciality.create({ name }).catch(() => { });
+  }
 
   const token = jwt.sign(
     { id: user._id, email: user.email, role: user.role },
@@ -139,7 +149,7 @@ router.patch("/profile", authMiddleware, async (req, res) => {
   const user = await User.findById(req.user.id);
   if (!user) return res.status(404).json({ message: "Utilisateur non trouvé" });
   const { firstName, lastName, phone, email, specialization, avatar,
-          companyName, address, governorate, delegation, mapsUrl } =
+    companyName, address, governorate, delegation, mapsUrl } =
     req.body;
   if (firstName !== undefined) user.firstName = firstName;
   if (lastName !== undefined) user.lastName = lastName;
@@ -150,7 +160,11 @@ router.patch("/profile", authMiddleware, async (req, res) => {
   if (address !== undefined) user.address = address;
   if (governorate !== undefined) user.governorate = governorate;
   if (delegation !== undefined) user.delegation = delegation;
-  if (mapsUrl !== undefined) user.mapsUrl = mapsUrl;
+  if (mapsUrl !== undefined) {
+    if (mapsUrl !== "" && !/^https?:\/\/.+/.test(mapsUrl))
+      return res.status(400).json({ message: "URL Google Maps invalide (doit commencer par http:// ou https://)" });
+    user.mapsUrl = mapsUrl;
+  }
   if (email !== undefined && email !== user.email) {
     const taken = await User.findOne({ email, _id: { $ne: user._id } });
     if (taken)

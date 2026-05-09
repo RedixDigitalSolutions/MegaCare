@@ -16,6 +16,7 @@ import {
   Phone,
   ChevronLeft,
   ChevronRight,
+  ExternalLink,
 } from "lucide-react";
 
 interface DoctorSchedule {
@@ -43,6 +44,7 @@ interface Doctor {
   education: { degree: string; university: string; year: number }[];
   languages: string[];
   schedule: DoctorSchedule;
+  mapsUrl?: string;
 }
 
 export default function DoctorProfilePage() {
@@ -297,22 +299,20 @@ export default function DoctorProfilePage() {
                   <div className="flex flex-col sm:flex-row gap-3 pt-4">
                     <button
                       onClick={() => handleConsultationType("video")}
-                      className={`flex items-center justify-center gap-2 px-6 py-3 rounded-lg transition font-semibold ${
-                        consultationType === "video"
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-primary text-primary-foreground hover:bg-primary/90"
-                      }`}
+                      className={`flex items-center justify-center gap-2 px-6 py-3 rounded-lg transition font-semibold ${consultationType === "video"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-primary text-primary-foreground hover:bg-primary/90"
+                        }`}
                     >
                       <Video size={20} />
                       Consultation vidéo
                     </button>
                     <button
                       onClick={() => handleConsultationType("phone")}
-                      className={`flex items-center justify-center gap-2 px-6 py-3 rounded-lg transition font-semibold ${
-                        consultationType === "phone"
-                          ? "bg-accent text-accent-foreground"
-                          : "border-2 border-primary text-primary hover:bg-primary/5"
-                      }`}
+                      className={`flex items-center justify-center gap-2 px-6 py-3 rounded-lg transition font-semibold ${consultationType === "phone"
+                        ? "bg-accent text-accent-foreground"
+                        : "border-2 border-primary text-primary hover:bg-primary/5"
+                        }`}
                     >
                       <Phone size={20} />
                       Appel téléphonique
@@ -332,11 +332,10 @@ export default function DoctorProfilePage() {
                   onClick={() =>
                     setActiveTab(tab as "about" | "schedule")
                   }
-                  className={`py-4 font-medium capitalize transition border-b-2 ${
-                    activeTab === tab
-                      ? "border-primary text-primary"
-                      : "border-transparent text-muted-foreground hover:text-foreground"
-                  }`}
+                  className={`py-4 font-medium capitalize transition border-b-2 ${activeTab === tab
+                    ? "border-primary text-primary"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                    }`}
                 >
                   {tab === "about"
                     ? "À propos"
@@ -416,6 +415,26 @@ export default function DoctorProfilePage() {
                         ))}
                       </div>
                     </div>
+
+                    {/* Location link */}
+                    {doctor.mapsUrl && (
+                      <div className="bg-card rounded-xl border border-border p-5 flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                            <MapPin size={16} className="text-primary" />
+                          </div>
+                          <p className="text-sm font-semibold text-foreground">Localisation</p>
+                        </div>
+                        <a
+                          href={doctor.mapsUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 px-3 py-2 bg-primary text-primary-foreground rounded-xl text-xs font-semibold hover:bg-primary/90 transition shrink-0"
+                        >
+                          <ExternalLink size={12} />Voir sur Maps
+                        </a>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -485,9 +504,9 @@ export default function DoctorProfilePage() {
                             selectedDate &&
                             selectedDate.getDate() === day &&
                             selectedDate.getMonth() ===
-                              currentMonth.getMonth() &&
+                            currentMonth.getMonth() &&
                             selectedDate.getFullYear() ===
-                              currentMonth.getFullYear();
+                            currentMonth.getFullYear();
                           const hasSlots =
                             getAvailableSlotsForDate(date).length > 0;
                           const isPast =
@@ -499,15 +518,14 @@ export default function DoctorProfilePage() {
                               key={day}
                               onClick={() => !isPast && handleDateClick(day)}
                               disabled={isPast}
-                              className={`aspect-square rounded-lg font-medium text-sm transition flex items-center justify-center ${
-                                isSelected
-                                  ? "bg-primary text-primary-foreground border-2 border-primary"
-                                  : hasSlots && !isPast
-                                    ? "bg-secondary hover:bg-primary/20 border border-primary text-foreground"
-                                    : isPast
-                                      ? "text-muted-foreground opacity-40 cursor-not-allowed"
-                                      : "bg-muted text-muted-foreground"
-                              }`}
+                              className={`aspect-square rounded-lg font-medium text-sm transition flex items-center justify-center ${isSelected
+                                ? "bg-primary text-primary-foreground border-2 border-primary"
+                                : hasSlots && !isPast
+                                  ? "bg-secondary hover:bg-primary/20 border border-primary text-foreground"
+                                  : isPast
+                                    ? "text-muted-foreground opacity-40 cursor-not-allowed"
+                                    : "bg-muted text-muted-foreground"
+                                }`}
                             >
                               {day}
                             </button>
@@ -544,17 +562,16 @@ export default function DoctorProfilePage() {
                           </h4>
                           <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
                             {getAvailableSlotsForDate(selectedDate).length >
-                            0 ? (
+                              0 ? (
                               getAvailableSlotsForDate(selectedDate).map(
                                 (slot) => (
                                   <button
                                     key={slot}
                                     onClick={() => handleSlotSelection(slot)}
-                                    className={`p-3 rounded-lg font-medium text-sm transition border-2 ${
-                                      selectedSlot === slot
-                                        ? "bg-primary text-primary-foreground border-primary"
-                                        : "bg-card border-border hover:border-primary text-foreground"
-                                    }`}
+                                    className={`p-3 rounded-lg font-medium text-sm transition border-2 ${selectedSlot === slot
+                                      ? "bg-primary text-primary-foreground border-primary"
+                                      : "bg-card border-border hover:border-primary text-foreground"
+                                      }`}
                                   >
                                     {slot}
                                   </button>

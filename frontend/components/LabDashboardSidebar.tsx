@@ -3,61 +3,23 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   LayoutDashboard,
-  FlaskConical,
-  FileText,
-  Image,
   Users,
   Calendar,
-  CreditCard,
-  MessageSquare,
-  BarChart3,
   Settings,
   LogOut,
   Microscope,
   Menu,
   X,
   Home,
+  CalendarCheck,
 } from "lucide-react";
 
 const menuItems = [
   { href: "/lab-dashboard", label: "Tableau de bord", icon: LayoutDashboard },
-  { href: "/lab-dashboard/tests", label: "Analyses", icon: FlaskConical },
-  { href: "/lab-dashboard/results", label: "Résultats", icon: FileText },
-  {
-    href: "/lab-dashboard/imaging",
-    label: "Imagerie",
-    icon: Image,
-  },
-  {
-    href: "/lab-dashboard/patients",
-    label: "Patients",
-    icon: Users,
-  },
-  {
-    href: "/lab-dashboard/appointments",
-    label: "Rendez-vous",
-    icon: Calendar,
-  },
-  {
-    href: "/lab-dashboard/billing",
-    label: "Facturation",
-    icon: CreditCard,
-  },
-  {
-    href: "/lab-dashboard/messaging",
-    label: "Messagerie",
-    icon: MessageSquare,
-  },
-  {
-    href: "/lab-dashboard/analytics",
-    label: "Statistiques",
-    icon: BarChart3,
-  },
-  {
-    href: "/lab-dashboard/settings",
-    label: "Paramètres",
-    icon: Settings,
-  },
+  { href: "/lab-dashboard/patients", label: "Patients", icon: Users },
+  { href: "/lab-dashboard/appointments", label: "Rendez-vous", icon: CalendarCheck },
+  { href: "/lab-dashboard/schedule", label: "Calendrier & RDV", icon: Calendar },
+  { href: "/lab-dashboard/settings", label: "Paramètres", icon: Settings },
 ];
 
 export function LabDashboardSidebar() {
@@ -73,7 +35,7 @@ export function LabDashboardSidebar() {
 
   const initials = user
     ? `${user.firstName?.[0] ?? ""}${user.lastName?.[0] ?? ""}`.toUpperCase() ||
-      "LR"
+    "LR"
     : "LR";
 
   const displayName =
@@ -123,11 +85,10 @@ export function LabDashboardSidebar() {
               key={item.href}
               to={item.href}
               onClick={() => setMobileOpen(false)}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-sm ${
-                isActive
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-sm ${isActive
                   ? "bg-sidebar-accent text-sidebar-foreground font-semibold"
                   : "text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
-              }`}
+                }`}
             >
               <Icon
                 size={17}

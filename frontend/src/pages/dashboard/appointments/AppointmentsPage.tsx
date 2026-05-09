@@ -1,8 +1,21 @@
-import { useState, useEffect } from "react";
-import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useCallback } from "react";
+import React from "react";
 import { DashboardSidebar } from "@/components/DashboardSidebar";
-import { Calendar, Clock, Video, CalendarX2, RefreshCw } from "lucide-react";
+import { useNavigate, Link } from "react-router-dom";
+import { QRCodeSVG } from "qrcode.react";
+import {
+  Calendar,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  AlertCircle,
+  Loader2,
+  Timer,
+  ShoppingCart,
+  FileText,
+  X,
+  ChevronRight,
+} from "lucide-react";
 
 interface Appointment {
   id: string;
@@ -14,167 +27,439 @@ interface Appointment {
   status: string;
 }
 
-export default function AppointmentsPage() {
-  const { user, isLoading, isAuthenticated } = useAuth();
-  const navigate = useNavigate();
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [doctors, setDoctors] = useState<Record<string, string>>({});
+interface Prescription {
+  id: string;
+  doctorId: string;
+  patientId: string;
+  medicines: { name: string; dosage?: string; duration?: string }[];
+  secretCode: string;
+  purchaseStatus: "pending" | "purchased";
+  createdAt: string;
+  notes?: string;
+}
+
+function useCountdown(targetDate: string, targetTime: string) {
+  const [diff, setDiff] = useState<number | null>(null);
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) navigate("/login");
-  }, [isLoading, isAuthenticated, navigate]);
+    const update = () => {
+      const target = new Date(`${targetDate}T${targetTime || "00:00"}`);
+      const now = new Date();
+      setDiff(target.getTime() - now.getTime());
+    };
+    update();
+    const id = setInterval(update, 1000);
+    return () => clearInterval(id);
+  }, [targetDate, targetTime]);
 
-  useEffect(() => {
-    if (!isAuthenticated) return;
-    const token = localStorage.getItem("megacare_token");
-    const headers = { Authorization: `Bearer ${token}` };
+  if (diff === null || diff <= 0) return null;
 
-    fetch("/api/appointments", { headers })
-      .then((r) => r.json())
-      .then((j: any) => (Array.isArray(j) ? j : (j.data ?? [])))
-      .then((data: Appointment[]) => {
-        setAppointments(data);
-        const doctorIds = [...new Set(data.map((a) => a.doctorId))];
-        doctorIds.forEach((dId) => {
-          fetch(`/api/users/${dId}`, { headers })
-            .then((r) => r.json())
-            .then((u) => {
-              if (u?.firstName) setDoctors((prev) => ({ ...prev, [dId]: `${u.firstName} ${u.lastName}` }));
-            })
-            .catch(() => {});
-        });
-      })
-      .catch(() => {});
-  }, [isAuthenticated]);
+  const totalSeconds = Math.floor(diff / 1000);
+  const days = Math.floor(totalSeconds / 86400);
+  const hours = Math.floor((totalSeconds % 86400) / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
 
-  if (isLoading || !isAuthenticated || !user) return null;
+  return { days, hours, minutes, seconds };
+}
 
-  const today = new Date().toISOString().split("T")[0];
+function CountdownBadge({ date, time }: { date: string; time: string }) {
+  const countdown = useCountdown(date, time);
 
-  const upcoming = appointments
-    .filter((a) => a.status !== "cancelled" && a.status !== "rejected" && a.status !== "completed" && a.date >= today)
-    .sort((a, b) => (a.date + a.time).localeCompare(b.date + b.time));
-
-  const nextConfirmed = upcoming.filter((a) => a.status === "confirmed");
-  const pending = upcoming.filter((a) => a.status === "pending");
-
-  const past = appointments
-    .filter((a) => a.status === "completed" || ((a.status === "confirmed" || a.status === "pending") && a.date < today))
-    .sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time));
-
-  const hasAny = upcoming.length > 0 || past.length > 0;
-
-  const statusLabel = (s: string) => {
-    const m: Record<string, string> = { confirmed: "Confirmé", pending: "En attente", cancelled: "Annulé", rejected: "Refusé", completed: "Terminée" };
-    return m[s] || s;
-  };
-  const statusColor = (s: string) => {
-    const m: Record<string, string> = { confirmed: "bg-green-50 text-green-700 border-green-200", pending: "bg-orange-50 text-orange-700 border-orange-200", cancelled: "bg-red-50 text-red-700 border-red-200", rejected: "bg-red-50 text-red-700 border-red-200", completed: "bg-blue-50 text-blue-700 border-blue-200" };
-    return m[s] || "bg-gray-50 text-gray-700 border-gray-200";
-  };
-
-  const handleJoin = (apt: Appointment) => {
-    sessionStorage.setItem("patient_live_consultation", JSON.stringify({ doctorName: doctors[apt.doctorId] || "Médecin", doctorId: apt.doctorId, appointmentId: apt.id }));
-    navigate("/dashboard/live-consultation");
-  };
-
-  const handleCancel = async (aptId: string) => {
-    const token = localStorage.getItem("megacare_token");
-    await fetch(`/api/appointments/${aptId}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
-    setAppointments((prev) => prev.filter((a) => a.id !== aptId));
-  };
-
-  const fmtDate = (d: string) => new Date(d).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
-
-  const Card = ({ apt }: { apt: Appointment }) => {
-    const name = doctors[apt.doctorId] || "Médecin";
-    const canAct = apt.date >= today && apt.status !== "completed" && apt.status !== "cancelled" && apt.status !== "rejected";
+  if (!countdown) {
     return (
-      <div className="bg-card rounded-xl border border-border p-5 space-y-4 hover:shadow-md transition">
-        <div className="flex items-start justify-between">
-          <div className="flex items-start gap-3">
-            <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center text-xl shrink-0">👨‍⚕️</div>
-            <div>
-              <h3 className="font-semibold text-foreground">Dr. {name}</h3>
-              <p className="text-sm text-muted-foreground">{apt.reason || "Consultation"}</p>
-            </div>
-          </div>
-          <span className={`px-2.5 py-1 rounded-full text-xs font-medium border ${statusColor(apt.status)}`}>{statusLabel(apt.status)}</span>
+      <span className="flex items-center gap-1 text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full">
+        <Timer size={12} />
+        Imminent
+      </span>
+    );
+  }
+
+  const parts: string[] = [];
+  if (countdown.days > 0) parts.push(`${countdown.days}j`);
+  if (countdown.hours > 0) parts.push(`${countdown.hours}h`);
+  if (countdown.minutes > 0 || countdown.days === 0) parts.push(`${countdown.minutes}m`);
+  if (countdown.days === 0 && countdown.hours === 0) parts.push(`${countdown.seconds}s`);
+
+  return (
+    <span className="flex items-center gap-1 text-xs font-medium text-primary bg-primary/10 px-2 py-1 rounded-full">
+      <Timer size={12} />
+      {parts.join(" ")}
+    </span>
+  );
+}
+
+function statusBadge(status: string) {
+  const map: Record<string, { label: string; classes: string; icon: React.ReactElement }> = {
+    confirmed: { label: "Confirmé", classes: "bg-green-50 text-green-700 border-green-200", icon: <CheckCircle2 size={13} /> },
+    pending:   { label: "En attente", classes: "bg-yellow-50 text-yellow-700 border-yellow-200", icon: <AlertCircle size={13} /> },
+    completed: { label: "Terminé", classes: "bg-blue-50 text-blue-700 border-blue-200", icon: <CheckCircle2 size={13} /> },
+    cancelled: { label: "Annulé", classes: "bg-red-50 text-red-700 border-red-200", icon: <XCircle size={13} /> },
+    rejected:  { label: "Refusé", classes: "bg-red-50 text-red-700 border-red-200", icon: <XCircle size={13} /> },
+  };
+  const s = map[status] ?? { label: status, classes: "bg-secondary/50 text-foreground border-border", icon: <AlertCircle size={13} /> };
+  return (
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium border ${s.classes}`}>
+      {s.icon} {s.label}
+    </span>
+  );
+}
+
+export default function AppointmentsPage() {
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState<"upcoming" | "history">("upcoming");
+  const [qrPrescription, setQrPrescription] = useState<Prescription | null>(null);
+  const navigate = useNavigate();
+  const token = localStorage.getItem("megacare_token");
+
+  const fetchData = useCallback(async () => {
+    try {
+      const [aptRes, rxRes] = await Promise.all([
+        fetch("/api/appointments", { headers: { Authorization: `Bearer ${token}` } }),
+        fetch("/api/prescriptions", { headers: { Authorization: `Bearer ${token}` } }),
+      ]);
+      const aptData = await aptRes.json();
+      const rxData = await rxRes.json();
+      setAppointments(Array.isArray(aptData) ? aptData : aptData.data ?? []);
+      const rxArray = Array.isArray(rxData) ? rxData : rxData.data ?? [];
+      setPrescriptions(rxArray);
+    } catch {
+      // ignore
+    } finally {
+      setLoading(false);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const handleCancel = async (id: string) => {
+    if (!confirm("Annuler ce rendez-vous ?")) return;
+    await fetch(`/api/appointments/${id}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    setAppointments((prev) => prev.filter((a) => a.id !== id));
+  };
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // Safely parse a date string whether it's "YYYY-MM-DD" or a full ISO string.
+  // Always parse as LOCAL midnight so the day is correct in every timezone.
+  const parseApptDate = (d: string) =>
+    /^\d{4}-\d{2}-\d{2}$/.test(d) ? new Date(d + "T00:00:00") : new Date(new Date(d).toLocaleDateString("fr-CA") + "T00:00:00");
+
+  const upcoming = appointments.filter((a) => {
+    if (["cancelled", "rejected", "completed"].includes(a.status)) return false;
+    return parseApptDate(a.date) >= today;
+  }).sort((a, b) => parseApptDate(a.date).getTime() - parseApptDate(b.date).getTime());
+
+  const history = appointments.filter((a) => {
+    if (["cancelled", "rejected"].includes(a.status)) return true;
+    if (a.status === "completed") return true;
+    return parseApptDate(a.date) < today;
+  }).sort((a, b) => parseApptDate(b.date).getTime() - parseApptDate(a.date).getTime());
+
+  const fmtDate = (d: string) =>
+    parseApptDate(d).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+
+  // Match prescriptions issued around the same day as a completed appointment
+  const getPrescriptionsForApt = (apt: Appointment): Prescription[] => {
+    const aptDate = parseApptDate(apt.date);
+    return prescriptions.filter((rx) => {
+      const rxDate = new Date(rx.createdAt);
+      const diffDays = Math.abs(aptDate.getTime() - rxDate.getTime()) / (1000 * 3600 * 24);
+      return rx.doctorId === apt.doctorId && diffDays <= 1;
+    });
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="flex flex-col md:flex-row">
+          <DashboardSidebar />
+          <main className="flex-1 flex items-center justify-center p-12">
+            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          </main>
         </div>
-        <div className="flex flex-wrap gap-4 text-sm">
-          <div className="flex items-center gap-2 text-muted-foreground"><Calendar size={15} className="text-primary" />{fmtDate(apt.date)}</div>
-          <div className="flex items-center gap-2 text-muted-foreground"><Clock size={15} className="text-primary" />{apt.time} · 30 min</div>
-          <div className="flex items-center gap-2 text-muted-foreground"><Video size={15} className="text-primary" />Vidéo</div>
-        </div>
-        {canAct && (
-          <div className="flex flex-wrap gap-2 pt-2 border-t border-border">
-            {apt.status === "confirmed" && (
-              <button onClick={() => handleJoin(apt)} className="px-4 py-2 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition">Rejoindre</button>
-            )}
-            <button onClick={() => handleCancel(apt.id)} className="px-4 py-2 rounded-lg text-sm font-medium border border-border text-foreground hover:bg-secondary transition">Annuler</button>
-          </div>
-        )}
       </div>
     );
-  };
+  }
 
   return (
     <div className="min-h-screen bg-background">
       <div className="flex flex-col md:flex-row">
-        <DashboardSidebar userName={user.firstName} />
+        <DashboardSidebar />
         <main className="flex-1 overflow-auto">
+          {/* Header */}
           <div className="bg-card border-b border-border p-6 sticky top-0 z-10">
-            <h1 className="text-3xl font-bold text-foreground">Mes Rendez-vous</h1>
-            <p className="text-muted-foreground mt-1">Gérez vos consultations médicales</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold text-foreground">Mes Rendez-vous</h1>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {upcoming.length} à venir · {history.length} passés
+                </p>
+              </div>
+              <Link
+                to="/doctors"
+                className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition text-sm font-medium"
+              >
+                <Calendar size={16} />
+                Réserver en ligne
+              </Link>
+            </div>
           </div>
 
-          <div className="p-6 max-w-5xl mx-auto space-y-8">
-            {!hasAny && (
-              <div className="flex flex-col items-center justify-center py-20 text-center">
-                <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-6">
-                  <CalendarX2 size={36} className="text-primary/60" />
-                </div>
-                <h2 className="text-xl font-semibold text-foreground mb-2">Vous n'avez aucun rendez-vous actuellement</h2>
-                <p className="text-muted-foreground max-w-md mb-6">Prenez rendez-vous avec un médecin pour commencer. Vos prochains rendez-vous apparaîtront ici.</p>
-                <button onClick={() => navigate("/doctors")} className="px-6 py-3 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition">Trouver un médecin</button>
-              </div>
+          {/* Tabs */}
+          <div className="border-b border-border bg-card">
+            <div className="flex px-6">
+              <button
+                onClick={() => setTab("upcoming")}
+                className={`px-5 py-3 text-sm font-medium border-b-2 transition ${
+                  tab === "upcoming"
+                    ? "border-primary text-primary"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Prochains RDV
+                {upcoming.length > 0 && (
+                  <span className="ml-2 px-1.5 py-0.5 text-xs font-bold bg-primary/10 text-primary rounded-full">
+                    {upcoming.length}
+                  </span>
+                )}
+              </button>
+              <button
+                onClick={() => setTab("history")}
+                className={`px-5 py-3 text-sm font-medium border-b-2 transition ${
+                  tab === "history"
+                    ? "border-primary text-primary"
+                    : "border-transparent text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Historique
+                {history.length > 0 && (
+                  <span className="ml-2 px-1.5 py-0.5 text-xs font-bold bg-secondary text-muted-foreground rounded-full">
+                    {history.length}
+                  </span>
+                )}
+              </button>
+            </div>
+          </div>
+
+          <div className="p-6 max-w-3xl mx-auto space-y-4">
+            {/* ── Upcoming Tab ── */}
+            {tab === "upcoming" && (
+              <>
+                {upcoming.length === 0 ? (
+                  <div className="text-center py-16 text-muted-foreground">
+                    <Calendar className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                    <p className="font-semibold">Aucun rendez-vous à venir</p>
+                    <p className="text-sm mt-1">Prenez rendez-vous avec un médecin</p>
+                    <Link
+                      to="/doctors"
+                      className="inline-flex items-center gap-2 mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition"
+                    >
+                      Trouver un médecin <ChevronRight size={16} />
+                    </Link>
+                  </div>
+                ) : (
+                  upcoming.map((apt) => (
+                    <div key={apt.id} className="bg-card border border-border rounded-xl p-5 space-y-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-2xl flex-shrink-0">
+                            🩺
+                          </div>
+                          <div>
+                            <p className="font-semibold text-foreground">
+                              {apt.doctorName || "Médecin"}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-0.5">{apt.reason}</p>
+                          </div>
+                        </div>
+                        <div className="flex flex-col items-end gap-1.5">
+                          {statusBadge(apt.status)}
+                          <CountdownBadge date={apt.date} time={apt.time} />
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-4 text-xs text-muted-foreground bg-secondary/30 rounded-lg px-3 py-2">
+                        <span className="flex items-center gap-1">
+                          <Calendar size={13} />
+                          {fmtDate(apt.date)}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Clock size={13} />
+                          {apt.time}
+                        </span>
+                      </div>
+
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => handleCancel(apt.id)}
+                          className="px-3 py-1.5 text-xs font-medium text-destructive border border-destructive/30 rounded-lg hover:bg-destructive/5 transition"
+                        >
+                          Annuler
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </>
             )}
 
-            {nextConfirmed.length > 0 && (
-              <section>
-                <div className="flex items-center gap-2 mb-4">
-                  <Calendar size={20} className="text-primary" />
-                  <h2 className="text-lg font-bold text-foreground">Prochains rendez-vous</h2>
-                  <span className="text-xs font-medium bg-primary/10 text-primary px-2 py-0.5 rounded-full">{nextConfirmed.length}</span>
-                </div>
-                <div className="space-y-3">{nextConfirmed.map((a) => <Card key={a.id} apt={a} />)}</div>
-              </section>
-            )}
+            {/* ── History Tab ── */}
+            {tab === "history" && (
+              <>
+                {history.length === 0 ? (
+                  <div className="text-center py-16 text-muted-foreground">
+                    <Clock className="w-12 h-12 mx-auto mb-3 opacity-30" />
+                    <p className="font-semibold">Aucun historique</p>
+                    <p className="text-sm mt-1">Vos consultations passées apparaîtront ici</p>
+                  </div>
+                ) : (
+                  history.map((apt) => {
+                    const aptPrescriptions = getPrescriptionsForApt(apt);
+                    return (
+                      <div key={apt.id} className="bg-card border border-border rounded-xl p-5 space-y-4">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 rounded-full bg-secondary/50 flex items-center justify-center text-2xl flex-shrink-0">
+                              🩺
+                            </div>
+                            <div>
+                              <p className="font-semibold text-foreground">
+                                {apt.doctorName || "Médecin"}
+                              </p>
+                              <p className="text-xs text-muted-foreground mt-0.5">{apt.reason}</p>
+                            </div>
+                          </div>
+                          {statusBadge(apt.status)}
+                        </div>
 
-            {pending.length > 0 && (
-              <section>
-                <div className="flex items-center gap-2 mb-4">
-                  <RefreshCw size={20} className="text-orange-500" />
-                  <h2 className="text-lg font-bold text-foreground">En attente de confirmation</h2>
-                  <span className="text-xs font-medium bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full">{pending.length}</span>
-                </div>
-                <div className="space-y-3">{pending.map((a) => <Card key={a.id} apt={a} />)}</div>
-              </section>
-            )}
+                        <div className="flex items-center gap-4 text-xs text-muted-foreground bg-secondary/30 rounded-lg px-3 py-2">
+                          <span className="flex items-center gap-1">
+                            <Calendar size={13} />
+                            {fmtDate(apt.date)}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Clock size={13} />
+                            {apt.time}
+                          </span>
+                        </div>
 
-            {past.length > 0 && (
-              <section>
-                <div className="flex items-center gap-2 mb-4">
-                  <Clock size={20} className="text-muted-foreground" />
-                  <h2 className="text-lg font-bold text-foreground">Historique</h2>
-                  <span className="text-xs font-medium bg-muted text-muted-foreground px-2 py-0.5 rounded-full">{past.length}</span>
-                </div>
-                <div className="space-y-3">{past.map((a) => <Card key={a.id} apt={a} />)}</div>
-              </section>
+                        {/* Prescriptions issued for this appointment */}
+                        {aptPrescriptions.length > 0 && (
+                          <div className="space-y-2">
+                            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                              Ordonnances associées
+                            </p>
+                            {aptPrescriptions.map((rx) => {
+                              const created = new Date(rx.createdAt);
+                              const expiry = new Date(created.getTime() + 7 * 24 * 3600000);
+                              const isExpired = new Date() > expiry;
+                              const isPurchased = rx.purchaseStatus === "purchased";
+                              return (
+                                <div key={rx.id} className="border border-border rounded-lg p-3 bg-secondary/10 flex items-center gap-3">
+                                  <div className="flex-1 space-y-1">
+                                    <div className="flex items-center gap-2">
+                                      <FileText size={14} className="text-primary" />
+                                      <span className="text-xs font-medium text-foreground">
+                                        {rx.medicines.map((m) => m.name).join(", ")}
+                                      </span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                                        isPurchased
+                                          ? "bg-green-50 text-green-700"
+                                          : isExpired
+                                            ? "bg-red-50 text-red-700"
+                                            : "bg-yellow-50 text-yellow-700"
+                                      }`}>
+                                        {isPurchased ? "✓ Achetée" : isExpired ? "Expirée" : "En attente"}
+                                      </span>
+                                      <span className="text-xs text-muted-foreground">
+                                        Expire le {expiry.toLocaleDateString("fr-FR")}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <button
+                                      onClick={() => setQrPrescription(rx)}
+                                      className="px-3 py-1.5 text-xs font-medium text-primary border border-primary/30 rounded-lg hover:bg-primary/5 transition"
+                                    >
+                                      QR Code
+                                    </button>
+                                    {!isPurchased && !isExpired && (
+                                      <Link
+                                        to="/pharmacy"
+                                        className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition"
+                                      >
+                                        <ShoppingCart size={12} />
+                                        Réserver
+                                      </Link>
+                                    )}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+              </>
             )}
           </div>
         </main>
       </div>
+
+      {/* QR Modal */}
+      {qrPrescription && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-sm shadow-2xl space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-foreground">QR Code Ordonnance</h3>
+              <button
+                onClick={() => setQrPrescription(null)}
+                className="p-1.5 rounded-lg hover:bg-secondary/50 transition text-muted-foreground"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="flex justify-center p-4 bg-white rounded-xl">
+              <QRCodeSVG
+                value={JSON.stringify({
+                  code: qrPrescription.secretCode,
+                  id: qrPrescription.id,
+                })}
+                size={200}
+              />
+            </div>
+            <div className="text-center space-y-1">
+              <p className="font-mono text-sm font-bold text-foreground tracking-widest">
+                {qrPrescription.secretCode}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Présentez ce code en pharmacie
+              </p>
+            </div>
+            <div className="space-y-1">
+              {qrPrescription.medicines.map((m, i) => (
+                <div key={i} className="flex items-center gap-2 text-xs text-foreground bg-secondary/30 rounded px-2 py-1">
+                  <span className="font-medium">{m.name}</span>
+                  {m.dosage && <span className="text-muted-foreground">— {m.dosage}</span>}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

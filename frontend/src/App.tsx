@@ -1,4 +1,5 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { useEffect } from "react";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 
 // Public pages
@@ -17,6 +18,7 @@ import PolitiquePage from "@/src/pages/politique-confidentialite/PolitiquePage";
 import AccessibilitePage from "@/src/pages/accessibilite/AccessibilitePage";
 import ParamedicalPage from "@/src/pages/paramedical/ParamedicalPage";
 import ParamedicalProductPage from "@/src/pages/paramedical/product/ParamedicalProductPage";
+import ParamedicalServicesPage from "@/src/pages/paramedical-services/ParamedicalServicesPage";
 import ServicesMediauxPage from "@/src/pages/services-medicaux/ServicesMediauxPage";
 import ServiceMedicalDetailPage from "@/src/pages/services-medicaux/[id]/ServiceMedicalDetailPage";
 import LabosRadiologiePage from "@/src/pages/labos-radiologie/LabosRadiologiePage";
@@ -32,18 +34,22 @@ import AdminPendingPage from "@/src/pages/admin/pending/AdminPendingPage";
 import AdminSuspendedPage from "@/src/pages/admin/suspended/AdminSuspendedPage";
 import AdminStatsPage from "@/src/pages/admin/stats/AdminStatsPage";
 import AdminSettingsPage from "@/src/pages/admin/settings/AdminSettingsPage";
+import AdminNewsletterPage from "@/src/pages/admin/newsletter/AdminNewsletterPage";
+import AdminTestimonialsPage from "@/src/pages/admin/testimonials/AdminTestimonialsPage";
+import AdminParamedicalServicesPage from "@/src/pages/admin/paramedical-services/AdminParamedicalServicesPage";
 
 // Patient dashboard
 import DashboardPage from "@/src/pages/dashboard/DashboardPage";
 import DashboardAppointmentsPage from "@/src/pages/dashboard/appointments/AppointmentsPage";
-import DashboardConsultationsPage from "@/src/pages/dashboard/consultations/ConsultationsPage";
-import PatientLiveConsultationPage from "@/src/pages/dashboard/consultations/PatientLiveConsultationPage";
 import DashboardMedicalRecordsPage from "@/src/pages/dashboard/medical-records/MedicalRecordsPage";
-import DashboardNotificationsPage from "@/src/pages/dashboard/notifications/NotificationsPage";
 import DashboardPrescriptionsPage from "@/src/pages/dashboard/prescriptions/PrescriptionsPage";
 import DashboardProfilePage from "@/src/pages/dashboard/profile/ProfilePage";
 import DashboardSettingsPage from "@/src/pages/dashboard/settings/SettingsPage";
 import DashboardMessagesPage from "@/src/pages/dashboard/messages/PatientMessagesPage";
+import ParapharmacyOrdersPage from "@/src/pages/dashboard/parapharmacy-orders/ParapharmacyOrdersPage";
+import ParapharmacyHistoryPage from "@/src/pages/dashboard/parapharmacy-history/ParapharmacyHistoryPage";
+import MedServicesAppointmentsPage from "@/src/pages/dashboard/appointments/MedServicesAppointmentsPage";
+import PatientLabAppointmentsPage from "@/src/pages/dashboard/appointments/LabAppointmentsPage";
 
 // Doctor dashboard
 import DoctorDashboardPage from "@/src/pages/doctor-dashboard/DoctorDashboardPage";
@@ -71,9 +77,11 @@ import PrescriptionLookupPage from "@/src/pages/pharmacy-dashboard/prescriptions
 
 // Lab dashboard
 import LabDashboardPage from "@/src/pages/lab-dashboard/LabDashboardPage";
-import LabResultsPage from "@/src/pages/lab-dashboard/results/LabResultsPage";
-import LabTestsPage from "@/src/pages/lab-dashboard/tests/LabTestsPage";
-import LabComingSoonPage from "@/src/pages/lab-dashboard/LabComingSoonPage";
+import LabSettingsPage from "@/src/pages/lab-dashboard/settings/LabSettingsPage";
+import LabSchedulePage from "@/src/pages/lab-dashboard/schedule/LabSchedulePage";
+import LabAppointmentsPage from "@/src/pages/lab-dashboard/appointments/LabAppointmentsPage";
+import LabPatientsPage from "@/src/pages/lab-dashboard/patients/LabPatientsPage";
+import LabPatientDetailPage from "@/src/pages/lab-dashboard/patients/LabPatientDetailPage";
 
 // Medical service dashboard
 import MedicalServiceDashboardPage from "@/src/pages/medical-service-dashboard/MedicalServiceDashboardPage";
@@ -82,6 +90,7 @@ import MedicalServicePatientsPage from "@/src/pages/medical-service-dashboard/pa
 import MedicalServicePrescriptionsPage from "@/src/pages/medical-service-dashboard/prescriptions/MedicalServicePrescriptionsPage";
 import MedicalServiceSchedulePage from "@/src/pages/medical-service-dashboard/schedule/SchedulePage";
 import MedicalServiceSettingsPage from "@/src/pages/medical-service-dashboard/settings/MedicalServiceSettingsPage";
+import MedicalServiceAppointmentsPage from "@/src/pages/medical-service-dashboard/appointments/MedicalServiceAppointmentsPage";
 
 
 // Paramedical dashboard
@@ -91,240 +100,231 @@ import ParamedicalSettingsPage from "@/src/pages/paramedical-dashboard/settings/
 import ParamedicalStockPage from "@/src/pages/paramedical-dashboard/stock/StockPage";
 import ParamedicalOrdersPage from "@/src/pages/paramedical-dashboard/orders/ParamedicalOrdersPage";
 
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => { window.scrollTo({ top: 0, behavior: "instant" as ScrollBehavior }); }, [pathname]);
+  return null;
+}
+
 export default function App() {
   return (
-    <Routes>
-      {/* Public */}
-      <Route path="/" element={<HomePage />} />
-      <Route path="/login" element={<LoginPage />} />
-      <Route path="/login-test-data" element={<LoginTestDataPage />} />
-      <Route path="/register" element={<RegisterPage />} />
-      <Route path="/doctors" element={<DoctorsPage />} />
-      <Route path="/doctor/:id" element={<DoctorDetailPage />} />
-      <Route path="/guide" element={<GuidePage />} />
-      <Route path="/consultation" element={<ConsultationPage />} />
-      <Route path="/welcome" element={<WelcomePage />} />
-      <Route path="/account-review" element={<AccountReviewPage />} />
-      <Route path="/conditions-utilisation" element={<ConditionsPage />} />
-      <Route path="/politique-confidentialite" element={<PolitiquePage />} />
-      <Route path="/accessibilite" element={<AccessibilitePage />} />
+    <>
+      <ScrollToTop />
+      <Routes>
+        {/* Public */}
+        <Route path="/" element={<HomePage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/login-test-data" element={<LoginTestDataPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/doctors" element={<DoctorsPage />} />
+        <Route path="/doctor/:id" element={<DoctorDetailPage />} />
+        <Route path="/guide" element={<GuidePage />} />
+        <Route path="/consultation" element={<ConsultationPage />} />
+        <Route path="/welcome" element={<WelcomePage />} />
+        <Route path="/account-review" element={<AccountReviewPage />} />
+        <Route path="/conditions-utilisation" element={<ConditionsPage />} />
+        <Route path="/politique-confidentialite" element={<PolitiquePage />} />
+        <Route path="/accessibilite" element={<AccessibilitePage />} />
 
-      {/* Paramédicaux — catalogue & détail produit */}
-      <Route path="/paramedical" element={<ParamedicalPage />} />
-      <Route
-        path="/paramedical/product/:id"
-        element={<ParamedicalProductPage />}
-      />
+        {/* Parapharmacy — catalogue produits */}
+        <Route path="/parapharmacy" element={<ParamedicalPage />} />
+        <Route
+          path="/parapharmacy/product/:id"
+          element={<ParamedicalProductPage />}
+        />
+        {/* Paramédicaux & Soins — annuaire de prestataires */}
+        <Route path="/paramedical-services" element={<ParamedicalServicesPage />} />
 
-      {/* Services Médicaux — listing & detail */}
-      <Route path="/services-medicaux" element={<ServicesMediauxPage />} />
-      <Route
-        path="/services-medicaux/:id"
-        element={<ServiceMedicalDetailPage />}
-      />
+        {/* Services Médicaux — listing & detail */}
+        <Route path="/services-medicaux" element={<ServicesMediauxPage />} />
+        <Route
+          path="/services-medicaux/:id"
+          element={<ServiceMedicalDetailPage />}
+        />
 
-      {/* Labos & Radiologie — listing & detail */}
-      <Route path="/labos-radiologie" element={<LabosRadiologiePage />} />
-      <Route path="/labos-radiologie/:id" element={<LaboDetailPage />} />
+        {/* Labos & Radiologie — listing & detail */}
+        <Route path="/labos-radiologie" element={<LabosRadiologiePage />} />
+        <Route path="/labos-radiologie/:id" element={<LaboDetailPage />} />
 
-      {/* Admin */}
-      <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><AdminPage /></ProtectedRoute>} />
-      <Route path="/admin/users" element={<ProtectedRoute requiredRole="admin"><AdminUsersPage /></ProtectedRoute>} />
-      <Route path="/admin/pending" element={<ProtectedRoute requiredRole="admin"><AdminPendingPage /></ProtectedRoute>} />
-      <Route path="/admin/suspended" element={<ProtectedRoute requiredRole="admin"><AdminSuspendedPage /></ProtectedRoute>} />
-      <Route path="/admin/stats" element={<ProtectedRoute requiredRole="admin"><AdminStatsPage /></ProtectedRoute>} />
-      <Route path="/admin/settings" element={<ProtectedRoute requiredRole="admin"><AdminSettingsPage /></ProtectedRoute>} />
+        {/* Admin */}
+        <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><AdminPage /></ProtectedRoute>} />
+        <Route path="/admin/users" element={<ProtectedRoute requiredRole="admin"><AdminUsersPage /></ProtectedRoute>} />
+        <Route path="/admin/pending" element={<ProtectedRoute requiredRole="admin"><AdminPendingPage /></ProtectedRoute>} />
+        <Route path="/admin/suspended" element={<ProtectedRoute requiredRole="admin"><AdminSuspendedPage /></ProtectedRoute>} />
+        <Route path="/admin/stats" element={<ProtectedRoute requiredRole="admin"><AdminStatsPage /></ProtectedRoute>} />
+        <Route path="/admin/settings" element={<ProtectedRoute requiredRole="admin"><AdminSettingsPage /></ProtectedRoute>} />
+        <Route path="/admin/newsletter" element={<ProtectedRoute requiredRole="admin"><AdminNewsletterPage /></ProtectedRoute>} />
+        <Route path="/admin/testimonials" element={<ProtectedRoute requiredRole="admin"><AdminTestimonialsPage /></ProtectedRoute>} />
+        <Route path="/admin/paramedical-services" element={<ProtectedRoute requiredRole="admin"><AdminParamedicalServicesPage /></ProtectedRoute>} />
 
-      {/* Patient dashboard */}
-      <Route path="/dashboard" element={<ProtectedRoute requiredRole="patient"><DashboardPage /></ProtectedRoute>} />
-      <Route
-        path="/dashboard/appointments"
-        element={<ProtectedRoute requiredRole="patient"><DashboardAppointmentsPage /></ProtectedRoute>}
-      />
-      <Route
-        path="/dashboard/consultations"
-        element={<ProtectedRoute requiredRole="patient"><DashboardConsultationsPage /></ProtectedRoute>}
-      />
-      <Route
-        path="/dashboard/live-consultation"
-        element={<ProtectedRoute requiredRole="patient"><PatientLiveConsultationPage /></ProtectedRoute>}
-      />
+        {/* Patient dashboard */}
+        <Route path="/dashboard" element={<ProtectedRoute requiredRole="patient"><DashboardPage /></ProtectedRoute>} />
+        <Route
+          path="/dashboard/appointments"
+          element={<ProtectedRoute requiredRole="patient"><DashboardAppointmentsPage /></ProtectedRoute>}
+        />
+        <Route
+          path="/dashboard/medical-records"
+          element={<ProtectedRoute requiredRole="patient"><DashboardMedicalRecordsPage /></ProtectedRoute>}
+        />
+        <Route
+          path="/dashboard/prescriptions"
+          element={<ProtectedRoute requiredRole="patient"><DashboardPrescriptionsPage /></ProtectedRoute>}
+        />
+        <Route path="/dashboard/profile" element={<ProtectedRoute requiredRole="patient"><DashboardProfilePage /></ProtectedRoute>} />
+        <Route path="/dashboard/settings" element={<ProtectedRoute requiredRole="patient"><DashboardSettingsPage /></ProtectedRoute>} />
+        <Route path="/dashboard/messages" element={<ProtectedRoute requiredRole="patient"><DashboardMessagesPage /></ProtectedRoute>} />
+        <Route path="/dashboard/parapharmacy-orders" element={<ProtectedRoute requiredRole="patient"><ParapharmacyOrdersPage /></ProtectedRoute>} />
+        <Route path="/dashboard/parapharmacy-history" element={<ProtectedRoute requiredRole="patient"><ParapharmacyHistoryPage /></ProtectedRoute>} />
+        <Route path="/dashboard/appointments/medical-services" element={<ProtectedRoute requiredRole="patient"><MedServicesAppointmentsPage /></ProtectedRoute>} />
+        <Route path="/dashboard/appointments/labs" element={<ProtectedRoute requiredRole="patient"><PatientLabAppointmentsPage /></ProtectedRoute>} />
 
-      <Route
-        path="/dashboard/medical-records"
-        element={<ProtectedRoute requiredRole="patient"><DashboardMedicalRecordsPage /></ProtectedRoute>}
-      />
-      <Route
-        path="/dashboard/notifications"
-        element={<ProtectedRoute requiredRole="patient"><DashboardNotificationsPage /></ProtectedRoute>}
-      />
-      <Route
-        path="/dashboard/prescriptions"
-        element={<ProtectedRoute requiredRole="patient"><DashboardPrescriptionsPage /></ProtectedRoute>}
-      />
-      <Route path="/dashboard/profile" element={<ProtectedRoute requiredRole="patient"><DashboardProfilePage /></ProtectedRoute>} />
-      <Route path="/dashboard/settings" element={<ProtectedRoute requiredRole="patient"><DashboardSettingsPage /></ProtectedRoute>} />
-      <Route path="/dashboard/messages" element={<ProtectedRoute requiredRole="patient"><DashboardMessagesPage /></ProtectedRoute>} />
+        {/* Doctor dashboard */}
+        <Route path="/doctor-dashboard" element={<ProtectedRoute requiredRole="doctor"><DoctorDashboardPage /></ProtectedRoute>} />
+        <Route path="/doctor-dashboard/agenda" element={<ProtectedRoute requiredRole="doctor"><DoctorAgendaPage /></ProtectedRoute>} />
+        <Route
+          path="/doctor-dashboard/consultations"
+          element={<ProtectedRoute requiredRole="doctor"><DoctorConsultationsPage /></ProtectedRoute>}
+        />
+        <Route
+          path="/doctor-dashboard/live-consultation"
+          element={<ProtectedRoute requiredRole="doctor"><LiveConsultationPage /></ProtectedRoute>}
+        />
+        <Route
+          path="/doctor-dashboard/patients"
+          element={<ProtectedRoute requiredRole="doctor"><DoctorPatientsPage /></ProtectedRoute>}
+        />
+        <Route
+          path="/doctor-dashboard/prescriptions"
+          element={<ProtectedRoute requiredRole="doctor"><DoctorPrescriptionsPage /></ProtectedRoute>}
+        />
+        <Route path="/doctor-dashboard/revenue" element={<ProtectedRoute requiredRole="doctor"><DoctorRevenuePage /></ProtectedRoute>} />
+        <Route
+          path="/doctor-dashboard/settings"
+          element={<ProtectedRoute requiredRole="doctor"><DoctorSettingsPage /></ProtectedRoute>}
+        />
+        <Route
+          path="/doctor-dashboard/messaging"
+          element={<ProtectedRoute requiredRole="doctor"><DoctorMessagingPage /></ProtectedRoute>}
+        />
+        <Route
+          path="/doctor-dashboard/patient-dossier/:patientId"
+          element={<ProtectedRoute requiredRole="doctor"><PatientDossierPage /></ProtectedRoute>}
+        />
 
-      {/* Doctor dashboard */}
-      <Route path="/doctor-dashboard" element={<ProtectedRoute requiredRole="doctor"><DoctorDashboardPage /></ProtectedRoute>} />
-      <Route path="/doctor-dashboard/agenda" element={<ProtectedRoute requiredRole="doctor"><DoctorAgendaPage /></ProtectedRoute>} />
-      <Route
-        path="/doctor-dashboard/consultations"
-        element={<ProtectedRoute requiredRole="doctor"><DoctorConsultationsPage /></ProtectedRoute>}
-      />
-      <Route
-        path="/doctor-dashboard/live-consultation"
-        element={<ProtectedRoute requiredRole="doctor"><LiveConsultationPage /></ProtectedRoute>}
-      />
-      <Route
-        path="/doctor-dashboard/patients"
-        element={<ProtectedRoute requiredRole="doctor"><DoctorPatientsPage /></ProtectedRoute>}
-      />
-      <Route
-        path="/doctor-dashboard/prescriptions"
-        element={<ProtectedRoute requiredRole="doctor"><DoctorPrescriptionsPage /></ProtectedRoute>}
-      />
-      <Route path="/doctor-dashboard/revenue" element={<ProtectedRoute requiredRole="doctor"><DoctorRevenuePage /></ProtectedRoute>} />
-      <Route
-        path="/doctor-dashboard/settings"
-        element={<ProtectedRoute requiredRole="doctor"><DoctorSettingsPage /></ProtectedRoute>}
-      />
-      <Route
-        path="/doctor-dashboard/messaging"
-        element={<ProtectedRoute requiredRole="doctor"><DoctorMessagingPage /></ProtectedRoute>}
-      />
-      <Route
-        path="/doctor-dashboard/patient-dossier/:patientId"
-        element={<ProtectedRoute requiredRole="doctor"><PatientDossierPage /></ProtectedRoute>}
-      />
+        {/* Pharmacy (public) */}
+        <Route path="/pharmacy" element={<PharmacyPage />} />
 
-      {/* Pharmacy (public) */}
-      <Route path="/pharmacy" element={<PharmacyPage />} />
+        {/* Pharmacy dashboard */}
+        <Route path="/pharmacy-dashboard" element={<ProtectedRoute requiredRole="pharmacy"><PharmacyDashboardPage /></ProtectedRoute>} />
+        <Route
+          path="/pharmacy-dashboard/orders"
+          element={<ProtectedRoute requiredRole="pharmacy"><PharmacyDashboardOrdersPage /></ProtectedRoute>}
+        />
+        <Route
+          path="/pharmacy-dashboard/supplier-orders"
+          element={<ProtectedRoute requiredRole="pharmacy"><PharmacySupplierOrdersPage /></ProtectedRoute>}
+        />
+        <Route
+          path="/pharmacy-dashboard/sales"
+          element={<ProtectedRoute requiredRole="pharmacy"><PharmacyDashboardSalesPage /></ProtectedRoute>}
+        />
+        <Route
+          path="/pharmacy-dashboard/stock"
+          element={<ProtectedRoute requiredRole="pharmacy"><PharmacyDashboardStockPage /></ProtectedRoute>}
+        />
+        <Route
+          path="/pharmacy-dashboard/prescriptions"
+          element={<ProtectedRoute requiredRole="pharmacy"><PrescriptionLookupPage /></ProtectedRoute>}
+        />
+        <Route
+          path="/pharmacy-dashboard/settings"
+          element={<ProtectedRoute requiredRole="pharmacy"><PharmacyDashboardSettingsPage /></ProtectedRoute>}
+        />
 
-      {/* Pharmacy dashboard */}
-      <Route path="/pharmacy-dashboard" element={<ProtectedRoute requiredRole="pharmacy"><PharmacyDashboardPage /></ProtectedRoute>} />
-      <Route
-        path="/pharmacy-dashboard/orders"
-        element={<ProtectedRoute requiredRole="pharmacy"><PharmacyDashboardOrdersPage /></ProtectedRoute>}
-      />
-      <Route
-        path="/pharmacy-dashboard/supplier-orders"
-        element={<ProtectedRoute requiredRole="pharmacy"><PharmacySupplierOrdersPage /></ProtectedRoute>}
-      />
-      <Route
-        path="/pharmacy-dashboard/sales"
-        element={<ProtectedRoute requiredRole="pharmacy"><PharmacyDashboardSalesPage /></ProtectedRoute>}
-      />
-      <Route
-        path="/pharmacy-dashboard/stock"
-        element={<ProtectedRoute requiredRole="pharmacy"><PharmacyDashboardStockPage /></ProtectedRoute>}
-      />
-      <Route
-        path="/pharmacy-dashboard/prescriptions"
-        element={<ProtectedRoute requiredRole="pharmacy"><PrescriptionLookupPage /></ProtectedRoute>}
-      />
-      <Route
-        path="/pharmacy-dashboard/settings"
-        element={<ProtectedRoute requiredRole="pharmacy"><PharmacyDashboardSettingsPage /></ProtectedRoute>}
-      />
+        {/* Lab dashboard */}
+        <Route path="/lab-dashboard" element={<ProtectedRoute requiredRole="lab_radiology"><LabDashboardPage /></ProtectedRoute>} />
+        <Route path="/lab-dashboard/patients" element={<ProtectedRoute requiredRole="lab_radiology"><LabPatientsPage /></ProtectedRoute>} />
+        <Route path="/lab-dashboard/patients/:id" element={<ProtectedRoute requiredRole="lab_radiology"><LabPatientDetailPage /></ProtectedRoute>} />
+        <Route path="/lab-dashboard/appointments" element={<ProtectedRoute requiredRole="lab_radiology"><LabAppointmentsPage /></ProtectedRoute>} />
+        <Route path="/lab-dashboard/settings" element={<ProtectedRoute requiredRole="lab_radiology"><LabSettingsPage /></ProtectedRoute>} />
+        <Route path="/lab-dashboard/schedule" element={<ProtectedRoute requiredRole="lab_radiology"><LabSchedulePage /></ProtectedRoute>} />
 
-      {/* Lab dashboard */}
-      <Route path="/lab-dashboard" element={<ProtectedRoute requiredRole="lab_radiology"><LabDashboardPage /></ProtectedRoute>} />
-      <Route
-        path="/lab-dashboard/results"
-        element={
-          <ProtectedRoute requiredRole="lab_radiology">
-            <LabResultsPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/lab-dashboard/tests"
-        element={
-          <ProtectedRoute requiredRole="lab_radiology">
-            <LabTestsPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route path="/lab-dashboard/imaging" element={<ProtectedRoute requiredRole="lab_radiology"><LabComingSoonPage /></ProtectedRoute>} />
-      <Route path="/lab-dashboard/patients" element={<ProtectedRoute requiredRole="lab_radiology"><LabComingSoonPage /></ProtectedRoute>} />
-      <Route path="/lab-dashboard/appointments" element={<ProtectedRoute requiredRole="lab_radiology"><LabComingSoonPage /></ProtectedRoute>} />
-      <Route path="/lab-dashboard/billing" element={<ProtectedRoute requiredRole="lab_radiology"><LabComingSoonPage /></ProtectedRoute>} />
-      <Route path="/lab-dashboard/messaging" element={<ProtectedRoute requiredRole="lab_radiology"><LabComingSoonPage /></ProtectedRoute>} />
-      <Route path="/lab-dashboard/analytics" element={<ProtectedRoute requiredRole="lab_radiology"><LabComingSoonPage /></ProtectedRoute>} />
-      <Route path="/lab-dashboard/settings" element={<ProtectedRoute requiredRole="lab_radiology"><LabComingSoonPage /></ProtectedRoute>} />
+        {/* Medical service dashboard */}
+        <Route
+          path="/medical-service-dashboard"
+          element={<ProtectedRoute requiredRole="medical_service"><MedicalServiceDashboardPage /></ProtectedRoute>}
+        />
+        <Route
+          path="/medical-service-dashboard/analytics"
+          element={<ProtectedRoute requiredRole="medical_service"><MedicalServiceAnalyticsPage /></ProtectedRoute>}
+        />
+        <Route
+          path="/medical-service-dashboard/patients"
+          element={<ProtectedRoute requiredRole="medical_service"><MedicalServicePatientsPage /></ProtectedRoute>}
+        />
+        <Route
+          path="/medical-service-dashboard/prescriptions"
+          element={<ProtectedRoute requiredRole="medical_service"><MedicalServicePrescriptionsPage /></ProtectedRoute>}
+        />
+        <Route
+          path="/medical-service-dashboard/schedule"
+          element={<ProtectedRoute requiredRole="medical_service"><MedicalServiceSchedulePage /></ProtectedRoute>}
+        />
+        <Route
+          path="/medical-service-dashboard/appointments"
+          element={<ProtectedRoute requiredRole="medical_service"><MedicalServiceAppointmentsPage /></ProtectedRoute>}
+        />
+        <Route
+          path="/medical-service-dashboard/settings"
+          element={<ProtectedRoute requiredRole="medical_service"><MedicalServiceSettingsPage /></ProtectedRoute>}
+        />
 
-      {/* Medical service dashboard */}
-      <Route
-        path="/medical-service-dashboard"
-        element={<ProtectedRoute requiredRole="medical_service"><MedicalServiceDashboardPage /></ProtectedRoute>}
-      />
-      <Route
-        path="/medical-service-dashboard/analytics"
-        element={<ProtectedRoute requiredRole="medical_service"><MedicalServiceAnalyticsPage /></ProtectedRoute>}
-      />
-      <Route
-        path="/medical-service-dashboard/patients"
-        element={<ProtectedRoute requiredRole="medical_service"><MedicalServicePatientsPage /></ProtectedRoute>}
-      />
-      <Route
-        path="/medical-service-dashboard/prescriptions"
-        element={<ProtectedRoute requiredRole="medical_service"><MedicalServicePrescriptionsPage /></ProtectedRoute>}
-      />
-      <Route
-        path="/medical-service-dashboard/schedule"
-        element={<ProtectedRoute requiredRole="medical_service"><MedicalServiceSchedulePage /></ProtectedRoute>}
-      />
-      <Route
-        path="/medical-service-dashboard/settings"
-        element={<ProtectedRoute requiredRole="medical_service"><MedicalServiceSettingsPage /></ProtectedRoute>}
-      />
+        {/* Paramedical dashboard */}
+        <Route
+          path="/paramedical-dashboard"
+          element={
+            <ProtectedRoute requiredRole="paramedical">
+              <ParamedicalDashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/paramedical-dashboard/clients"
+          element={
+            <ProtectedRoute requiredRole="paramedical">
+              <ParamedicalClientsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/paramedical-dashboard/stock"
+          element={
+            <ProtectedRoute requiredRole="paramedical">
+              <ParamedicalStockPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/paramedical-dashboard/orders"
+          element={
+            <ProtectedRoute requiredRole="paramedical">
+              <ParamedicalOrdersPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/paramedical-dashboard/settings"
+          element={
+            <ProtectedRoute requiredRole="paramedical">
+              <ParamedicalSettingsPage />
+            </ProtectedRoute>
+          }
+        />
 
-      {/* Paramedical dashboard */}
-      <Route
-        path="/paramedical-dashboard"
-        element={
-          <ProtectedRoute requiredRole="paramedical">
-            <ParamedicalDashboardPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/paramedical-dashboard/clients"
-        element={
-          <ProtectedRoute requiredRole="paramedical">
-            <ParamedicalClientsPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/paramedical-dashboard/stock"
-        element={
-          <ProtectedRoute requiredRole="paramedical">
-            <ParamedicalStockPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/paramedical-dashboard/orders"
-        element={
-          <ProtectedRoute requiredRole="paramedical">
-            <ParamedicalOrdersPage />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/paramedical-dashboard/settings"
-        element={
-          <ProtectedRoute requiredRole="paramedical">
-            <ParamedicalSettingsPage />
-          </ProtectedRoute>
-        }
-      />
-
-      {/* 404 fallback */}
-      <Route path="*" element={<NotFoundPage />} />
-    </Routes>
+        {/* 404 fallback */}
+        <Route path="*" element={<NotFoundPage />} />
+      </Routes>
+    </>
   );
 }

@@ -3,16 +3,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { DoctorDashboardSidebar } from "@/components/DoctorDashboardSidebar";
 import {
-  Plus,
   Download,
   Eye,
   X,
   CheckCircle,
-  Trash2,
   FileText,
 } from "lucide-react";
-
-type TabFilter = "Toutes" | "Validée";
 
 interface Medicine {
   name: string;
@@ -27,33 +23,20 @@ interface RxData {
   createdAt: string;
 }
 
-interface PatientOption {
-  id: string;
-  name: string;
-}
-
 const STATUS_CFG = {
   badgeCls: "bg-green-100 text-green-700",
   icon: <CheckCircle size={13} className="text-green-600" />,
   borderCls: "border-l-green-500",
 };
 
-const EMPTY_FORM = { patientId: "" };
-
 export default function DoctorPrescriptionsPage() {
   const { user, isLoading, isAuthenticated } = useAuth();
   const navigate = useNavigate();
-  const [tab, setTab] = useState<TabFilter>("Toutes");
-  const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState(EMPTY_FORM);
-  const [medicines, setMedicines] = useState<Medicine[]>([
-    { name: "", dosage: "", duration: "" },
-  ]);
+  const [tab, setTab] = useState<"Toutes" | "Validée">("Toutes");
   const [prescriptions, setPrescriptions] = useState<RxData[]>([]);
   const [patientNames, setPatientNames] = useState<Record<string, string>>({});
-  const [patients, setPatients] = useState<PatientOption[]>([]);
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
+  const [viewingRx, setViewingRx] = useState<RxData | null>(null);
 
   const fetchPrescriptions = useCallback(async () => {
     const token = localStorage.getItem("megacare_token");
@@ -105,31 +88,6 @@ export default function DoctorPrescriptionsPage() {
     setLoading(false);
   }, []);
 
-  const fetchPatients = useCallback(async () => {
-    const token = localStorage.getItem("megacare_token");
-    if (!token) return;
-    try {
-      const res = await fetch("/api/users", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const json = await res.json();
-        const data = Array.isArray(json) ? json : (json.data ?? []);
-        setPatients(
-          data
-            .filter((u: any) => u.role === "patient")
-            .map((u: any) => ({
-              id: String(u.id || u._id),
-              name:
-                `${u.firstName || ""} ${u.lastName || ""}`.trim() || u.email,
-            })),
-        );
-      }
-    } catch {
-      /* ignore */
-    }
-  }, []);
-
   useEffect(() => {
     if (!isLoading && (!isAuthenticated || !user || user.role !== "doctor")) {
       navigate("/login");
@@ -139,59 +97,37 @@ export default function DoctorPrescriptionsPage() {
   useEffect(() => {
     if (!isLoading && isAuthenticated && user?.role === "doctor") {
       fetchPrescriptions();
-      fetchPatients();
     }
-  }, [isLoading, isAuthenticated, user, fetchPrescriptions, fetchPatients]);
+  }, [isLoading, isAuthenticated, user, fetchPrescriptions]);
 
   if (isLoading || !isAuthenticated || !user || user.role !== "doctor")
     return null;
 
-  const filtered = prescriptions; // all from API are "Validée"
+  const filtered = prescriptions;
+  const countOf = () => prescriptions.length;
 
-  const countOf = (s: TabFilter) => prescriptions.length; // all same
+  const doctorLabel = user
+    ? `Dr. ${user.firstName ?? ""} ${user.lastName ?? ""}`.trim()
+    : "Médecin";
 
-  const addMedicineRow = () =>
-    setMedicines((prev) => [...prev, { name: "", dosage: "", duration: "" }]);
-
-  const removeMedicineRow = (i: number) =>
-    setMedicines((prev) => prev.filter((_, idx) => idx !== i));
-
-  const updateMedicine = (
-    i: number,
-    field: keyof Medicine,
-    value: string,
-  ) => {
-    setMedicines((prev) =>
-      prev.map((m, idx) => (idx === i ? { ...m, [field]: value } : m)),
-    );
+  const handleDownload = (rx: RxData) => {
+    const patientLabel = rx.patientId
+      ? patientNames[rx.patientId] || "Patient"
+      : "Sans patient";
+    const displayId = `ORD-${rx.id.slice(0, 7).toUpperCase()}`;
+    const displayDate = new Date(rx.createdAt).toLocaleDateString("fr-FR");
+    const medicineRows = rx.medicines
+      .map((m) => `<tr><td style="padding:6px 12px;border-bottom:1px solid #e5e7eb">${m.name}</td><td style="padding:6px 12px;border-bottom:1px solid #e5e7eb">${m.dosage || "—"}</td><td style="padding:6px 12px;border-bottom:1px solid #e5e7eb">${m.duration || "—"}</td></tr>`)
+      .join("");
+    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Ordonnance ${displayId}</title><style>body{font-family:Arial,sans-serif;max-width:700px;margin:40px auto;color:#111}h1{font-size:20px}th{text-align:left;background:#f3f4f6;padding:6px 12px}table{border-collapse:collapse;width:100%}.footer{margin-top:40px;font-size:12px;color:#6b7280}</style></head><body><h1>Ordonnance Médicale</h1><p><strong>${doctorLabel}</strong></p><hr/><p><strong>Patient :</strong> ${patientLabel}<br/><strong>Référence :</strong> ${displayId}<br/><strong>Date :</strong> ${displayDate}</p><h3>Médicaments prescrits</h3><table><thead><tr><th>Médicament</th><th>Posologie</th><th>Durée</th></tr></thead><tbody>${medicineRows}</tbody></table><div class="footer"><p>Document généré par MegaCare — À conserver.</p></div></body></html>`;
+    const blob = new Blob([html], { type: "text/html" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `ordonnance-${displayId}.html`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!form.patientId || medicines.some((m) => !m.name.trim())) return;
-    const token = localStorage.getItem("megacare_token");
-    setSubmitting(true);
-    try {
-      const res = await fetch("/api/prescriptions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ patientId: form.patientId, medicines }),
-      });
-      if (res.ok) {
-        await fetchPrescriptions();
-        setShowModal(false);
-        setForm(EMPTY_FORM);
-        setMedicines([{ name: "", dosage: "", duration: "" }]);
-      }
-    } catch {
-      /* ignore */
-    }
-    setSubmitting(false);
-  };
-
 
   return (
     <div className="min-h-screen bg-background">
@@ -202,70 +138,46 @@ export default function DoctorPrescriptionsPage() {
 
         <main className="flex-1 overflow-auto">
           {/* Sticky Header */}
-          <div className="bg-card border-b border-border p-6 sticky top-0 z-10 flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-foreground">
-                Ordonnances
-              </h1>
-              <p className="text-muted-foreground mt-1">
-                {loading ? "Chargement..." : `${prescriptions.length} ordonnances émises`}
-              </p>
-            </div>
-            <button
-              onClick={() => setShowModal(true)}
-              className="flex items-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition font-medium text-sm"
-            >
-              <Plus size={16} />
-              Nouvelle ordonnance
-            </button>
+          <div className="bg-card border-b border-border p-6 sticky top-0 z-10">
+            <h1 className="text-3xl font-bold text-foreground">Ordonnances</h1>
+            <p className="text-muted-foreground mt-1">
+              {loading ? "Chargement..." : `${prescriptions.length} ordonnance${prescriptions.length !== 1 ? "s" : ""} émise${prescriptions.length !== 1 ? "s" : ""} — générées depuis les consultations`}
+            </p>
           </div>
 
           <div className="p-6 space-y-5">
             {/* Stats */}
-            <div className="grid grid-cols-3 sm:grid-cols-3 gap-4">
-              {(["Toutes", "Validée"] as TabFilter[]).map(
-                (s) => (
-                  <div
-                    key={s}
-                    onClick={() => setTab(s)}
-                    className={`bg-card border rounded-xl p-4 text-center cursor-pointer transition hover:shadow-md ${tab === s
-                      ? "border-primary ring-2 ring-primary/20"
-                      : "border-border"
-                      }`}
-                  >
-                    <p
-                      className={`text-2xl font-bold ${s === "Validée"
-                        ? "text-green-600"
-                        : "text-foreground"
-                        }`}
-                    >
-                      {countOf(s)}
-                    </p>
-                    <p className="text-sm text-muted-foreground mt-0.5">{s}</p>
-                  </div>
-                ),
-              )}
+            <div className="grid grid-cols-2 sm:grid-cols-2 gap-4">
+              {(["Toutes", "Validée"] as const).map((s) => (
+                <div
+                  key={s}
+                  onClick={() => setTab(s)}
+                  className={`bg-card border rounded-xl p-4 text-center cursor-pointer transition hover:shadow-md ${tab === s ? "border-primary ring-2 ring-primary/20" : "border-border"
+                    }`}
+                >
+                  <p className={`text-2xl font-bold ${s === "Validée" ? "text-green-600" : "text-foreground"}`}>
+                    {prescriptions.length}
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-0.5">{s}</p>
+                </div>
+              ))}
             </div>
 
             {/* Filter Tabs */}
             <div className="flex gap-2 flex-wrap">
-              {(["Toutes", "Validée"] as TabFilter[]).map(
-                (s) => (
-                  <button
-                    key={s}
-                    onClick={() => setTab(s)}
-                    className={`px-4 py-1.5 rounded-full text-sm font-medium transition ${tab === s
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-muted-foreground hover:bg-muted/70"
-                      }`}
-                  >
-                    {s}
-                    <span className="ml-1.5 text-xs opacity-75">
-                      ({countOf(s)})
-                    </span>
-                  </button>
-                ),
-              )}
+              {(["Toutes", "Validée"] as const).map((s) => (
+                <button
+                  key={s}
+                  onClick={() => setTab(s)}
+                  className={`px-4 py-1.5 rounded-full text-sm font-medium transition ${tab === s
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted text-muted-foreground hover:bg-muted/70"
+                    }`}
+                >
+                  {s}
+                  <span className="ml-1.5 text-xs opacity-75">({prescriptions.length})</span>
+                </button>
+              ))}
             </div>
 
             {/* Prescription Cards */}
@@ -312,10 +224,18 @@ export default function DoctorPrescriptionsPage() {
                           </p>
                         </div>
                         <div className="flex gap-2">
-                          <button className="p-2 rounded-lg border border-border hover:bg-muted transition">
+                          <button
+                            onClick={() => setViewingRx(rx)}
+                            title="Voir"
+                            className="p-2 rounded-lg border border-border hover:bg-muted transition"
+                          >
                             <Eye size={16} className="text-muted-foreground" />
                           </button>
-                          <button className="p-2 rounded-lg border border-border hover:bg-muted transition">
+                          <button
+                            onClick={() => handleDownload(rx)}
+                            title="Télécharger"
+                            className="p-2 rounded-lg border border-border hover:bg-muted transition"
+                          >
                             <Download size={16} className="text-muted-foreground" />
                           </button>
                         </div>
@@ -353,143 +273,82 @@ export default function DoctorPrescriptionsPage() {
         </main>
       </div>
 
-      {/* New Prescription Modal */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-            onClick={() => setShowModal(false)}
-          />
-          <div className="relative bg-card rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between p-6 border-b border-border">
-              <div className="flex items-center gap-2">
-                <FileText size={20} className="text-primary" />
-                <h2 className="text-xl font-bold text-foreground">
-                  Nouvelle ordonnance
-                </h2>
-              </div>
-              <button
-                onClick={() => setShowModal(false)}
-                className="p-2 hover:bg-muted rounded-lg transition"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            {/* Modal Body */}
-            <form
-              onSubmit={handleSubmit}
-              className="flex-1 overflow-y-auto p-6 space-y-5"
-            >
-              <div className="grid grid-cols-2 gap-4">
-                <div className="col-span-2 space-y-1">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                    Patient *
-                  </label>
-                  <select
-                    required
-                    value={form.patientId}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, patientId: e.target.value }))
-                    }
-                    className="w-full border border-border rounded-lg px-3 py-2 bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/30 text-sm"
-                  >
-                    <option value="">Sélectionner un patient</option>
-                    {patients.map((p) => (
-                      <option key={p.id} value={p.id}>
-                        {p.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="col-span-2 space-y-1">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                      Médicaments *
-                    </label>
-                    <button
-                      type="button"
-                      onClick={addMedicineRow}
-                      className="flex items-center gap-1 text-xs text-primary hover:underline"
-                    >
-                      <Plus size={12} /> Ajouter
-                    </button>
+      {/* View Prescription Modal */}
+      {viewingRx && (() => {
+        const rx = viewingRx;
+        const patientLabel = rx.patientId ? patientNames[rx.patientId] || "Patient" : "Sans patient";
+        const displayId = `ORD-${rx.id.slice(0, 7).toUpperCase()}`;
+        const displayDate = new Date(rx.createdAt).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setViewingRx(null)} />
+            <div className="relative bg-card rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col overflow-hidden">
+              {/* Header */}
+              <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 bg-green-100 rounded-lg">
+                    <FileText size={18} className="text-green-700" />
                   </div>
-                  <div className="space-y-3">
-                    {medicines.map((m, i) => (
-                      <div
-                        key={i}
-                        className="border border-border rounded-lg p-3 space-y-2 bg-muted/20"
-                      >
-                        <div className="flex items-center gap-2">
-                          <input
-                            required
-                            value={m.name}
-                            onChange={(e) =>
-                              updateMedicine(i, "name", e.target.value)
-                            }
-                            placeholder="Nom du médicament"
-                            className="flex-1 border border-border rounded px-2.5 py-1.5 bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/30 text-sm"
-                          />
-                          {medicines.length > 1 && (
-                            <button
-                              type="button"
-                              onClick={() => removeMedicineRow(i)}
-                              className="p-1 hover:bg-red-50 rounded text-red-400 hover:text-red-600 transition"
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          )}
-                        </div>
-                        <div className="grid grid-cols-2 gap-2">
-                          <input
-                            required
-                            value={m.dosage}
-                            onChange={(e) =>
-                              updateMedicine(i, "dosage", e.target.value)
-                            }
-                            placeholder="Posologie"
-                            className="border border-border rounded px-2.5 py-1.5 bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/30 text-sm"
-                          />
-                          <input
-                            required
-                            value={m.duration}
-                            onChange={(e) =>
-                              updateMedicine(i, "duration", e.target.value)
-                            }
-                            placeholder="Durée"
-                            className="border border-border rounded px-2.5 py-1.5 bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/30 text-sm"
-                          />
+                  <div>
+                    <h2 className="font-bold text-foreground text-base">Ordonnance médicale</h2>
+                    <p className="text-xs text-muted-foreground font-mono">{displayId}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleDownload(rx)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 border border-border rounded-lg hover:bg-muted transition text-xs font-medium"
+                  >
+                    <Download size={13} />
+                    Télécharger
+                  </button>
+                  <button onClick={() => setViewingRx(null)} className="p-2 hover:bg-muted rounded-lg transition">
+                    <X size={16} />
+                  </button>
+                </div>
+              </div>
+
+              {/* Body */}
+              <div className="flex-1 overflow-y-auto p-6 space-y-5">
+                <div className="bg-muted/30 rounded-xl p-4 space-y-1">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Médecin prescripteur</p>
+                  <p className="font-bold text-foreground">{doctorLabel}</p>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Patient</p>
+                    <p className="text-sm font-medium text-foreground">{patientLabel}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1">Date d'émission</p>
+                    <p className="text-sm font-medium text-foreground">{displayDate}</p>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Médicaments prescrits</p>
+                  <div className="space-y-2">
+                    {rx.medicines.map((m, i) => (
+                      <div key={i} className="flex items-start gap-3 bg-background border border-border rounded-xl px-4 py-3">
+                        <span className="w-6 h-6 rounded-full bg-primary/10 text-primary text-xs flex items-center justify-center font-bold shrink-0 mt-0.5">{i + 1}</span>
+                        <div className="flex-1">
+                          <p className="font-semibold text-foreground text-sm">{m.name}</p>
+                          <div className="flex gap-3 mt-0.5">
+                            {m.dosage && <span className="text-xs text-muted-foreground">Posologie : {m.dosage}</span>}
+                            {m.duration && <span className="text-xs text-muted-foreground">Durée : {m.duration}</span>}
+                          </div>
                         </div>
                       </div>
                     ))}
                   </div>
                 </div>
+                <p className="text-xs text-center text-muted-foreground pt-2 border-t border-border">
+                  Document généré par MegaCare — Ce document est strictement confidentiel.
+                </p>
               </div>
-
-              {/* Actions */}
-              <div className="flex gap-3 pt-1">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="flex-1 px-4 py-2.5 border border-border rounded-xl hover:bg-muted transition text-sm font-medium"
-                >
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting || !form.patientId || medicines.some((m) => !m.name.trim())}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-primary text-primary-foreground rounded-xl hover:bg-primary/90 transition text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <FileText size={15} />
-                  {submitting ? "Enregistrement..." : "Émettre l'ordonnance"}
-                </button>
-              </div>
-            </form>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
     </div>
   );
 }

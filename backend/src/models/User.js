@@ -31,6 +31,8 @@ const userSchema = new mongoose.Schema(
     serviceId: String,
     labId: String,
     paramedicalId: String,
+    establishmentId: String,
+    labCenterId: String,
     companyName: String,
     // Location fields (all users)
     governorate: String,
@@ -49,6 +51,7 @@ const userSchema = new mongoose.Schema(
     openingHours: String,
     isOnDuty: { type: Boolean, default: false },
     description: String,
+    gender: { type: String, enum: ["male", "female", "other", ""], default: "" },
   },
   {
     timestamps: true,

@@ -2,6 +2,8 @@ const express = require("express");
 const router = express.Router();
 const authMiddleware = require("../middleware/auth");
 const { randomUUID } = require("crypto");
+const path = require("path");
+const multer = require("multer");
 
 const MedServicePatient = require("../models/MedServicePatient");
 const MedServiceEquipment = require("../models/MedServiceEquipment");
@@ -11,6 +13,27 @@ const MedServiceInvoice = require("../models/MedServiceInvoice");
 const MedServicePrescription = require("../models/MedServicePrescription");
 const MedServiceSettings = require("../models/MedServiceSettings");
 const Vital = require("../models/Vital");
+const MedicalEstablishment = require("../models/MedicalEstablishment");
+const FacilityAvailability = require("../models/FacilityAvailability");
+const FacilityAppointment = require("../models/FacilityAppointment");
+
+// Multer setup — save banner images to uploads/medical-service-banner/
+const bannerStorage = multer.diskStorage({
+    destination: path.join(__dirname, "../uploads/medical-service-banner"),
+    filename: (req, file, cb) => {
+        const ext = path.extname(file.originalname).toLowerCase();
+        cb(null, `banner-${req.user.id}-${Date.now()}${ext}`);
+    },
+});
+const bannerUpload = multer({
+    storage: bannerStorage,
+    limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
+    fileFilter: (req, file, cb) => {
+        const allowed = [".jpg", ".jpeg", ".png", ".webp", ".avif"];
+        if (allowed.includes(path.extname(file.originalname).toLowerCase())) cb(null, true);
+        else cb(new Error("Format non supporté"));
+    },
+});
 
 function medGuard(req, res, next) {
     if (!req.user || req.user.role !== "medical_service")
@@ -402,6 +425,204 @@ router.patch("/settings", auth, async (req, res) => {
         { upsert: true, new: true }
     );
     res.json({ success: true });
+});
+
+/* ---------------------------------------------------------------
+   GET /api/medical-service/establishment
+   Returns the MedicalEstablishment linked to this user account.
+   --------------------------------------------------------------- */
+router.get("/establishment", authMiddleware, medGuard, async (req, res) => {
+    try {
+        const User = require("../models/User");
+        const user = await User.findById(req.user.id).lean();
+        if (!user || !user.establishmentId)
+            return res.json(null);
+        const estab = await MedicalEstablishment.findById(user.establishmentId).lean();
+        if (!estab) return res.json(null);
+        res.json({ ...estab, id: estab._id });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Erreur serveur" });
+    }
+});
+
+/* ---------------------------------------------------------------
+   POST /api/medical-service/banner
+   Uploads a new banner image and updates the establishment record.
+   --------------------------------------------------------------- */
+router.post("/banner", authMiddleware, medGuard, bannerUpload.single("banner"), async (req, res) => {
+    try {
+        if (!req.file) return res.status(400).json({ message: "Aucun fichier reçu" });
+        const User = require("../models/User");
+        const user = await User.findById(req.user.id).lean();
+        if (!user || !user.establishmentId)
+            return res.status(400).json({ message: "Aucun établissement lié à ce compte" });
+        const imageUrl = `/uploads/medical-service-banner/${req.file.filename}`;
+        await MedicalEstablishment.findByIdAndUpdate(user.establishmentId, { $set: { imageUrl } });
+        res.json({ success: true, imageUrl });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Erreur serveur" });
+    }
+});
+
+/* ---------------------------------------------------------------
+   PUT /api/medical-service/establishment
+   Update the public-facing profile of the linked MedicalEstablishment.
+   --------------------------------------------------------------- */
+router.put("/establishment", authMiddleware, medGuard, async (req, res) => {
+    try {
+        const User = require("../models/User");
+        const user = await User.findById(req.user.id).lean();
+        if (!user || !user.establishmentId)
+            return res.status(404).json({ message: "Aucun établissement lié à ce compte" });
+        const ALLOWED = [
+            "name", "address", "phone", "governorate", "city",
+            "description", "services", "accredited", "emergencies",
+            "beds", "doctors", "founded", "mapUrl",
+        ];
+        if (req.body.mapUrl !== undefined && req.body.mapUrl !== "") {
+            if (!/^https?:\/\/.+/.test(req.body.mapUrl))
+                return res.status(400).json({ message: "URL Google Maps invalide (doit commencer par http:// ou https://)" });
+        }
+        const update = {};
+        for (const key of ALLOWED) {
+            if (req.body[key] !== undefined) update[key] = req.body[key];
+        }
+        const updated = await MedicalEstablishment.findByIdAndUpdate(
+            user.establishmentId,
+            { $set: update },
+            { new: true }
+        ).lean();
+        if (!updated) return res.status(404).json({ message: "Établissement introuvable" });
+        res.json({ ...updated, id: updated._id });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Erreur serveur" });
+    }
+});
+
+// ── Availability (working hours + blocked slots) ───────────────────────────
+
+const DEFAULT_WORKING_DAYS = [
+    { day: 1, start: "08:00", end: "18:00" }, // Monday
+    { day: 2, start: "08:00", end: "18:00" },
+    { day: 3, start: "08:00", end: "18:00" },
+    { day: 4, start: "08:00", end: "18:00" },
+    { day: 5, start: "08:00", end: "18:00" }, // Friday
+    { day: 6, start: "08:00", end: "13:00" }, // Saturday (half day)
+];
+
+/** Returns or creates the availability document for the logged-in facility. */
+async function getOrCreateAvailability(userId) {
+    let av = await FacilityAvailability.findOne({ ownerId: userId });
+    if (!av) {
+        av = await FacilityAvailability.create({
+            ownerId: userId,
+            facilityType: "med_service",
+            workingDays: DEFAULT_WORKING_DAYS,
+            slotDuration: 30,
+        });
+    }
+    return av;
+}
+
+// GET /api/medical-service/availability
+router.get("/availability", auth, async (req, res) => {
+    const av = await getOrCreateAvailability(req.user.id);
+    res.json(av);
+});
+
+// PUT /api/medical-service/availability
+router.put("/availability", auth, async (req, res) => {
+    const { workingDays, slotDuration } = req.body;
+    const av = await getOrCreateAvailability(req.user.id);
+    if (Array.isArray(workingDays)) av.workingDays = workingDays;
+    if (slotDuration != null) av.slotDuration = Math.max(15, Math.min(120, Number(slotDuration)));
+    await av.save();
+    res.json(av);
+});
+
+// POST /api/medical-service/availability/block  { date, time?, label?, color? }
+// Omit `time` to block an entire day.
+router.post("/availability/block", auth, async (req, res) => {
+    const { date, time, label, color } = req.body;
+    if (!date) return res.status(400).json({ message: "date requis" });
+    const av = await getOrCreateAvailability(req.user.id);
+    if (!time) {
+        if (!av.blockedDays.includes(date)) av.blockedDays.push(date);
+    } else {
+        const exists = av.blockedSlots.some((s) => s.date === date && s.time === time);
+        if (!exists) {
+            av.blockedSlots.push({ date, time, label: label || "", color: color || "" });
+        } else {
+            // Update label/color if entry already exists (e.g. admin edits the event)
+            const entry = av.blockedSlots.find((s) => s.date === date && s.time === time);
+            if (entry) { entry.label = label || entry.label; entry.color = color || entry.color; }
+        }
+    }
+    await av.save();
+    res.json(av);
+});
+
+// DELETE /api/medical-service/availability/block/:date/:time  (time = "day" to unblock a full day)
+router.delete("/availability/block/:date/:time", auth, async (req, res) => {
+    const { date, time } = req.params;
+    const av = await getOrCreateAvailability(req.user.id);
+    if (time === "day") {
+        av.blockedDays = av.blockedDays.filter((d) => d !== date);
+    } else {
+        av.blockedSlots = av.blockedSlots.filter(
+            (s) => !(s.date === date && s.time === time)
+        );
+    }
+    await av.save();
+    res.json(av);
+});
+
+// GET /api/medical-service/availability/events?start=YYYY-MM-DD&end=YYYY-MM-DD
+// Returns named calendar events (blockedSlots with a label) for the given date range.
+// Used by the admin calendar to restore custom events on page load.
+router.get("/availability/events", auth, async (req, res) => {
+    const { start, end } = req.query;
+    const av = await FacilityAvailability.findOne({ ownerId: req.user.id }).lean();
+    if (!av) return res.json([]);
+    let events = (av.blockedSlots || []).filter((s) => s.label && s.label.trim() !== "");
+    if (start) events = events.filter((s) => s.date >= start);
+    if (end) events = events.filter((s) => s.date <= end);
+    res.json(events);
+});
+
+// ── Patient Appointments ──────────────────────────────────────────────────────
+
+// GET /api/medical-service/appointments
+router.get("/appointments", auth, async (req, res) => {
+    const { status, date } = req.query;
+    const filter = { ownerId: req.user.id };
+    if (status) filter.status = status;
+    if (date) filter.date = date;
+    const appts = await FacilityAppointment.find(filter)
+        .sort({ date: 1, time: 1 })
+        .lean();
+    res.json(appts.map((a) => ({ ...a, id: a._id })));
+});
+
+// PUT /api/medical-service/appointments/:id
+router.put("/appointments/:id", auth, async (req, res) => {
+    const allowed = ["confirmed", "rejected", "completed", "cancelled"];
+    const { status, notes } = req.body;
+    if (status && !allowed.includes(status))
+        return res.status(400).json({ message: "Statut invalide" });
+    const update = {};
+    if (status) update.status = status;
+    if (notes !== undefined) update.notes = notes;
+    const appt = await FacilityAppointment.findOneAndUpdate(
+        { _id: req.params.id, ownerId: req.user.id },
+        { $set: update },
+        { new: true }
+    ).lean();
+    if (!appt) return res.status(404).json({ message: "Rendez-vous introuvable" });
+    res.json({ ...appt, id: appt._id });
 });
 
 module.exports = router;

@@ -51,10 +51,10 @@ router.get("/:patientId", authMiddleware, async (req, res) => {
 
 // PUT /api/dossier
 router.put("/", authMiddleware, async (req, res) => {
-  if (req.user.role !== "patient") {
+  if (req.user.role === "patient") {
     return res
       .status(403)
-      .json({ message: "Seul le patient peut modifier son dossier" });
+      .json({ message: "Le dossier médical ne peut être modifié que par un professionnel de santé" });
   }
 
   const { personal, medicalHistory, allergies, activeMedications, documents } =
@@ -82,22 +82,30 @@ router.post("/:patientId/consultation", authMiddleware, async (req, res) => {
     return res.status(403).json({ message: "Accès réservé aux médecins" });
   }
 
-  const { symptoms, observations, diagnosis, medications, followUp, notes } =
+  const { appointmentId, symptoms, observations, diagnosis, medications, followUp, notes, durationSeconds } =
     req.body;
 
   const doctor = await User.findById(req.user.id).lean();
   const doctorName = doctor
     ? `${doctor.firstName} ${doctor.lastName}`
     : "Médecin";
+  const doctorSpeciality = doctor?.specialization || "";
 
   const consultation = {
+    appointmentId: appointmentId || null,
     doctorId: req.user.id,
     doctorName,
+    doctorSpeciality,
     date: new Date().toISOString(),
+    durationSeconds: typeof durationSeconds === "number" && durationSeconds > 0 ? durationSeconds : null,
     symptoms: symptoms || "",
     observations: observations || "",
     diagnosis: diagnosis || "",
-    medications: medications || [],
+    medications: (medications || []).map((m) => ({
+      name: m.name || "",
+      dosage: m.dosage || "",
+      instructions: m.instructions || "",
+    })),
     followUp: followUp || "",
     notes: notes || "",
   };

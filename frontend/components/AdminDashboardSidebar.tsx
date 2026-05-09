@@ -13,15 +13,24 @@ import {
   X,
   UserX,
   Home,
+  Mail,
+  Quote,
+  HeartPulse,
+  Sun,
+  Moon,
 } from "lucide-react";
+import { useAdminTheme } from "@/hooks/useAdminTheme";
 
 const menuItems = [
-  { href: "/admin", label: "Tableau de bord", icon: LayoutDashboard },
-  { href: "/admin/users", label: "Utilisateurs", icon: Users },
-  { href: "/admin/pending", label: "Approbations", icon: Clock },
-  { href: "/admin/suspended", label: "Suspendus", icon: UserX },
-  { href: "/admin/stats", label: "Statistiques", icon: BarChart3 },
-  { href: "/admin/settings", label: "Paramètres", icon: Settings },
+  { href: "/admin",                          label: "Tableau de bord",       icon: LayoutDashboard },
+  { href: "/admin/users",                    label: "Utilisateurs",          icon: Users },
+  { href: "/admin/pending",                  label: "Approbations",          icon: Clock },
+  { href: "/admin/suspended",                label: "Suspendus",             icon: UserX },
+  { href: "/admin/paramedical-services",     label: "Paramédicaux & Soins",  icon: HeartPulse },
+  { href: "/admin/stats",                    label: "Statistiques",          icon: BarChart3 },
+  { href: "/admin/newsletter",               label: "Newsletter",            icon: Mail },
+  { href: "/admin/testimonials",             label: "Témoignages",           icon: Quote },
+  { href: "/admin/settings",                 label: "Paramètres",            icon: Settings },
 ];
 
 export function AdminDashboardSidebar() {
@@ -29,6 +38,7 @@ export function AdminDashboardSidebar() {
   const navigate = useNavigate();
   const { logout, user } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { isDark, toggle } = useAdminTheme();
 
   const handleLogout = () => {
     logout();
@@ -106,8 +116,13 @@ export function AdminDashboardSidebar() {
       </nav>
 
       {/* Footer actions */}
-      <div className="px-3 py-3 border-t border-sidebar-border shrink-0 space-y-0.5">
-        <Link
+      <div className="px-3 py-3 border-t border-sidebar-border shrink-0 space-y-0.5">        <button
+          onClick={toggle}
+          className="w-full flex items-center gap-3 px-3 py-2.5 text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground rounded-lg transition-all text-sm font-medium"
+        >
+          {isDark ? <Sun size={17} className="text-amber-400" /> : <Moon size={17} className="text-indigo-400" />}
+          {isDark ? "Mode clair" : "Mode sombre"}
+        </button>        <Link
           to="/"
           onClick={() => setMobileOpen(false)}
           className="w-full flex items-center gap-3 px-3 py-2.5 text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground rounded-lg transition-all text-sm font-medium"

@@ -145,6 +145,23 @@ router.get("/orders/:id", authMiddleware, async (req, res) => {
   res.json({ ...order, id: order._id });
 });
 
+// GET /api/pharmacy/my-orders — patient lists their own orders
+router.get("/my-orders", authMiddleware, async (req, res) => {
+  const page = Math.max(1, parseInt(req.query.page) || 1);
+  const limit = Math.min(100, parseInt(req.query.limit) || 20);
+  const skip = (page - 1) * limit;
+  const [orders, total] = await Promise.all([
+    Order.find({ userId: req.user.id }).sort({ createdAt: -1 }).skip(skip).limit(limit).lean(),
+    Order.countDocuments({ userId: req.user.id }),
+  ]);
+  res.json({
+    data: orders.map((o) => ({ ...o, id: o._id })),
+    total,
+    page,
+    pages: Math.ceil(total / limit),
+  });
+});
+
 // GET /api/pharmacy/kpis
 router.get("/kpis", authMiddleware, pharmacyGuard, async (req, res) => {
   const now = new Date();
@@ -561,12 +578,9 @@ router.put("/settings", authMiddleware, pharmacyGuard, async (req, res) => {
       else updates[key] = typeof req.body[key] === "string" ? req.body[key].trim() : req.body[key];
     }
   }
-  if (req.body.coordinates && typeof req.body.coordinates === "object") {
-    const lat = parseFloat(req.body.coordinates.lat);
-    const lng = parseFloat(req.body.coordinates.lng);
-    if (!isNaN(lat) && !isNaN(lng)) {
-      updates.coordinates = { lat, lng };
-    }
+  if (updates.mapsUrl !== undefined && updates.mapsUrl !== "") {
+    if (!/^https?:\/\/.+/.test(updates.mapsUrl))
+      return res.status(400).json({ message: "URL Google Maps invalide (doit commencer par http:// ou https://)" });
   }
   const user = await User.findByIdAndUpdate(req.user.id, updates, { new: true }).select("-password").lean();
   if (!user) return res.status(404).json({ message: "Utilisateur non trouvé" });

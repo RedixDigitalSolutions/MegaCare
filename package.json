@@ -1,13 +1,17 @@
 {
-  "name": "megacare",
-  "version": "1.0.0",
-  "private": true,
-  "scripts": {
-    "dev": "concurrently --kill-others-on-fail --prefix-colors \"bgBlue.bold,bgGreen.bold\" --names \"FRONT,BACK\" \"npm run dev --prefix frontend\" \"npm run dev --prefix backend\"",
-    "build": "npm run build --prefix frontend",
-    "install:all": "npm install --prefix frontend && npm install --prefix backend"
-  },
-  "devDependencies": {
-    "concurrently": "^8.2.2"
-  }
+    "name": "megacare",
+    "version": "1.0.0",
+    "private": true,
+    "description": "MegaCare — monorepo root. Run both services together with `npm run dev`, or independently in separate terminals.",
+    "scripts": {
+        "dev": "concurrently --names \"backend,frontend\" --prefix-colors \"cyan,magenta\" \"npm run dev:backend\" \"npm run dev:frontend\"",
+        "dev:backend": "npm --prefix backend run dev",
+        "dev:frontend": "npm --prefix frontend run dev",
+        "install:all": "npm --prefix backend install && npm --prefix frontend install",
+        "db:restore": "node backend/db-restore.js",
+        "db:restore:drop": "node backend/db-restore.js --drop"
+    },
+    "devDependencies": {
+        "concurrently": "^9.1.2"
+    }
 }

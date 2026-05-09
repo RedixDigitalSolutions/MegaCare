@@ -55,37 +55,37 @@ export const roleConfig: Record<
     label: "Patient",
     Icon: FaUserAlt,
     gradient: "from-blue-500 to-cyan-500",
-    light: "bg-blue-50 text-blue-700",
+    light: "bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400",
   },
   doctor: {
     label: "Médecin",
     Icon: FaUserMd,
     gradient: "from-emerald-500 to-teal-500",
-    light: "bg-emerald-50 text-emerald-700",
+    light: "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400",
   },
   pharmacy: {
     label: "Pharmacien",
     Icon: FaPills,
     gradient: "from-green-500 to-lime-500",
-    light: "bg-green-50 text-green-700",
+    light: "bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400",
   },
   medical_service: {
     label: "Services Médicaux",
     Icon: FaHospital,
     gradient: "from-purple-500 to-indigo-500",
-    light: "bg-purple-50 text-purple-700",
+    light: "bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400",
   },
   lab_radiology: {
     label: "Labos & Radiologie",
     Icon: FaMicroscope,
     gradient: "from-rose-500 to-pink-500",
-    light: "bg-rose-50 text-rose-700",
+    light: "bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400",
   },
   paramedical: {
     label: "Paramédicaux",
     Icon: FaUserNurse,
     gradient: "from-sky-500 to-blue-500",
-    light: "bg-sky-50 text-sky-700",
+    light: "bg-sky-50 dark:bg-sky-900/30 text-sky-700 dark:text-sky-400",
   },
 };
 
@@ -95,27 +95,27 @@ export const statusCfg: Record<
 > = {
   pending: {
     label: "En attente",
-    bg: "bg-amber-100",
-    text: "text-amber-700",
-    border: "border-amber-200",
+    bg: "bg-amber-100 dark:bg-amber-900/30",
+    text: "text-amber-700 dark:text-amber-400",
+    border: "border-amber-200 dark:border-amber-800/50",
   },
   approved: {
     label: "Approuvé",
-    bg: "bg-emerald-100",
-    text: "text-emerald-700",
-    border: "border-emerald-200",
+    bg: "bg-emerald-100 dark:bg-emerald-900/30",
+    text: "text-emerald-700 dark:text-emerald-400",
+    border: "border-emerald-200 dark:border-emerald-800/50",
   },
   rejected: {
     label: "Refusé",
-    bg: "bg-red-100",
-    text: "text-red-700",
-    border: "border-red-200",
+    bg: "bg-red-100 dark:bg-red-900/30",
+    text: "text-red-700 dark:text-red-400",
+    border: "border-red-200 dark:border-red-800/50",
   },
   suspended: {
     label: "Suspendu",
-    bg: "bg-slate-100",
-    text: "text-slate-600",
-    border: "border-slate-200",
+    bg: "bg-slate-100 dark:bg-slate-800/50",
+    text: "text-slate-600 dark:text-slate-400",
+    border: "border-slate-200 dark:border-slate-700/50",
   },
 };
 

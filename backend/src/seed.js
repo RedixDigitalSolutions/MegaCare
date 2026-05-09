@@ -28,6 +28,8 @@ const PublicLabCenter = require("./models/PublicLabCenter");
 const Medicine = require("./models/Medicine");
 const Prescription = require("./models/Prescription");
 const Doctor = require("./models/Doctor");
+const Testimonial = require("./models/Testimonial");
+const ParamedicalServiceProvider = require("./models/ParamedicalServiceProvider");
 const { randomUUID } = require("crypto");
 
 /* ================================================================== */
@@ -222,6 +224,12 @@ const ID = {
   doc2: "00000000-0000-0000-0000-000000000202",
   doc3: "00000000-0000-0000-0000-000000000203",
   doc4: "00000000-0000-0000-0000-000000000204",
+  doc5: "00000000-0000-0000-0000-000000000205",
+  doc6: "00000000-0000-0000-0000-000000000206",
+  doc7: "00000000-0000-0000-0000-000000000207",
+  doc8: "00000000-0000-0000-0000-000000000208",
+  doc9: "00000000-0000-0000-0000-000000000209",
+  doc10: "00000000-0000-0000-0000-000000000210",
   // Lab
   lab1: "00000000-0000-0000-0000-000000000401",
   lab2: "00000000-0000-0000-0000-000000000402",
@@ -251,11 +259,17 @@ const seedUsers = [
   { _id: ID.pat6, firstName: "Youssef", lastName: "Bouazizi", email: "youssef.bouazizi@gmail.com", password: "Patient@2024", role: "patient", status: "approved", phone: "+216 52 112 233", governorate: "Sfax", delegation: "Sfax Ville" },
   { _id: ID.pat7, firstName: "Nour", lastName: "Triki", email: "nour.triki@gmail.com", password: "Patient@2024", role: "patient", status: "approved", phone: "+216 55 998 877", governorate: "Ariana", delegation: "Raoued" },
   { _id: ID.pat8, firstName: "Karim", lastName: "Saidi", email: "karim.saidi@gmail.com", password: "Patient@2024", role: "patient", status: "approved", phone: "+216 97 332 211", governorate: "Sousse", delegation: "Hammam Sousse" },
-  // 4 Doctors (3 approved + 1 pending)
+  // 10 Doctors (9 approved + 1 pending) — 10 distinct specialties
   { _id: ID.doc1, firstName: "Amira", lastName: "Mansouri", email: "dr.mansouri@megacare.tn", password: "Medecin@2024", role: "doctor", status: "approved", phone: "+216 71 234 567", specialization: "Cardiologie", doctorId: "MED-TN-2024-0742", governorate: "Tunis", delegation: "Tunis" },
   { _id: ID.doc2, firstName: "Slim", lastName: "Hajri", email: "dr.hajri@megacare.tn", password: "Medecin@2024", role: "doctor", status: "approved", phone: "+216 71 345 678", specialization: "Dermatologie", doctorId: "MED-TN-2024-0891", governorate: "Ariana", delegation: "Ariana Ville" },
   { _id: ID.doc3, firstName: "Ines", lastName: "Ben Youssef", email: "dr.benyoussef@megacare.tn", password: "Medecin@2024", role: "doctor", status: "approved", phone: "+216 71 456 789", specialization: "Pediatrie", doctorId: "MED-TN-2024-0556", governorate: "Sousse", delegation: "Sousse Ville" },
-  { _id: ID.doc4, firstName: "Karim", lastName: "Tlili", email: "dr.tlili@megacare.tn", password: "Medecin@2024", role: "doctor", status: "pending", phone: "+216 71 321 654", specialization: "Neurologie", doctorId: "MED-TN-2024-0991", governorate: "Tunis", delegation: "Bardo" },
+  { _id: ID.doc4, firstName: "Karim", lastName: "Tlili", email: "dr.tlili@megacare.tn", password: "Medecin@2024", role: "doctor", status: "approved", phone: "+216 71 321 654", specialization: "Neurologie", doctorId: "MED-TN-2024-0991", governorate: "Tunis", delegation: "Bardo" },
+  { _id: ID.doc5, firstName: "Sonia", lastName: "Belhaj", email: "dr.belhaj@megacare.tn", password: "Medecin@2024", role: "doctor", status: "approved", phone: "+216 71 567 890", specialization: "Gynecologie", doctorId: "MED-TN-2024-1123", governorate: "Tunis", delegation: "Le Bardo" },
+  { _id: ID.doc6, firstName: "Riadh", lastName: "Chaabane", email: "dr.chaabane@megacare.tn", password: "Medecin@2024", role: "doctor", status: "approved", phone: "+216 73 123 456", specialization: "Ophtalmologie", doctorId: "MED-TN-2024-1254", governorate: "Sfax", delegation: "Sfax Ville" },
+  { _id: ID.doc7, firstName: "Leila", lastName: "Trabelsi", email: "dr.trabelsi@megacare.tn", password: "Medecin@2024", role: "doctor", status: "approved", phone: "+216 72 234 567", specialization: "Psychiatrie", doctorId: "MED-TN-2024-1387", governorate: "Sousse", delegation: "Hammam Sousse" },
+  { _id: ID.doc8, firstName: "Nizar", lastName: "Gharbi", email: "dr.gharbi@megacare.tn", password: "Medecin@2024", role: "doctor", status: "approved", phone: "+216 71 678 901", specialization: "Chirurgie generale", doctorId: "MED-TN-2024-1498", governorate: "Tunis", delegation: "La Marsa" },
+  { _id: ID.doc9, firstName: "Hajer", lastName: "Mekni", email: "dr.mekni@megacare.tn", password: "Medecin@2024", role: "doctor", status: "approved", phone: "+216 74 345 678", specialization: "Rhumatologie", doctorId: "MED-TN-2024-1612", governorate: "Monastir", delegation: "Monastir Ville" },
+  { _id: ID.doc10, firstName: "Bassem", lastName: "Zouari", email: "dr.zouari@megacare.tn", password: "Medecin@2024", role: "doctor", status: "approved", phone: "+216 71 789 012", specialization: "Medecine generale", doctorId: "MED-TN-2024-1734", governorate: "Ariana", delegation: "Raoued" },
   // 120 Pharmacies (5 per governorate) — generated
   ...generated.pharmacyUsers,
   // 2 Labs
@@ -271,31 +285,31 @@ const seedUsers = [
 /*  MEDICINES (global catalog - 25 products)                           */
 /* ================================================================== */
 const MEDICINES = [
-  { _id: "med-01", name: "Paracetamol 500mg", dci: "Paracetamol", category: "Analgesique", form: "Comprimes", brand: "DOLIPRANE", requiresPrescription: false, description: "Antalgique et antipyretique", imageUrl: "", usage: "1 a 2 comprimes toutes les 4 a 6 heures. Maximum 8 comprimes/jour.", contraindications: "Insuffisance hepatique severe", sideEffects: "Rarement : reactions allergiques" },
-  { _id: "med-02", name: "Amoxicilline 500mg", dci: "Amoxicilline", category: "Antibiotique", form: "Gelules", brand: "CLAMOXYL", requiresPrescription: true, description: "Antibiotique penicilline", imageUrl: "", usage: "500 mg toutes les 8 heures pendant 7 a 14 jours.", contraindications: "Allergie aux penicillines", sideEffects: "Diarrhee, nausees" },
-  { _id: "med-03", name: "Vitamine C 1000mg", dci: "Acide ascorbique", category: "Vitamines", form: "Comprimes effervescents", brand: "UPSA-C", requiresPrescription: false, description: "Renforce l immunite", imageUrl: "", usage: "1 comprime par jour dissous dans un verre d eau.", contraindications: "Lithiases renales oxaliques", sideEffects: "Troubles digestifs a forte dose" },
-  { _id: "med-04", name: "Ibuprofene 400mg", dci: "Ibuprofene", category: "Anti-inflammatoire", form: "Comprimes", brand: "ADVIL", requiresPrescription: false, description: "Anti-inflammatoire non steroidien", imageUrl: "", usage: "400 mg toutes les 6 a 8 heures au cours des repas.", contraindications: "Ulcere gastroduodenal, grossesse", sideEffects: "Troubles digestifs" },
-  { _id: "med-05", name: "Omeprazole 20mg", dci: "Omeprazole", category: "Gastro-enterologie", form: "Gelules gastro-resistantes", brand: "MOPRAL", requiresPrescription: true, description: "Inhibiteur de la pompe a protons", imageUrl: "", usage: "20 mg par jour le matin avant le repas.", contraindications: "Association avec le nelfinavir", sideEffects: "Maux de tete, nausees" },
-  { _id: "med-06", name: "Loratadine 10mg", dci: "Loratadine", category: "Antihistaminique", form: "Comprimes", brand: "CLARITYNE", requiresPrescription: false, description: "Antihistaminique non sedatif", imageUrl: "", usage: "1 comprime par jour.", contraindications: "Insuffisance hepatique severe", sideEffects: "Somnolence rare, cephalees" },
-  { _id: "med-07", name: "Amlodipine 5mg", dci: "Amlodipine", category: "Antihypertenseur", form: "Comprimes", brand: "AMLOR", requiresPrescription: true, description: "Inhibiteur calcique pour hypertension", imageUrl: "", usage: "5 mg une fois par jour.", contraindications: "Hypotension severe", sideEffects: "Oedemes des chevilles, bouffees de chaleur" },
-  { _id: "med-08", name: "Metformine 850mg", dci: "Metformine", category: "Antidiabetique", form: "Comprimes", brand: "GLUCOPHAGE", requiresPrescription: true, description: "Antidiabetique oral de premiere intention", imageUrl: "", usage: "850 mg 2 a 3 fois par jour au cours des repas.", contraindications: "Insuffisance renale severe", sideEffects: "Troubles digestifs frequents en debut de traitement" },
-  { _id: "med-09", name: "Atorvastatine 20mg", dci: "Atorvastatine", category: "Cardiologie", form: "Comprimes pellicules", brand: "TAHOR", requiresPrescription: true, description: "Statine - hypocholesterolemiant", imageUrl: "", usage: "20 mg une fois par jour le soir.", contraindications: "Maladie hepatique active", sideEffects: "Myalgies, troubles digestifs" },
-  { _id: "med-10", name: "Azithromycine 250mg", dci: "Azithromycine", category: "Antibiotique", form: "Comprimes", brand: "ZITHROMAX", requiresPrescription: true, description: "Macrolide a large spectre", imageUrl: "", usage: "500 mg J1 puis 250 mg/j de J2 a J5.", contraindications: "Allergie aux macrolides", sideEffects: "Diarrhee, nausees" },
-  { _id: "med-11", name: "Diclofenac 50mg", dci: "Diclofenac", category: "Anti-inflammatoire", form: "Comprimes", brand: "VOLTARENE", requiresPrescription: true, description: "AINS puissant", imageUrl: "", usage: "50 mg 2 a 3 fois par jour au cours des repas.", contraindications: "Insuffisance cardiaque, ulcere", sideEffects: "Douleurs gastriques, vertiges" },
-  { _id: "med-12", name: "Cetirizine 10mg", dci: "Cetirizine", category: "Antihistaminique", form: "Comprimes", brand: "ZYRTEC", requiresPrescription: false, description: "Anti-allergique", imageUrl: "", usage: "1 comprime par jour.", contraindications: "Insuffisance renale terminale", sideEffects: "Somnolence possible" },
-  { _id: "med-13", name: "Pantoprazole 40mg", dci: "Pantoprazole", category: "Gastro-enterologie", form: "Comprimes gastro-resistants", brand: "INIPOMP", requiresPrescription: true, description: "IPP - reflux gastro-oesophagien", imageUrl: "", usage: "40 mg par jour le matin a jeun.", contraindications: "Hypersensibilite", sideEffects: "Cephalees, diarrhee" },
-  { _id: "med-14", name: "Levothyroxine 50ug", dci: "Levothyroxine", category: "Endocrinologie", form: "Comprimes", brand: "LEVOTHYROX", requiresPrescription: true, description: "Hormone thyroidienne de substitution", imageUrl: "", usage: "Dose individuelle a jeun 30 min avant le petit-dejeuner.", contraindications: "Thyrotoxicose non traitee", sideEffects: "Palpitations en cas de surdosage" },
-  { _id: "med-15", name: "Acide folique 5mg", dci: "Acide folique", category: "Vitamines", form: "Comprimes", brand: "SPECIAFOLDINE", requiresPrescription: false, description: "Vitamine B9 - grossesse et anemie", imageUrl: "", usage: "1 comprime par jour.", contraindications: "Tumeurs folate-dependantes", sideEffects: "Generalement bien tolere" },
-  { _id: "med-16", name: "Salbutamol 100ug", dci: "Salbutamol", category: "Pneumologie", form: "Spray", brand: "VENTOLINE", requiresPrescription: true, description: "Bronchodilatateur d action rapide", imageUrl: "", usage: "1 a 2 bouffees en cas de crise, max 8/jour.", contraindications: "Hypersensibilite", sideEffects: "Tremblements, tachycardie" },
-  { _id: "med-17", name: "Prednisone 20mg", dci: "Prednisone", category: "Anti-inflammatoire", form: "Comprimes", brand: "CORTANCYL", requiresPrescription: true, description: "Corticosteroide anti-inflammatoire", imageUrl: "", usage: "Dose variable selon indication, le matin au cours du repas.", contraindications: "Infection non controlee", sideEffects: "Prise de poids, insomnie, hyperglycemie" },
-  { _id: "med-18", name: "Fer 80mg", dci: "Sulfate ferreux", category: "Vitamines", form: "Comprimes", brand: "TARDYFERON", requiresPrescription: false, description: "Supplement en fer - anemie ferriprive", imageUrl: "", usage: "1 comprime par jour au cours d un repas.", contraindications: "Surcharge en fer", sideEffects: "Selles noires, constipation" },
-  { _id: "med-19", name: "Ciprofloxacine 500mg", dci: "Ciprofloxacine", category: "Antibiotique", form: "Comprimes", brand: "CIFLOX", requiresPrescription: true, description: "Fluoroquinolone - infections urinaires", imageUrl: "", usage: "500 mg 2 fois par jour pendant 5 a 14 jours.", contraindications: "Grossesse, enfants", sideEffects: "Tendinopathies, photosensibilite" },
-  { _id: "med-20", name: "Magnesium 300mg", dci: "Magnesium", category: "Vitamines", form: "Comprimes", brand: "MAG 2", requiresPrescription: false, description: "Supplement en magnesium - fatigue, crampes", imageUrl: "", usage: "2 comprimes par jour au cours des repas.", contraindications: "Insuffisance renale severe", sideEffects: "Diarrhee a forte dose" },
-  { _id: "med-21", name: "Losartan 50mg", dci: "Losartan", category: "Antihypertenseur", form: "Comprimes pellicules", brand: "COZAAR", requiresPrescription: true, description: "Antagoniste des recepteurs de l angiotensine II", imageUrl: "", usage: "50 mg une fois par jour.", contraindications: "Grossesse", sideEffects: "Hypotension, hyperkaliemie" },
-  { _id: "med-22", name: "Tramadol 50mg", dci: "Tramadol", category: "Analgesique", form: "Gelules", brand: "TOPALGIC", requiresPrescription: true, description: "Antalgique opioide de palier 2", imageUrl: "", usage: "50 a 100 mg toutes les 4 a 6h. Max 400 mg/jour.", contraindications: "Epilepsie non controlee", sideEffects: "Nausees, vertiges, somnolence" },
-  { _id: "med-23", name: "Domperidone 10mg", dci: "Domperidone", category: "Gastro-enterologie", form: "Comprimes", brand: "MOTILIUM", requiresPrescription: false, description: "Anti-nauseeux", imageUrl: "", usage: "10 mg 3 fois par jour avant les repas.", contraindications: "Prolactinome", sideEffects: "Rarement : allongement QT" },
-  { _id: "med-24", name: "Fluconazole 150mg", dci: "Fluconazole", category: "Dermatologie", form: "Gelule unique", brand: "TRIFLUCAN", requiresPrescription: true, description: "Antifongique - candidoses", imageUrl: "", usage: "150 mg dose unique ou traitement prolonge selon indication.", contraindications: "Association avec cisapride", sideEffects: "Nausees, cephalees" },
-  { _id: "med-25", name: "Vitamine D3 100000 UI", dci: "Cholecalciferol", category: "Vitamines", form: "Solution buvable", brand: "UVEDOSE", requiresPrescription: false, description: "Vitamine D - prevention carence", imageUrl: "", usage: "1 ampoule tous les 3 mois.", contraindications: "Hypercalcemie", sideEffects: "Surdosage : nausees, fatigue" },
+  { _id: "med-01", name: "Advil",       dci: "Ibuprofene",                        category: "Anti-inflammatoire",  form: "Comprimes enrobes",              brand: "ADVIL",       requiresPrescription: false, imageUrl: "/uploads/medecines/Advil.avif",        description: "Antalgique et anti-inflammatoire non steroidien",             usage: "200-400 mg toutes les 4 a 6 heures au cours des repas.",                    contraindications: "Ulcere gastroduodenal, insuffisance renale, grossesse",    sideEffects: "Troubles digestifs, douleurs abdominales" },
+  { _id: "med-02", name: "Aleve",       dci: "Naproxene sodique",                  category: "Anti-inflammatoire",  form: "Comprimes",                      brand: "ALEVE",       requiresPrescription: false, imageUrl: "/uploads/medecines/Aleve.jpeg",        description: "Anti-inflammatoire a longue duree d action",                  usage: "220 mg toutes les 8 a 12 heures. Max 660 mg/jour.",                         contraindications: "Ulcere, insuffisance renale, grossesse",                   sideEffects: "Troubles digestifs, maux de tete" },
+  { _id: "med-03", name: "Allegra",     dci: "Fexofenadine",                       category: "Antihistaminique",    form: "Comprimes",                      brand: "ALLEGRA",     requiresPrescription: false, imageUrl: "/uploads/medecines/Allegra.avif",      description: "Antihistaminique H1 non sedatif pour allergies saisonnieres", usage: "120 mg une fois par jour ou 180 mg une fois par jour.",                      contraindications: "Insuffisance renale severe",                               sideEffects: "Cephalees, nausees, somnolence rare" },
+  { _id: "med-04", name: "Aspirin",     dci: "Acide acetylsalicylique",            category: "Analgesique",         form: "Comprimes",                      brand: "ASPIRIN",     requiresPrescription: false, imageUrl: "/uploads/medecines/Aspirin.jpeg",      description: "Analgesique, antipyretique et anti-inflammatoire classique",  usage: "500-1000 mg toutes les 4 a 8 heures. Max 4 g/jour.",                        contraindications: "Allergie aspirine, ulcere, enfants < 16 ans, grossesse",   sideEffects: "Troubles gastro-intestinaux, risque hemorragique" },
+  { _id: "med-05", name: "Benadryl",    dci: "Diphenhydramine",                    category: "Antihistaminique",    form: "Gelules",                        brand: "BENADRYL",    requiresPrescription: false, imageUrl: "/uploads/medecines/Benadryl.jpg",      description: "Antihistaminique sedatif - allergies et rhume",               usage: "25-50 mg toutes les 4 a 6 heures. Max 300 mg/jour.",                        contraindications: "Glaucome, retention urinaire, asthme aigu",                sideEffects: "Somnolence, secheresse buccale, vertiges" },
+  { _id: "med-06", name: "Brufen",      dci: "Ibuprofene",                         category: "Anti-inflammatoire",  form: "Comprimes",                      brand: "BRUFEN",      requiresPrescription: false, imageUrl: "/uploads/medecines/Brufen.jpeg",       description: "Anti-inflammatoire non steroidien - douleurs et fievre",      usage: "400 mg toutes les 6 a 8 heures au cours des repas.",                        contraindications: "Ulcere gastro-duodenal, insuffisance cardiaque severe",    sideEffects: "Nausees, douleurs gastriques, diarrhee" },
+  { _id: "med-07", name: "Calpol",      dci: "Paracetamol",                        category: "Analgesique",         form: "Sirop pediatrique",              brand: "CALPOL",      requiresPrescription: false, imageUrl: "/uploads/medecines/Calpol.webp",       description: "Analgesique et antipyretique pediatrique",                    usage: "120 mg/5 ml selon le poids de l enfant toutes les 4 a 6 heures.",           contraindications: "Insuffisance hepatique",                                   sideEffects: "Rarement : reactions cutanees allergiques" },
+  { _id: "med-08", name: "Claritin",    dci: "Loratadine",                         category: "Antihistaminique",    form: "Comprimes",                      brand: "CLARITIN",    requiresPrescription: false, imageUrl: "/uploads/medecines/Claritin.jpeg",     description: "Antihistaminique non sedatif pour rhinite allergique",        usage: "10 mg une fois par jour.",                                                  contraindications: "Insuffisance hepatique severe",                            sideEffects: "Cephalees, somnolence rare, secheresse buccale" },
+  { _id: "med-09", name: "Crocin",      dci: "Paracetamol",                        category: "Analgesique",         form: "Comprimes",                      brand: "CROCIN",      requiresPrescription: false, imageUrl: "/uploads/medecines/Crocin.jpg",        description: "Antalgique et antipyretique a base de paracetamol",           usage: "500-1000 mg toutes les 4 a 6 heures. Max 4 g/jour.",                        contraindications: "Insuffisance hepatique severe",                            sideEffects: "Rarement : reactions allergiques, toxicite hepatique a forte dose" },
+  { _id: "med-10", name: "DayQuil",     dci: "Acetaminophene / Dextromethorphane", category: "Grippe & Rhume",      form: "Solution buvable",               brand: "DAYQUIL",     requiresPrescription: false, imageUrl: "/uploads/medecines/DayQuil.avif",      description: "Traitement multi-symptomes rhume et grippe sans somnolence",  usage: "30 ml toutes les 4 heures. Max 4 doses/jour.",                              contraindications: "Association IMAO, insuffisance hepatique",                 sideEffects: "Nausees, vertiges, insomnie" },
+  { _id: "med-11", name: "Dafalgan",    dci: "Paracetamol",                        category: "Analgesique",         form: "Comprimes effervescents",         brand: "DAFALGAN",    requiresPrescription: false, imageUrl: "/uploads/medecines/Dafalgan .jpeg",    description: "Analgesique et antipyretique effervescent",                   usage: "500-1000 mg toutes les 4 a 6 heures. Max 4 g/jour.",                        contraindications: "Insuffisance hepatique, alcoolisme",                       sideEffects: "Bien tolere aux doses therapeutiques" },
+  { _id: "med-12", name: "Doliprane",   dci: "Paracetamol",                        category: "Analgesique",         form: "Comprimes",                      brand: "DOLIPRANE",   requiresPrescription: false, imageUrl: "/uploads/medecines/Doliprane.jpeg",    description: "Antalgique et antipyretique de reference",                    usage: "1 g toutes les 6 heures. Max 4 g/jour.",                                    contraindications: "Insuffisance hepatique severe",                            sideEffects: "Rarement : reactions allergiques" },
+  { _id: "med-13", name: "Efferalgan",  dci: "Paracetamol",                        category: "Analgesique",         form: "Comprimes effervescents",         brand: "EFFERALGAN",  requiresPrescription: false, imageUrl: "/uploads/medecines/Efferalgan.jpg",    description: "Paracetamol effervescent a dissolution rapide",               usage: "500 mg a 1 g toutes les 4 a 6 heures. Max 3-4 g/jour.",                     contraindications: "Insuffisance hepatique, regimes pauvres en sodium",        sideEffects: "Generalement bien tolere" },
+  { _id: "med-14", name: "Imodium",     dci: "Loperamide",                         category: "Gastro-enterologie",  form: "Gelules",                        brand: "IMODIUM",     requiresPrescription: false, imageUrl: "/uploads/medecines/Imodium.webp",      description: "Antidiarrheique - ralentit le transit intestinal",            usage: "2 mg apres chaque selle liquide. Max 16 mg/jour.",                          contraindications: "Colite infectieuse aigue, enfants < 2 ans",                sideEffects: "Constipation, nausees, ballonnements" },
+  { _id: "med-15", name: "Mucinex",     dci: "Guaifenesin",                        category: "Pneumologie",         form: "Comprimes a liberation prolongee", brand: "MUCINEX",   requiresPrescription: false, imageUrl: "/uploads/medecines/Mucinex.jpg",       description: "Expectorant - facilite l evacuation des secretions bronchiques", usage: "600-1200 mg toutes les 12 heures avec un grand verre d eau.",             contraindications: "Hypersensibilite",                                         sideEffects: "Nausees, vomissements, cephalees" },
+  { _id: "med-16", name: "Nimulid",     dci: "Nimesulide",                         category: "Anti-inflammatoire",  form: "Comprimes",                      brand: "NIMULID",     requiresPrescription: true,  imageUrl: "/uploads/medecines/Nimulid.jpeg",      description: "AINS selectif COX-2 - douleurs et inflammation",              usage: "100 mg deux fois par jour apres les repas.",                                contraindications: "Insuffisance hepatique, ulcere, grossesse",                sideEffects: "Troubles digestifs, elevation des transaminases" },
+  { _id: "med-17", name: "Nurofen",     dci: "Ibuprofene",                         category: "Anti-inflammatoire",  form: "Comprimes enrobes",              brand: "NUROFEN",     requiresPrescription: false, imageUrl: "/uploads/medecines/Nurofen.jpeg",      description: "Antalgique et antipyretique - douleurs moderees a intenses",  usage: "200-400 mg toutes les 4 a 6 heures. Max 1200 mg/jour sans avis medical.", contraindications: "Ulcere gastroduodenal, insuffisance renale, grossesse",    sideEffects: "Troubles digestifs, maux de tete" },
+  { _id: "med-18", name: "Panadol",     dci: "Paracetamol",                        category: "Analgesique",         form: "Comprimes",                      brand: "PANADOL",     requiresPrescription: false, imageUrl: "/uploads/medecines/panadol.png",       description: "Antalgique et antipyretique largement utilise",               usage: "500-1000 mg toutes les 4 a 6 heures. Max 4 g/jour.",                        contraindications: "Insuffisance hepatique severe, alcoolisme",                sideEffects: "Bien tolere aux doses recommandees" },
+  { _id: "med-19", name: "Pepcid",      dci: "Famotidine",                         category: "Gastro-enterologie",  form: "Comprimes",                      brand: "PEPCID",      requiresPrescription: false, imageUrl: "/uploads/medecines/Pepcid.webp",       description: "Antihistaminique H2 - reducteur d acidite gastrique",         usage: "20 mg deux fois par jour ou 40 mg le soir au coucher.",                     contraindications: "Insuffisance renale severe",                               sideEffects: "Cephalees, constipation, diarrhee" },
+  { _id: "med-20", name: "Robitussin",  dci: "Dextromethorphane / Guaifenesin",    category: "Pneumologie",         form: "Sirop",                          brand: "ROBITUSSIN",  requiresPrescription: false, imageUrl: "/uploads/medecines/Robitussin.jpeg",   description: "Antitussif et expectorant pour toux seche et productive",     usage: "10-20 ml toutes les 4 heures. Max 6 doses/jour.",                           contraindications: "Association IMAO, enfants < 6 ans",                        sideEffects: "Somnolence, nausees, vertiges" },
+  { _id: "med-21", name: "Sudafed",     dci: "Pseudoephedrine",                    category: "Grippe & Rhume",      form: "Comprimes",                      brand: "SUDAFED",     requiresPrescription: false, imageUrl: "/uploads/medecines/Sudafed.jpeg",      description: "Decongestionnant nasal oral",                                 usage: "60 mg toutes les 4 a 6 heures. Max 240 mg/jour.",                           contraindications: "Hypertension, cardiopathie, IMAO, glaucome",               sideEffects: "Insomnie, palpitations, agitation" },
+  { _id: "med-22", name: "Tums",        dci: "Carbonate de calcium",               category: "Gastro-enterologie",  form: "Comprimes a croquer",            brand: "TUMS",        requiresPrescription: false, imageUrl: "/uploads/medecines/Tums.avif",         description: "Antiacide rapide - brulures d estomac et indigestion",        usage: "2 a 4 comprimes a croquer selon les besoins. Max 15/jour.",                 contraindications: "Hypercalcemie, lithiase urinaire calcique",                sideEffects: "Constipation, flatulences" },
+  { _id: "med-23", name: "Tylenol",     dci: "Acetaminophene",                     category: "Analgesique",         form: "Comprimes",                      brand: "TYLENOL",     requiresPrescription: false, imageUrl: "/uploads/medecines/Tylenol.jpg",       description: "Analgesique et antipyretique de reference en Amerique du Nord", usage: "325-1000 mg toutes les 4 a 6 heures. Max 4 g/jour.",                      contraindications: "Insuffisance hepatique, consommation alcoolique",          sideEffects: "Hepatotoxicite en cas de surdosage" },
+  { _id: "med-24", name: "Voltaren",    dci: "Diclofenac sodique",                 category: "Anti-inflammatoire",  form: "Comprimes gastro-resistants",    brand: "VOLTAREN",    requiresPrescription: true,  imageUrl: "/uploads/medecines/Voltaren.png",      description: "AINS puissant - douleurs rhumatismales et inflammatoires",    usage: "50 mg 2 a 3 fois par jour au cours des repas.",                             contraindications: "Insuffisance cardiaque, ulcere, grossesse",                sideEffects: "Douleurs gastriques, vertiges, elevation des transaminases" },
+  { _id: "med-25", name: "Zyrtec",      dci: "Cetirizine",                         category: "Antihistaminique",    form: "Comprimes",                      brand: "ZYRTEC",      requiresPrescription: false, imageUrl: "/uploads/medecines/Zyrtec.webp",       description: "Antihistaminique H1 - rhinite allergique et urticaire",       usage: "10 mg une fois par jour le soir.",                                          contraindications: "Insuffisance renale terminale",                            sideEffects: "Somnolence, secheresse buccale, cephalees" },
 ];
 
 /* ================================================================== */
@@ -961,36 +975,126 @@ function makeParamedData() {
 /*  Paramedical products catalog                                       */
 /* ================================================================== */
 const PARAMED_PRODUCTS = [
-  { name: "Genouillere ligamentaire rotulienne", brand: "Thuasne", category: "Orthopedie", price: 45.00, originalPrice: 55.00, shortDesc: "Maintien rotulien proprioceptif", description: "Genouillere avec anneau rotulien en silicone et baleines laterales pour stabilisation ligamentaire.", prescription: false, stockQty: 25 },
-  { name: "Attelle de poignet Manurhizo", brand: "Gibaud", category: "Orthopedie", price: 38.50, originalPrice: 42.00, shortDesc: "Immobilisation poignet-pouce", description: "Attelle thermoformable pour syndrome du canal carpien et tendinite de De Quervain.", prescription: true, stockQty: 15 },
-  { name: "Ceinture lombaire LombaSkin", brand: "Thuasne", category: "Orthopedie", price: 65.00, originalPrice: 78.00, shortDesc: "Soutien lombaire ergonomique", description: "Ceinture lombaire avec effet proprioceptif et insert silicone chauffant.", prescription: false, stockQty: 12 },
-  { name: "Bequilles aluminium reglables", brand: "Invacare", category: "Aide a la mobilite", price: 35.00, originalPrice: 40.00, shortDesc: "Paire de bequilles legeres", description: "Bequilles en aluminium avec embouts antiderapants et poignees ergonomiques.", prescription: false, stockQty: 20 },
-  { name: "Electrostimulateur TENS", brand: "Compex", category: "Reeducation", price: 189.00, originalPrice: 220.00, shortDesc: "Soulagement douleur par electrotherapie", description: "Appareil TENS 4 canaux avec 20 programmes pour douleurs chroniques et aigues.", prescription: false, stockQty: 8 },
-  { name: "Bandes de resistance set 5 niveaux", brand: "TheraBand", category: "Reeducation", price: 28.00, originalPrice: 32.00, shortDesc: "Set complet de renforcement", description: "5 bandes elastiques pour reeducation progressive.", prescription: false, stockQty: 30 },
-  { name: "Coussin d assise ergonomique", brand: "Sissel", category: "Ergonomie", price: 42.00, originalPrice: 48.00, shortDesc: "Prevention douleurs assise prolongee", description: "Coussin memoire de forme avec gel rafraichissant et housse lavable.", prescription: false, stockQty: 18 },
-  { name: "Spirometre incitatif Voldyne", brand: "Teleflex", category: "Respiratoire", price: 22.00, originalPrice: 25.00, shortDesc: "Reeducation respiratoire", description: "Spirometre volumetrique pour exercices respiratoires post-chirurgicaux.", prescription: false, stockQty: 35 },
-  { name: "Creme chauffante articulaire", brand: "Phytodolor", category: "Soins", price: 14.50, originalPrice: 16.00, shortDesc: "Preparation musculaire et articulaire", description: "Creme a base de plantes avec effet chauffant pour preparer les muscles avant la seance.", prescription: false, stockQty: 40 },
-  { name: "Chevillere stabilisatrice Malleo", brand: "Bauerfeind", category: "Orthopedie", price: 52.00, originalPrice: 60.00, shortDesc: "Stabilisation cheville instable", description: "Chevillere tricotee anatomique avec pelote en silicone et sangles de maintien.", prescription: false, stockQty: 14 },
-  { name: "Rouleau de massage fascia", brand: "Blackroll", category: "Reeducation", price: 32.00, originalPrice: 38.00, shortDesc: "Auto-massage des fascias", description: "Rouleau haute densite pour auto-massage et liberation myofasciale.", prescription: false, stockQty: 22 },
-  { name: "Table d inversion therapeutique", brand: "Teeter", category: "Reeducation", price: 450.00, originalPrice: 520.00, shortDesc: "Decompression vertebrale", description: "Table d inversion certifiee FDA pour soulagement des douleurs dorsales.", prescription: true, stockQty: 3 },
-  { name: "Huile essentielle menthe poivree", brand: "Puressentiel", category: "Soins", price: 9.50, originalPrice: 11.00, shortDesc: "Effet froid anti-douleur", description: "Huile essentielle pour massage decontractant et antalgique local.", prescription: false, stockQty: 45 },
-  { name: "Poche chaud/froid reutilisable", brand: "Nexcare 3M", category: "Soins", price: 8.00, originalPrice: 10.00, shortDesc: "Therapie par le chaud et le froid", description: "Poche gel reutilisable pour thermotherapie.", prescription: false, stockQty: 50 },
-  { name: "Deambulateur pliant 4 roues", brand: "Drive Medical", category: "Aide a la mobilite", price: 120.00, originalPrice: 145.00, shortDesc: "Marche securisee avec siege", description: "Rollator leger avec freins, siege integre et panier amovible.", prescription: false, stockQty: 6 },
+  // ── Soin visage ──────────────────────────────────────────────────────────
+  { name: "Eau thermale Avene spray 300ml", brand: "Avene", category: "Soin visage", price: 28.00, originalPrice: 33.00, shortDesc: "Apaisante et anti-irritante", description: "Eau thermale naturellement riche en ions silicates pour calmer les peaux sensibles et irrites.", prescription: false, stockQty: 40 },
+  { name: "Creme hydratante Toleriane Ultra", brand: "La Roche-Posay", category: "Soin visage", price: 42.00, originalPrice: null, shortDesc: "Ultra-toleree par les peaux sensibles", description: "Soin hydratant intensif pour peaux ultra-sensibles avec neurosensine apaisante.", prescription: false, stockQty: 28 },
+  { name: "Serum vitamine C anti-taches", brand: "Vichy", category: "Soin visage", price: 68.00, originalPrice: 79.00, shortDesc: "Eclat et uniformite du teint", description: "Serum concentre en vitamine C pure 15% pour corriger les taches et illuminer le teint.", prescription: false, stockQty: 15 },
+  { name: "Fluide anti-imperfections Effaclar", brand: "La Roche-Posay", category: "Soin visage", price: 38.00, originalPrice: null, shortDesc: "Pores affines, teint net", description: "Soin quotidien anti-recidive des imperfections pour peaux grasses et a tendance acneique.", prescription: false, stockQty: 20 },
+  { name: "Creme contour yeux anti-cernes", brand: "Avene", category: "Soin visage", price: 35.00, originalPrice: 42.00, shortDesc: "Regard frais et repose", description: "Soin delicat qui attenue les cernes et reduit les poches sous les yeux.", prescription: false, stockQty: 18 },
+  { name: "Masque purifiant argile blanche", brand: "Bioderma", category: "Soin visage", price: 29.00, originalPrice: null, shortDesc: "Pores nettoyes, peau lisse", description: "Masque a l argile pour absorber l exces de sebum et purifier les pores en profondeur.", prescription: false, stockQty: 25 },
+
+  // ── Soin corps ────────────────────────────────────────────────────────────
+  { name: "Lait corporel nourrissant Lipikar", brand: "La Roche-Posay", category: "Soin corps", price: 36.00, originalPrice: 43.00, shortDesc: "Hydratation 48h peaux seches", description: "Lait corporel surgras pour relipider et proteger les peaux seches a tres seches.", prescription: false, stockQty: 30 },
+  { name: "Gel douche surgras Pain de douche", brand: "Dove", category: "Soin corps", price: 12.50, originalPrice: null, shortDesc: "Doux pour les peaux sensibles", description: "Gel douche sans savon enrichi en creme hydratante pour peaux sensibles.", prescription: false, stockQty: 50 },
+  { name: "Baume corps reparateur Cicaplast", brand: "La Roche-Posay", category: "Soin corps", price: 32.00, originalPrice: null, shortDesc: "Reparation et protection", description: "Baume multi-reparateur pour peaux abimees, crevasses et zone a vif.", prescription: false, stockQty: 22 },
+  { name: "Huile corps eclat amande douce", brand: "Mustela", category: "Soin corps", price: 28.00, originalPrice: 34.00, shortDesc: "Peau soyeuse et lumineuse", description: "Huile corps a l amande douce pour nourrir et embellir la peau en profondeur.", prescription: false, stockQty: 20 },
+  { name: "Creme pieds reparatrice uree 25%", brand: "Eucerin", category: "Soin corps", price: 24.00, originalPrice: null, shortDesc: "Talons secs et craqueles", description: "Creme intensive a l uree 25% pour traiter les pieds tres secs et keratosiques.", prescription: false, stockQty: 18 },
+
+  // ── Cheveux & ongles ──────────────────────────────────────────────────────
+  { name: "Huile d argan pure bio 100ml", brand: "Karite Nature", category: "Cheveux & ongles", price: 42.00, originalPrice: null, shortDesc: "Soin nourrissant multi-usage", description: "Huile d argan certifiee bio pour nourrir, lisser et faire briller les cheveux.", prescription: false, stockQty: 25 },
+  { name: "Shampoing antipelliculaire ketoconazole", brand: "Nizoral", category: "Cheveux & ongles", price: 22.00, originalPrice: 26.00, shortDesc: "Traitement pellicules persistantes", description: "Shampoing medicamenteux au ketoconazole 2% pour eliminer les pellicules rebelles.", prescription: false, stockQty: 20 },
+  { name: "Serum fortifiant anti-chute", brand: "Rene Furterer", category: "Cheveux & ongles", price: 58.00, originalPrice: 68.00, shortDesc: "Stimule la pousse capillaire", description: "Serum concentre aux actifs vegetaux pour fortifier le cheveu et reduire la chute.", prescription: false, stockQty: 12 },
+  { name: "Vernis soin ongles fragiles", brand: "Isdin", category: "Cheveux & ongles", price: 18.00, originalPrice: null, shortDesc: "Ongles fortifies et proteges", description: "Vernis therapeutique durcissant pour ongles mous, cassants et stries.", prescription: false, stockQty: 30 },
+
+  // ── Bebe & maternite ──────────────────────────────────────────────────────
+  { name: "Lait de toilette bebe doux", brand: "Mustela", category: "Bebe & maternite", price: 18.50, originalPrice: null, shortDesc: "Nettoyage doux sans rincage", description: "Lait de toilette sans alcool ni colorant pour nettoyer visage et corps de bebe.", prescription: false, stockQty: 35 },
+  { name: "Creme change protectrice 123", brand: "Bepanthen", category: "Bebe & maternite", price: 14.00, originalPrice: 17.00, shortDesc: "Prevention et soin erytheme fessier", description: "Creme protectrice au dexpanthenol pour prevenir et traiter l erytheme fessier.", prescription: false, stockQty: 40 },
+  { name: "Thermometre frontal sans contact", brand: "Beurer", category: "Bebe & maternite", price: 45.00, originalPrice: 55.00, shortDesc: "Mesure instantanee et hygienique", description: "Thermometre infrarouge frontal avec affichage numerique et alarme fievre.", prescription: false, stockQty: 14 },
+  { name: "Huile de massage bebe calmante", brand: "Weleda", category: "Bebe & maternite", price: 22.00, originalPrice: null, shortDesc: "Detente et douceur pour bebe", description: "Huile de massage bio pour apaiser et relaxer bebe avec huile de sesame et lavande.", prescription: false, stockQty: 20 },
+
+  // ── Vitamines & complements ───────────────────────────────────────────────
+  { name: "Vitamine D3 1000 UI softgels", brand: "Solgar", category: "Vitamines & complements", price: 28.00, originalPrice: null, shortDesc: "Os, systeme immunitaire", description: "Complement en vitamine D3 (cholecalciferol) 1000 UI pour soutenir la mineralization osseuse.", prescription: false, stockQty: 32 },
+  { name: "Magnesium marin + vitamine B6", brand: "Supradyn", category: "Vitamines & complements", price: 32.00, originalPrice: 38.00, shortDesc: "Fatigue, crampes, stress", description: "Complement alimentaire associant magnesium d origine marine et vitamine B6 pour reduire la fatigue.", prescription: false, stockQty: 28 },
+  { name: "Omega 3 EPA/DHA 1000mg", brand: "Solgar", category: "Vitamines & complements", price: 52.00, originalPrice: 62.00, shortDesc: "Coeur et cerveau", description: "Complement en acides gras omega-3 hautement concentres EPA et DHA issus de poissons sauvages.", prescription: false, stockQty: 18 },
+  { name: "Probiotiques Lactibiane Equilibre", brand: "PiLeJe", category: "Vitamines & complements", price: 38.00, originalPrice: null, shortDesc: "Equilibre de la flore intestinale", description: "10 milliards de bacteries lactiques par gelule pour restaurer et maintenir la flore intestinale.", prescription: false, stockQty: 20 },
+  { name: "Fer + vitamine C Tardyferon", brand: "Tardyferon", category: "Vitamines & complements", price: 18.00, originalPrice: null, shortDesc: "Anemie ferriprive", description: "Complement en fer bivalent a liberation prolongee avec vitamine C pour meilleure absorption.", prescription: false, stockQty: 25 },
+
+  // ── Hygiene dentaire ──────────────────────────────────────────────────────
+  { name: "Dentifrice sensitive dents sensibles", brand: "Sensodyne", category: "Hygiene dentaire", price: 14.00, originalPrice: null, shortDesc: "Soulage la sensibilite dentaire", description: "Dentifrice au nitrate de potassium pour soulager les douleurs dues aux dents sensibles.", prescription: false, stockQty: 45 },
+  { name: "Bain de bouche antibacterien", brand: "Listerine", category: "Hygiene dentaire", price: 16.00, originalPrice: 19.00, shortDesc: "Protection 24h contre les bacteries", description: "Bain de bouche aux huiles essentielles pour eliminer 99.9% des bacteries buccales.", prescription: false, stockQty: 38 },
+  { name: "Brosse a dents souple extra-souple", brand: "Oral-B", category: "Hygiene dentaire", price: 8.50, originalPrice: null, shortDesc: "Nettoyage doux et efficace", description: "Brosse a dents manuelle avec poils ultra-souples pour gencives sensibles et appareils dentaires.", prescription: false, stockQty: 60 },
+  { name: "Fil dentaire satin 50m", brand: "Oral-B", category: "Hygiene dentaire", price: 7.50, originalPrice: null, shortDesc: "Nettoyage inter-dentaire glisse", description: "Fil dentaire cire satin pour un passage facile entre les dents serrees.", prescription: false, stockQty: 55 },
+
+  // ── Solaire ───────────────────────────────────────────────────────────────
+  { name: "Creme solaire visage SPF50+ fluide", brand: "La Roche-Posay", category: "Solaire", price: 52.00, originalPrice: 62.00, shortDesc: "Protection maximale non grasse", description: "Fluide solaire SPF50+ texture ultra-legere non comedogenique pour peau grasse.", prescription: false, stockQty: 20 },
+  { name: "Spray solaire corps SPF30 200ml", brand: "Bioderma", category: "Solaire", price: 38.00, originalPrice: null, shortDesc: "Application facile, peau douce", description: "Spray solaire transparent SPF30 avec filtre mineral pour toute la famille.", prescription: false, stockQty: 25 },
+  { name: "Apres-soleil reparateur apaisant", brand: "Vichy", category: "Solaire", price: 32.00, originalPrice: 38.00, shortDesc: "Repare et prolonge le bronzage", description: "Soin apres-soleil riche en eau thermale pour apaiser, hydrater et prolonger le bronzage.", prescription: false, stockQty: 18 },
+
+  // ── Premiers secours ──────────────────────────────────────────────────────
+  { name: "Compresses steriles 10x10cm bte 25", brand: "Urgo", category: "Premiers secours", price: 8.00, originalPrice: null, shortDesc: "Pansements plaies propres", description: "Compresses de gaze steriles non tissees 10x10cm pour soins de plaies.", prescription: false, stockQty: 80 },
+  { name: "Pansements assortis waterproof bte 20", brand: "Urgo", category: "Premiers secours", price: 9.50, originalPrice: null, shortDesc: "Impermeables et flexibles", description: "Pansements hydrocolloides waterproof en differentes tailles pour petites blessures.", prescription: false, stockQty: 65 },
+  { name: "Solution antiseptique Betadine 500ml", brand: "Betadine", category: "Premiers secours", price: 12.00, originalPrice: 14.00, shortDesc: "Antisepsie plaies et muqueuses", description: "Solution iodee pour l antisepsie des plaies cutanees superficielles et dermatoplaies.", prescription: false, stockQty: 42 },
+  { name: "Bande cohesive elastique 6cm", brand: "Tensoplast", category: "Premiers secours", price: 11.00, originalPrice: null, shortDesc: "Maintien sans colle", description: "Bande elastique auto-adhesive cohesive pour soutien musculaire et bandages de maintien.", prescription: false, stockQty: 35 },
 ];
 
 /* ================================================================== */
 /*  Public establishments                                              */
 /* ================================================================== */
+const BANNER_IMAGES = [
+  "medical-clinic-banner-facebook-cover-design-template_519207-51.jpg",
+  "hospital-healthcare-service-sale-banner_23-2150394136.avif",
+  "clinic-and-hospital-horizontal-banner-healthcare-vector-24655598.avif",
+  "hospital-healthcare-service-facebook-template_23-2150395866.avif",
+  "gradient-medical-clinic-sale-banner_23-2149645554.avif",
+  "flat-design-medical-center-sale-banner_23-2149097118.avif",
+  "health-clinic-horizontal-banner-medical-web-template-social-media-post_565745-188.avif",
+  "healthcare-medical-service-ads-promotional-web-banner-template-design_84443-10612.avif",
+  "gradient-medical-center-sale-banner_23-2151082971.avif",
+  "medical-banner-11.jpg",
+  "flat-design-medical-clinic-sale-banner_23-2149641439.avif",
+  "clinic-medical-center-horizontal-banner-260nw-2716869991.webp",
+  "medical-staff-clinic-banner-with-copy-space-on-the-right-side-hospital-HR7801.jpg",
+  "medical-healthcare-social-media-banner-600nw-2577528539.webp",
+  "linkedin-healthcare-medical-banner-cover-modern-flat-and-green-design-for-hospital-clinic-flyer-poster-facebook-youtube-and-website-promotion-vector.jpg",
+];
 const ESTABLISHMENTS = [
-  { name: "Clinique La Marsa", type: "Clinique", governorate: "Tunis", city: "La Marsa", address: "Avenue Taieb Mhiri, La Marsa 2078", phone: "+216 71 749 000", rating: 4.6, reviews: 234, price: 150, services: ["Cardiologie", "Chirurgie generale", "Maternite", "Urgences 24h"], accredited: true, emergencies: true, imageUrl: "", description: "Clinique privee multidisciplinaire avec plateau technique moderne.", beds: 120, doctors: 45, founded: 1998 },
-  { name: "Hopital La Rabta", type: "H\u00f4pital", governorate: "Tunis", city: "Tunis", address: "Rue Djebel Lakhdar, Tunis 1007", phone: "+216 71 578 000", rating: 4.2, reviews: 567, price: 50, services: ["Medecine interne", "Nephrologie", "Hemodialyse", "Reanimation"], accredited: true, emergencies: true, imageUrl: "", description: "CHU de reference specialise en nephrologie et medecine interne.", beds: 450, doctors: 180, founded: 1897 },
-  { name: "Clinique Pasteur", type: "Clinique", governorate: "Tunis", city: "Tunis", address: "4 Place Pasteur, Tunis 1002", phone: "+216 71 843 000", rating: 4.7, reviews: 312, price: 200, services: ["Ophtalmologie", "Chirurgie refractive", "ORL", "Stomatologie"], accredited: true, emergencies: false, imageUrl: "", description: "Centre d excellence en ophtalmologie et chirurgie du visage.", beds: 60, doctors: 35, founded: 2005 },
-  { name: "Hopital Sahloul", type: "H\u00f4pital", governorate: "Sousse", city: "Sousse", address: "Route de la Ceinture, Sousse 4054", phone: "+216 73 369 000", rating: 4.4, reviews: 445, price: 80, services: ["Cardiologie interventionnelle", "Neurochirurgie", "Oncologie", "Urgences"], accredited: true, emergencies: true, imageUrl: "", description: "CHU de la region du Sahel avec service de pointe en cardiologie.", beds: 620, doctors: 250, founded: 1991 },
-  { name: "Clinique Les Oliviers", type: "Clinique", governorate: "Sfax", city: "Sfax", address: "Route de Tunis Km 2, Sfax 3000", phone: "+216 74 240 000", rating: 4.5, reviews: 189, price: 100, services: ["Chirurgie orthopedique", "Traumatologie", "Reeducation", "Imagerie"], accredited: true, emergencies: true, imageUrl: "", description: "Clinique specialisee en chirurgie osseuse et reeducation fonctionnelle.", beds: 80, doctors: 30, founded: 2010 },
-  { name: "Hopital Habib Bourguiba Sfax", type: "H\u00f4pital", governorate: "Sfax", city: "Sfax", address: "Avenue Majida Boulila, Sfax 3029", phone: "+216 74 241 511", rating: 4.1, reviews: 678, price: 60, services: ["Pediatrie", "Gynecologie", "Dermatologie", "Psychiatrie"], accredited: true, emergencies: true, imageUrl: "", description: "Plus grand CHU du sud tunisien.", beds: 800, doctors: 320, founded: 1963 },
-  { name: "Clinique El Amen Nabeul", type: "Clinique", governorate: "Nabeul", city: "Nabeul", address: "Route de Tunis, Nabeul 8000", phone: "+216 72 235 000", rating: 4.3, reviews: 156, price: 120, services: ["Medecine generale", "Gynecologie", "Pediatrie", "Analyses"], accredited: true, emergencies: true, imageUrl: "", description: "Clinique polyvalente du Cap Bon.", beds: 50, doctors: 20, founded: 2012 },
-  { name: "Hopital Fattouma Bourguiba Monastir", type: "H\u00f4pital", governorate: "Monastir", city: "Monastir", address: "Avenue Farhat Hached, Monastir 5000", phone: "+216 73 461 144", rating: 4.3, reviews: 389, price: 70, services: ["CHU complet", "Medecine nucleaire", "Neonatologie", "Cardiologie"], accredited: true, emergencies: true, imageUrl: "", description: "CHU universitaire de Monastir avec service de medecine nucleaire.", beds: 550, doctors: 200, founded: 1977 },
-  { name: "Polyclinique Les Jasmins", type: "Clinique", governorate: "Ariana", city: "Ariana", address: "Avenue de l Independance, Ariana 2080", phone: "+216 71 709 000", rating: 4.4, reviews: 201, price: 80, services: ["Medecine generale", "Radiologie", "Kinesitherapie", "Analyses"], accredited: true, emergencies: false, imageUrl: "", description: "Centre de soins ambulatoires avec plateau technique complet.", beds: 30, doctors: 15, founded: 2015 },
+  // Grand Tunis
+  { name: "Clinique La Marsa", type: "Clinique", governorate: "Tunis", city: "La Marsa", address: "Avenue Taieb Mhiri, La Marsa 2078", phone: "+216 71 749 000", rating: 4.6, reviews: 234, price: 150, services: ["Cardiologie", "Chirurgie generale", "Maternite", "Urgences 24h"], accredited: true, emergencies: true, imageUrl: "/uploads/medical-service-banner/medical-clinic-banner-facebook-cover-design-template_519207-51.jpg", description: "Clinique privee multidisciplinaire avec plateau technique moderne.", beds: 120, doctors: 45, founded: 1998 },
+  { name: "Clinique Pasteur", type: "Clinique", governorate: "Tunis", city: "Tunis", address: "4 Place Pasteur, Tunis 1002", phone: "+216 71 843 000", rating: 4.7, reviews: 312, price: 200, services: ["Ophtalmologie", "Chirurgie refractive", "ORL", "Stomatologie"], accredited: true, emergencies: false, imageUrl: "/uploads/medical-service-banner/clinic-and-hospital-horizontal-banner-healthcare-vector-24655598.avif", description: "Centre d excellence en ophtalmologie et chirurgie du visage.", beds: 60, doctors: 35, founded: 2005 },
+  { name: "Clinique Al Hayat", type: "Clinique", governorate: "Tunis", city: "Tunis", address: "19 Rue Sidi El Hani, Bab Saadoun, Tunis 1006", phone: "+216 71 562 800", rating: 4.5, reviews: 187, price: 120, services: ["Medecine interne", "Cardiologie", "Chirurgie vasculaire", "Urgences"], accredited: true, emergencies: true, imageUrl: "/uploads/medical-service-banner/gradient-medical-center-sale-banner_23-2151082971.avif", description: "Clinique polyvalente au coeur de Tunis avec service d urgences 24h/24.", beds: 90, doctors: 38, founded: 2003 },
+  { name: "Clinique Taoufik", type: "Clinique", governorate: "Tunis", city: "La Marsa", address: "2 Rue de la Corniche, La Marsa 2078", phone: "+216 71 774 500", rating: 4.8, reviews: 298, price: 180, services: ["Cardiologie", "Neurologie", "Chirurgie plastique", "Oncologie"], accredited: true, emergencies: true, imageUrl: "/uploads/medical-service-banner/medical-banner-11.jpg", description: "Clinique de luxe en bord de mer specialisee en chirurgie et oncologie.", beds: 110, doctors: 52, founded: 2001 },
+  { name: "Clinique Carthage", type: "Clinique", governorate: "Tunis", city: "Carthage", address: "Rue Hannibal, Carthage Salambo, Tunis 1010", phone: "+216 71 731 100", rating: 4.7, reviews: 225, price: 170, services: ["Chirurgie esthetique", "Dermatologie", "ORL", "Ophtalmologie"], accredited: true, emergencies: false, imageUrl: "/uploads/medical-service-banner/medical-staff-clinic-banner-with-copy-space-on-the-right-side-hospital-HR7801.jpg", description: "Clinique haut de gamme dans le quartier historique de Carthage.", beds: 45, doctors: 30, founded: 2007 },
+  { name: "Centre Medical El Menzah", type: "Centre médical", governorate: "Tunis", city: "El Menzah", address: "64 Avenue Tahar Haddad, El Menzah 6, Tunis 1004", phone: "+216 71 230 900", rating: 4.6, reviews: 143, price: 90, services: ["Medecine generale", "Cardiologie", "Endocrinologie", "Biologie"], accredited: true, emergencies: false, imageUrl: "/uploads/medical-service-banner/clinic-medical-center-horizontal-banner-260nw-2716869991.webp", description: "Centre medical pluridisciplinaire dans le quartier residentiel de Menzah.", beds: 20, doctors: 22, founded: 2011 },
+  // Ariana
+  { name: "Polyclinique Les Jasmins", type: "Clinique", governorate: "Ariana", city: "Ariana", address: "Avenue de l Independance, Ariana 2080", phone: "+216 71 709 000", rating: 4.4, reviews: 201, price: 80, services: ["Medecine generale", "Radiologie", "Kinesitherapie", "Analyses"], accredited: true, emergencies: false, imageUrl: "/uploads/medical-service-banner/flat-design-medical-clinic-sale-banner_23-2149641439.avif", description: "Centre de soins ambulatoires avec plateau technique complet.", beds: 30, doctors: 15, founded: 2015 },
+  { name: "Clinique Ennasr", type: "Clinique", governorate: "Ariana", city: "Ennasr", address: "Centre Urbain Ennasr 2, Ariana 2037", phone: "+216 71 854 300", rating: 4.5, reviews: 167, price: 100, services: ["Medecine generale", "Gynecologie-obstetrique", "Pediatrie", "Urgences"], accredited: true, emergencies: true, imageUrl: "/uploads/medical-service-banner/healthcare-medical-service-ads-promotional-web-banner-template-design_84443-10612.avif", description: "Clinique de quartier bien equipee desservant la cite Ennasr.", beds: 65, doctors: 28, founded: 2009 },
+  { name: "Polyclinique La Soukra", type: "Clinique", governorate: "Ariana", city: "La Soukra", address: "Route de La Soukra Km 4, Ariana 2036", phone: "+216 71 861 700", rating: 4.4, reviews: 132, price: 110, services: ["Chirurgie generale", "Maternite", "Radiologie", "Kinesitherapie"], accredited: true, emergencies: true, imageUrl: "/uploads/medical-service-banner/medical-healthcare-social-media-banner-600nw-2577528539.webp", description: "Polyclinique de banlieue avec maternite et bloc operatoire.", beds: 70, doctors: 32, founded: 2013 },
+  // Ben Arous
+  { name: "Clinique Megrine", type: "Clinique", governorate: "Ben Arous", city: "Megrine", address: "Avenue du 7 Novembre, Megrine 2033", phone: "+216 71 399 600", rating: 4.3, reviews: 118, price: 95, services: ["Medecine interne", "Cardiologie", "Chirurgie", "Imagerie"], accredited: true, emergencies: true, imageUrl: "/uploads/medical-service-banner/linkedin-healthcare-medical-banner-cover-modern-flat-and-green-design-for-hospital-clinic-flyer-poster-facebook-youtube-and-website-promotion-vector.jpg", description: "Clinique moderne desservant la banlieue sud de Tunis.", beds: 60, doctors: 25, founded: 2016 },
+  // Nabeul
+  { name: "Clinique El Amen Nabeul", type: "Clinique", governorate: "Nabeul", city: "Nabeul", address: "Route de Tunis, Nabeul 8000", phone: "+216 72 235 000", rating: 4.3, reviews: 156, price: 120, services: ["Medecine generale", "Gynecologie", "Pediatrie", "Analyses"], accredited: true, emergencies: true, imageUrl: "/uploads/medical-service-banner/health-clinic-horizontal-banner-medical-web-template-social-media-post_565745-188.avif", description: "Clinique polyvalente du Cap Bon.", beds: 50, doctors: 20, founded: 2012 },
+  { name: "Clinique Ibn Rochd Hammamet", type: "Clinique", governorate: "Nabeul", city: "Hammamet", address: "Route Touristique, Hammamet 8050", phone: "+216 72 281 400", rating: 4.6, reviews: 203, price: 160, services: ["Medecine generale", "Chirurgie esthetique", "Gynecologie", "Pediatrie"], accredited: true, emergencies: true, imageUrl: "/uploads/medical-service-banner/medical-clinic-banner-facebook-cover-design-template_519207-51.jpg", description: "Clinique internationale accueillant aussi une clientele etrangere.", beds: 55, doctors: 26, founded: 2004 },
+  // Bizerte
+  { name: "Centre Medical Bizerte", type: "Centre médical", governorate: "Bizerte", city: "Bizerte", address: "2 Avenue Habib Bourguiba, Bizerte 7000", phone: "+216 72 432 200", rating: 4.3, reviews: 98, price: 75, services: ["Medecine generale", "Cardiologie", "Analyses medicales", "Echographie"], accredited: true, emergencies: false, imageUrl: "/uploads/medical-service-banner/gradient-medical-clinic-sale-banner_23-2149645554.avif", description: "Centre medical de reference dans le gouvernorat de Bizerte.", beds: 18, doctors: 14, founded: 2012 },
+  // Sousse
+  { name: "Clinique Les Palmiers", type: "Clinique", governorate: "Sousse", city: "Hammam Sousse", address: "Avenue du 20 Mars, Hammam Sousse 4011", phone: "+216 73 227 500", rating: 4.5, reviews: 210, price: 130, services: ["Cardiologie", "Chirurgie generale", "Obstetrique", "Pediatrie"], accredited: true, emergencies: true, imageUrl: "/uploads/medical-service-banner/hospital-healthcare-service-facebook-template_23-2150395866.avif", description: "Clinique moderne du Sahel avec maternite et service de pediatrie.", beds: 100, doctors: 42, founded: 2008 },
+  { name: "Polyclinique Sousse Nord", type: "Clinique", governorate: "Sousse", city: "Sousse", address: "Route de la Corniche, Sousse 4000", phone: "+216 73 210 800", rating: 4.5, reviews: 234, price: 125, services: ["Cardiologie", "Chirurgie orthopedique", "Gastro-enterologie", "Imagerie"], accredited: true, emergencies: true, imageUrl: "/uploads/medical-service-banner/clinic-and-hospital-horizontal-banner-healthcare-vector-24655598.avif", description: "Grande polyclinique privee au nord de Sousse avec plusieurs specialites.", beds: 95, doctors: 40, founded: 1999 },
+  { name: "Polyclinique Akouda", type: "Clinique", governorate: "Sousse", city: "Akouda", address: "Route de Sousse, Akouda 4022", phone: "+216 73 371 200", rating: 4.4, reviews: 158, price: 110, services: ["Chirurgie generale", "Maternite", "Cardiologie", "Radiologie"], accredited: true, emergencies: true, imageUrl: "/uploads/medical-service-banner/medical-healthcare-social-media-banner-600nw-2577528539.webp", description: "Polyclinique moderne desservant la zone cotiere nord de Sousse.", beds: 70, doctors: 30, founded: 2011 },
+  // Monastir
+  { name: "Clinique Ibn El Jazzar", type: "Clinique", governorate: "Monastir", city: "Monastir", address: "Avenue Habib Bourguiba, Monastir 5000", phone: "+216 73 465 200", rating: 4.4, reviews: 178, price: 140, services: ["Cardiologie", "Urologie", "Chirurgie digestive", "Maternite"], accredited: true, emergencies: true, imageUrl: "/uploads/medical-service-banner/flat-design-medical-center-sale-banner_23-2149097118.avif", description: "Clinique privee de reference a Monastir avec plateau technique avance.", beds: 85, doctors: 36, founded: 2006 },
+  { name: "Clinique Ksar Hellal", type: "Clinique", governorate: "Monastir", city: "Ksar Hellal", address: "Avenue Habib Bourguiba, Ksar Hellal 5070", phone: "+216 73 475 300", rating: 4.1, reviews: 92, price: 85, services: ["Medecine generale", "Maternite", "Chirurgie", "Analyses"], accredited: true, emergencies: true, imageUrl: "/uploads/medical-service-banner/healthcare-medical-service-ads-promotional-web-banner-template-design_84443-10612.avif", description: "Clinique de la region de Ksar Hellal couvrant le bassin textile.", beds: 45, doctors: 18, founded: 2005 },
+  { name: "Centre Medical Jemmal", type: "Centre médical", governorate: "Monastir", city: "Jemmal", address: "Route de Monastir, Jemmal 5020", phone: "+216 73 483 100", rating: 4.2, reviews: 87, price: 70, services: ["Medecine generale", "Cardiologie", "Radiologie", "Biologie"], accredited: true, emergencies: false, imageUrl: "/uploads/medical-service-banner/gradient-medical-center-sale-banner_23-2151082971.avif", description: "Centre medical polyvalent desservant la region de Jemmal.", beds: 15, doctors: 12, founded: 2017 },
+  // Sfax
+  { name: "Clinique Les Oliviers", type: "Clinique", governorate: "Sfax", city: "Sfax", address: "Route de Tunis Km 2, Sfax 3000", phone: "+216 74 240 000", rating: 4.5, reviews: 189, price: 100, services: ["Chirurgie orthopedique", "Traumatologie", "Reeducation", "Imagerie"], accredited: true, emergencies: true, imageUrl: "/uploads/medical-service-banner/gradient-medical-clinic-sale-banner_23-2149645554.avif", description: "Clinique specialisee en chirurgie osseuse et reeducation fonctionnelle.", beds: 80, doctors: 30, founded: 2010 },
+  { name: "Clinique El Yasmine Sfax", type: "Clinique", governorate: "Sfax", city: "Sfax", address: "Avenue Majida Boulila, Sfax 3000", phone: "+216 74 244 800", rating: 4.5, reviews: 167, price: 120, services: ["Gynecologie", "Maternite", "Pediatrie", "Neonatologie"], accredited: true, emergencies: true, imageUrl: "/uploads/medical-service-banner/hospital-healthcare-service-sale-banner_23-2150394136.avif", description: "Clinique de la mere et de l enfant specialisee en maternite et pediatrie.", beds: 75, doctors: 28, founded: 2009 },
+  { name: "Centre Medical Ibn Khaldoun", type: "Centre médical", governorate: "Sfax", city: "Sfax", address: "Rue Ibn Khaldoun, Sfax 3000", phone: "+216 74 298 700", rating: 4.4, reviews: 156, price: 80, services: ["Medecine generale", "Dermatologie", "Pediatrie", "Analyses medicales"], accredited: true, emergencies: false, imageUrl: "/uploads/medical-service-banner/clinic-medical-center-horizontal-banner-260nw-2716869991.webp", description: "Centre medical polyvalent au centre de Sfax avec plusieurs specialites.", beds: 25, doctors: 18, founded: 2014 },
+  // Kairouan
+  { name: "Clinique El Amal Kairouan", type: "Clinique", governorate: "Kairouan", city: "Kairouan", address: "Avenue de la Republique, Kairouan 3100", phone: "+216 77 225 600", rating: 4.2, reviews: 145, price: 90, services: ["Medecine generale", "Pediatrie", "Chirurgie generale", "Urgences"], accredited: true, emergencies: true, imageUrl: "/uploads/medical-service-banner/health-clinic-horizontal-banner-medical-web-template-social-media-post_565745-188.avif", description: "Principale clinique privee de Kairouan avec urgences permanentes.", beds: 55, doctors: 22, founded: 2000 },
+  // Beja
+  { name: "Centre Medical Beja", type: "Centre médical", governorate: "Beja", city: "Beja", address: "Avenue Habib Bourguiba, Beja 9000", phone: "+216 78 459 500", rating: 4.0, reviews: 63, price: 65, services: ["Medecine generale", "Pediatrie", "Gynecologie", "Biologie"], accredited: false, emergencies: false, imageUrl: "/uploads/medical-service-banner/flat-design-medical-clinic-sale-banner_23-2149641439.avif", description: "Centre medical principal du gouvernorat de Beja.", beds: 20, doctors: 10, founded: 2015 },
+  // Gabes
+  { name: "Clinique El Hayat Gabes", type: "Clinique", governorate: "Gabes", city: "Gabes", address: "Rue Farhat Hached, Gabes 6000", phone: "+216 75 270 400", rating: 4.3, reviews: 112, price: 95, services: ["Medecine generale", "Chirurgie generale", "Maternite", "Urgences"], accredited: true, emergencies: true, imageUrl: "/uploads/medical-service-banner/medical-staff-clinic-banner-with-copy-space-on-the-right-side-hospital-HR7801.jpg", description: "Clinique privee de reference dans le gouvernorat de Gabes.", beds: 60, doctors: 24, founded: 2007 },
+  // Hospitalisation À Domicile
+  { name: "HAD Soins Tunis Nord", type: "Hospitalisation À Domicile", governorate: "Tunis", city: "La Marsa", address: "12 Rue de la Liberté, La Marsa 2078", phone: "+216 71 774 100", rating: 4.6, reviews: 89, price: 120, services: ["Soins infirmiers", "Kinesitherapie", "Suivi post-operatoire", "Soins palliatifs"], accredited: true, emergencies: false, imageUrl: "/uploads/medical-service-banner/medical-clinic-banner-facebook-cover-design-template_519207-51.jpg", description: "Service d hospitalisation à domicile couvrant Tunis Nord et La Marsa, avec equipe pluridisciplinaire disponible 7j/7.", doctors: 8, founded: 2014 },
+  { name: "HAD Ariana Domicile Sante", type: "Hospitalisation À Domicile", governorate: "Ariana", city: "Ariana", address: "Avenue de l Independance, Ariana 2080", phone: "+216 71 709 500", rating: 4.5, reviews: 67, price: 100, services: ["Soins infirmiers", "Reeducation", "Nutrition medicale", "Surveillance medicale"], accredited: true, emergencies: false, imageUrl: "/uploads/medical-service-banner/gradient-medical-center-sale-banner_23-2151082971.avif", description: "Structure HAD de la region d Ariana assurant la continuite des soins apres hospitalisation.", doctors: 6, founded: 2016 },
+  { name: "HAD Ben Arous Confort Soin", type: "Hospitalisation À Domicile", governorate: "Ben Arous", city: "Ben Arous", address: "Avenue du 7 Novembre, Ben Arous 2013", phone: "+216 71 380 200", rating: 4.4, reviews: 53, price: 110, services: ["Soins infirmiers", "Soins de plaies", "Chimiotherapie a domicile", "Kinesitherapie"], accredited: true, emergencies: false, imageUrl: "/uploads/medical-service-banner/health-clinic-horizontal-banner-medical-web-template-social-media-post_565745-188.avif", description: "Service HAD specialise dans les soins oncologiques et post-chirurgicaux a domicile.", doctors: 7, founded: 2017 },
+  { name: "HAD Sousse Aile Medicale", type: "Hospitalisation À Domicile", governorate: "Sousse", city: "Sousse", address: "Route de la Corniche, Sousse 4000", phone: "+216 73 210 300", rating: 4.7, reviews: 104, price: 115, services: ["Soins infirmiers", "Readaptation cardiaque", "Dialyse a domicile", "Suivi diabetique"], accredited: true, emergencies: false, imageUrl: "/uploads/medical-service-banner/clinic-and-hospital-horizontal-banner-healthcare-vector-24655598.avif", description: "Pionnier de l HAD dans le Sahel, reconnu pour ses soins cardiaques et reeducatifs a domicile.", doctors: 10, founded: 2012 },
+  { name: "HAD Monastir Sante Proximite", type: "Hospitalisation À Domicile", governorate: "Monastir", city: "Monastir", address: "Avenue Habib Bourguiba, Monastir 5000", phone: "+216 73 462 700", rating: 4.3, reviews: 48, price: 95, services: ["Soins infirmiers", "Kinesitherapie", "Orthophonie", "Ergotherapie"], accredited: true, emergencies: false, imageUrl: "/uploads/medical-service-banner/flat-design-medical-center-sale-banner_23-2149097118.avif", description: "Equipe HAD pluridisciplinaire au service des patients du Monastir metropolitain.", doctors: 6, founded: 2018 },
+  { name: "HAD Sfax Soins Integres", type: "Hospitalisation À Domicile", governorate: "Sfax", city: "Sfax", address: "Route de Tunis Km 3, Sfax 3000", phone: "+216 74 240 500", rating: 4.5, reviews: 76, price: 105, services: ["Soins infirmiers", "Soins palliatifs", "Nutrition parenterale", "Suivi post-AVC"], accredited: true, emergencies: false, imageUrl: "/uploads/medical-service-banner/gradient-medical-clinic-sale-banner_23-2149645554.avif", description: "Service HAD de reference a Sfax, specialise dans les soins complexes et le maintien a domicile de longue duree.", doctors: 9, founded: 2013 },
+  { name: "HAD Nabeul Cap Bon Sante", type: "Hospitalisation À Domicile", governorate: "Nabeul", city: "Nabeul", address: "Route de Tunis, Nabeul 8000", phone: "+216 72 235 400", rating: 4.4, reviews: 42, price: 90, services: ["Soins infirmiers", "Kinesitherapie", "Soins de plaies", "Surveillance post-chirurgie"], accredited: true, emergencies: false, imageUrl: "/uploads/medical-service-banner/hospital-healthcare-service-sale-banner_23-2150394136.avif", description: "Service HAD du Cap Bon assurant le suivi et les soins a domicile pour les patients du gouvernorat de Nabeul.", doctors: 5, founded: 2019 },
+  { name: "HAD Bizerte Nord Sante", type: "Hospitalisation À Domicile", governorate: "Bizerte", city: "Bizerte", address: "Avenue Habib Thameur, Bizerte 7000", phone: "+216 72 432 600", rating: 4.2, reviews: 35, price: 85, services: ["Soins infirmiers", "Reeducation motrice", "Soins palliatifs", "Nutrition"], accredited: false, emergencies: false, imageUrl: "/uploads/medical-service-banner/healthcare-medical-service-ads-promotional-web-banner-template-design_84443-10612.avif", description: "Premier service HAD du nord du pays, offrant soins infirmiers et readaptation fonctionnelle a domicile.", doctors: 4, founded: 2020 },
+  { name: "HAD Kairouan Domicile Plus", type: "Hospitalisation À Domicile", governorate: "Kairouan", city: "Kairouan", address: "Avenue de la Republique, Kairouan 3100", phone: "+216 77 225 900", rating: 4.3, reviews: 51, price: 80, services: ["Soins infirmiers", "Kinesitherapie", "Suivi diabetique", "Soins de plaies"], accredited: true, emergencies: false, imageUrl: "/uploads/medical-service-banner/medical-healthcare-social-media-banner-600nw-2577528539.webp", description: "Service HAD couvrant Kairouan et les delegations limitrophes, dedié au maintien a domicile des patients chroniques.", doctors: 5, founded: 2018 },
+  { name: "HAD Gabes Soins Domicile", type: "Hospitalisation À Domicile", governorate: "Gabes", city: "Gabes", address: "Rue Farhat Hached, Gabes 6000", phone: "+216 75 270 800", rating: 4.1, reviews: 29, price: 80, services: ["Soins infirmiers", "Soins palliatifs", "Kinesitherapie", "Surveillance cardiaque"], accredited: false, emergencies: false, imageUrl: "/uploads/medical-service-banner/linkedin-healthcare-medical-banner-cover-modern-flat-and-green-design-for-hospital-clinic-flyer-poster-facebook-youtube-and-website-promotion-vector.jpg", description: "Service HAD du sud tunisien proposant soins infirmiers et accompagnement des patients en fin de vie a domicile.", doctors: 4, founded: 2021 },
 ];
 
 /* ================================================================== */
@@ -1009,12 +1113,229 @@ const LAB_CENTERS = [
 ];
 
 /* ================================================================== */
+/*  Paramedical Service Providers seed data                           */
+/* ================================================================== */
+const PARAMEDICAL_SERVICE_PROVIDERS = [
+  // Tunis
+  { name: "Fatma Ben Salah", specialization: "Infirmier(ère)", governorate: "Tunis", delegation: "Tunis Ville", address: "12 Rue de la Liberté, Tunis 1000", phone: "+216 71 234 567", email: "fatma.bensalah@soin.tn", openingHours: "Lun–Sam 08:00–18:00", description: "Infirmière libérale avec 10 ans d’expérience en soins à domicile et injections." },
+  { name: "Mohamed Ali Gharbi", specialization: "Kinésithérapeute", governorate: "Tunis", delegation: "El Menzah", address: "45 Avenue de la Jeunesse, El Menzah 1004", phone: "+216 71 890 123", email: "ma.gharbi@kine.tn", openingHours: "Lun–Ven 08:00–19:00", description: "Kinésithérapeute spécialisé en rééducation orthopédique et sportive." },
+  { name: "Sonia Trabelsi", specialization: "Orthophoniste", governorate: "Tunis", delegation: "La Marsa", address: "8 Rue de la République, La Marsa 2078", phone: "+216 71 776 432", email: "sonia.trabelsi@ortho.tn", openingHours: "Lun–Ven 09:00–17:00", description: "Orthophoniste pour enfants et adultes, spécialité troubles du langage et de la déglutition." },
+  { name: "Anis Jebali", specialization: "Aide-soignant(e)", governorate: "Tunis", delegation: "Le Bardo", address: "23 Avenue de la République, Le Bardo 2000", phone: "+216 71 512 789", email: "", openingHours: "24h/24 7j/7", description: "Aide-soignant disponible pour soins à domicile nuit et week-end." },
+  // Ariana
+  { name: "Hajer Mansouri", specialization: "Infirmier(ère)", governorate: "Ariana", delegation: "Ariana Ville", address: "15 Avenue de l’Indépendance, Ariana 2080", phone: "+216 71 710 345", email: "hajer.mansouri@soin.tn", openingHours: "Lun–Sam 07:30–18:30", description: "Infirmière certifiée pour pansements, prélèvements et soins post-opératoires." },
+  { name: "Rim Khemiri", specialization: "Kinésithérapeute", governorate: "Ariana", delegation: "Soukra", address: "32 Route de La Soukra, Ariana 2036", phone: "+216 71 860 678", email: "rim.khemiri@kine.tn", openingHours: "Lun–Sam 08:00–20:00", description: "Kinésithérapeute à domicile, drainage lymphatique et kinésithérapie respiratoire." },
+  { name: "Walid Zouari", specialization: "Ergothérapeute", governorate: "Ariana", delegation: "Raoued", address: "7 Rue des Oliviers, Raoued 2073", phone: "+216 71 840 901", email: "walid.zouari@ergo.tn", openingHours: "Lun–Ven 08:00–17:00", description: "Ergothérapeute spécialisé dans la rééducation cognitive et la réadaptation du handicap." },
+  // Ben Arous
+  { name: "Leila Chaouachi", specialization: "Sage-femme", governorate: "Ben Arous", delegation: "El Mourouj", address: "10 Rue Ibn Rachiq, El Mourouj 2074", phone: "+216 71 400 234", email: "leila.chaouachi@sagefemme.tn", openingHours: "Lun–Sam 08:00–18:00", description: "Sage-femme libérale pour suivi de grossesse, accouchement préparé et soins post-natals." },
+  { name: "Karim Hamza", specialization: "Kinésithérapeute", governorate: "Ben Arous", delegation: "Hammam Lif", address: "55 Avenue des Martyrs, Hammam Lif 2050", phone: "+216 71 291 567", email: "", openingHours: "Lun–Sam 09:00–18:00", description: "Kinésithérapeute rééducation neurologique post-AVC et rééducation fonctionnelle." },
+  // Nabeul
+  { name: "Ines Jellouli", specialization: "Infirmier(ère)", governorate: "Nabeul", delegation: "Hammamet", address: "22 Avenue des Hôtels, Hammamet 8050", phone: "+216 72 280 789", email: "ines.jellouli@soin.tn", openingHours: "Lun–Sam 08:00–18:00", description: "Infirmière expérimentée, soins aux seniors et patients oncologiques à domicile." },
+  { name: "Nabil Sfaxi", specialization: "Kinésithérapeute", governorate: "Nabeul", delegation: "Nabeul", address: "14 Rue Farhat Hached, Nabeul 8000", phone: "+216 72 236 012", email: "nabil.sfaxi@kine.tn", openingHours: "Lun–Ven 08:30–19:00", description: "Kinésithérapeute spécialisé en traumatologie du sport et décontraction musculaire." },
+  // Sousse
+  { name: "Amira Bouazizi", specialization: "Infirmier(ère)", governorate: "Sousse", delegation: "Sousse Ville", address: "30 Avenue Habib Bourguiba, Sousse 4000", phone: "+216 73 220 456", email: "amira.bouazizi@soin.tn", openingHours: "Lun–Sam 07:00–20:00", description: "Infirmière avec expertise en soins de plaies, injectables et prélèvements biologiques." },
+  { name: "Bilel Souissi", specialization: "Kinésithérapeute", governorate: "Sousse", delegation: "Hammam Sousse", address: "9 Rue de l’Unité, Hammam Sousse 4011", phone: "+216 73 228 789", email: "bilel.souissi@kine.tn", openingHours: "Lun–Sam 08:00–20:00", description: "Kinésithérapeute en rééducation post-fracture, lombalgies et rééducation respiratoire." },
+  { name: "Maroua Hamrouni", specialization: "Psychomotricien(ne)", governorate: "Sousse", delegation: "Akouda", address: "17 Route Côtière, Akouda 4022", phone: "+216 73 370 321", email: "maroua.hamrouni@psycho.tn", openingHours: "Lun–Ven 09:00–17:00", description: "Psychomotricienne pour enfants et adolescents présentant des troubles du tonus ou des apprentissages." },
+  // Monastir
+  { name: "Rania Gharib", specialization: "Infirmier(ère)", governorate: "Monastir", delegation: "Monastir", address: "6 Avenue Habib Bourguiba, Monastir 5000", phone: "+216 73 462 456", email: "rania.gharib@soin.tn", openingHours: "Lun–Sam 08:00–18:00", description: "Infirmière libérale pour soins quotidiens, insuline, pansements et perfusions." },
+  { name: "Youssef Marzouki", specialization: "Kinésithérapeute", governorate: "Monastir", delegation: "Jemmal", address: "3 Rue de l’Espérance, Jemmal 5020", phone: "+216 73 484 567", email: "youssef.marzouki@kine.tn", openingHours: "Lun–Sam 08:00–19:00", description: "Kinésithérapeute polyvalent en rééducation neurologique et posturale." },
+  // Sfax
+  { name: "Sabrine Elloumi", specialization: "Infirmier(ère)", governorate: "Sfax", delegation: "Sfax Ville", address: "28 Rue Ali Bach Hamba, Sfax 3000", phone: "+216 74 241 234", email: "sabrine.elloumi@soin.tn", openingHours: "Lun–Sam 07:30–19:30", description: "Infirmière libérale à Sfax, spécialiste soins aux patients diabétiques et oncologiques." },
+  { name: "Hassen Ghribi", specialization: "Kinésithérapeute", governorate: "Sfax", delegation: "Sakiet Ezzit", address: "12 Route de la Corniche, Sfax 3021", phone: "+216 74 297 890", email: "hassen.ghribi@kine.tn", openingHours: "Lun–Sam 08:00–20:00", description: "Kinésithérapeute rééducation du rachis, scoliose et algies vertabrales." },
+  { name: "Dorra Driss", specialization: "Diététicien(ne)", governorate: "Sfax", delegation: "Sfax Ville", address: "5 Avenue Tahar Sfar, Sfax 3000", phone: "+216 74 255 678", email: "dorra.driss@diet.tn", openingHours: "Lun–Ven 09:00–17:00", description: "Diététicienne clinicienne, prise en charge obésité, diabète et maladies cardiovasculaires." },
+  // Bizerte
+  { name: "Cyrine Tlili", specialization: "Infirmier(ère)", governorate: "Bizerte", delegation: "Bizerte Nord", address: "18 Avenue Habib Thameur, Bizerte 7000", phone: "+216 72 432 789", email: "cyrine.tlili@soin.tn", openingHours: "Lun–Sam 08:00–18:00", description: "Infirmière à domicile, soins infirmiers courants et surveillance médicale." },
+  { name: "Mehdi Fennich", specialization: "Kinésithérapeute", governorate: "Bizerte", delegation: "Menzel Bourguiba", address: "7 Rue Habib Bourguiba, Menzel Bourguiba 7050", phone: "+216 72 460 234", email: "mehdi.fennich@kine.tn", openingHours: "Lun–Sam 09:00–18:00", description: "Kinésithérapeute axe rééducation sport et traumatologie." },
+  // Kairouan
+  { name: "Asma Jarray", specialization: "Infirmier(ère)", governorate: "Kairouan", delegation: "Kairouan Nord", address: "4 Avenue de la République, Kairouan 3100", phone: "+216 77 226 345", email: "asma.jarray@soin.tn", openingHours: "Lun–Sam 08:00–18:00", description: "Infirmière de soins généraux, pédialtre et périnalité." },
+  // Gabes
+  { name: "Slim Haddad", specialization: "Kinésithérapeute", governorate: "Gabes", delegation: "Gabes Ville", address: "11 Rue Farhat Hached, Gabes 6000", phone: "+216 75 271 012", email: "slim.haddad@kine.tn", openingHours: "Lun–Sam 08:00–19:00", description: "Kinésithérapeute généraliste, rééducation fonctionnelle post-fracture et orthopédie." },
+  { name: "Manel Brik", specialization: "Orthophoniste", governorate: "Gabes", delegation: "Gabes Ville", address: "3 Rue de la Paix, Gabes 6000", phone: "+216 75 275 678", email: "manel.brik@ortho.tn", openingHours: "Lun–Ven 09:00–17:00", description: "Orthophoniste pour enfants (retard de parole, bilinguisme) et adultes (aphasie post-AVC)." },
+  // Beja
+  { name: "Issam Saidi", specialization: "Aide-soignant(e)", governorate: "Beja", delegation: "Beja Nord", address: "20 Avenue Habib Bourguiba, Beja 9000", phone: "+216 78 460 123", email: "", openingHours: "Lun–Sam 08:00–18:00", description: "Aide-soignant à domicile, assistance aux personnes âgées et post-hospitalisation." },
+];
+
+/* ================================================================== */
+/*  Testimonials seed data                                            */
+/* ================================================================== */
+const SEED_TESTIMONIALS = [
+  {
+    name: "Fatima Ben Ali",
+    role: "Patiente",
+    text: "MegaCare a changé ma façon de gérer ma santé. Plus besoin de perdre des heures à l'hôpital pour une simple consultation. Tout est rapide, simple et vraiment efficace.",
+    rating: 5,
+    avatar: "F",
+    location: "Tunis",
+    visible: true,
+    order: 1,
+  },
+  {
+    name: "Dr. Amira Mansouri",
+    role: "Cardiologue",
+    text: "Interface professionnelle et intuitive. Mes patients sont ravis de pouvoir me consulter depuis chez eux. C'est une véritable révolution dans la pratique médicale quotidienne.",
+    rating: 5,
+    avatar: "A",
+    location: "Sfax",
+    visible: true,
+    order: 2,
+  },
+  {
+    name: "Mohamed Karim",
+    role: "Patient",
+    text: "Service impeccable et pharmaciens compétents. Ma commande était prête en moins d'une heure. J'utilise MegaCare chaque fois que j'ai besoin d'un médecin ou d'une ordonnance.",
+    rating: 5,
+    avatar: "M",
+    location: "Sousse",
+    visible: true,
+    order: 3,
+  },
+  {
+    name: "Sonia Trabelsi",
+    role: "Patiente",
+    text: "Enfin une plateforme qui simplifie vraiment les démarches médicales. Le dossier patient centralisé est une fonctionnalité que j'attendais depuis longtemps.",
+    rating: 5,
+    avatar: "S",
+    location: "Monastir",
+    visible: true,
+    order: 4,
+  },
+  {
+    name: "Dr. Khaled Hamdi",
+    role: "Médecin généraliste",
+    text: "La gestion des rendez-vous est fluide et la téléconsultation fonctionne parfaitement. MegaCare est devenu un outil quotidien indispensable dans mon cabinet.",
+    rating: 5,
+    avatar: "K",
+    location: "Bizerte",
+    visible: true,
+    order: 5,
+  },
+  {
+    name: "Leila Bouzid",
+    role: "Patiente",
+    text: "J'apprécie la transparence des tarifs et la facilité de trouver un médecin disponible rapidement. Le service client est très réactif et à l'écoute.",
+    rating: 4,
+    avatar: "L",
+    location: "Nabeul",
+    visible: true,
+    order: 6,
+  },
+];
+
+/* ================================================================== */
+/*  Establishment user accounts (one per MedicalEstablishment)        */
+/* ================================================================== */
+const ESTAB_ACCOUNTS = [
+  { id: "estab-01", email: "clinique.lamarsa@megacare.tn",        firstName: "Amira",    lastName: "Bouslama",   serviceId: "SVC-TN-2024-0101" },
+  { id: "estab-02", email: "clinique.pasteur@megacare.tn",         firstName: "Khalil",   lastName: "Sfar",       serviceId: "SVC-TN-2024-0102" },
+  { id: "estab-03", email: "clinique.alhayat@megacare.tn",         firstName: "Sirine",   lastName: "Chaabane",   serviceId: "SVC-TN-2024-0103" },
+  { id: "estab-04", email: "clinique.taoufik@megacare.tn",         firstName: "Mounir",   lastName: "Taoufik",    serviceId: "SVC-TN-2024-0104" },
+  { id: "estab-05", email: "clinique.carthage@megacare.tn",        firstName: "Leila",    lastName: "Dridi",      serviceId: "SVC-TN-2024-0105" },
+  { id: "estab-06", email: "centre.elmenzah@megacare.tn",          firstName: "Sami",     lastName: "Belhaj",     serviceId: "SVC-TN-2024-0106" },
+  { id: "estab-07", email: "polyclinique.jasmins@megacare.tn",     firstName: "Ines",     lastName: "Karray",     serviceId: "SVC-TN-2024-0107" },
+  { id: "estab-08", email: "clinique.ennasr@megacare.tn",          firstName: "Wafa",     lastName: "Hammami",    serviceId: "SVC-TN-2024-0108" },
+  { id: "estab-09", email: "polyclinique.lasoukra@megacare.tn",    firstName: "Hichem",   lastName: "Zouari",     serviceId: "SVC-TN-2024-0109" },
+  { id: "estab-10", email: "clinique.megrine@megacare.tn",         firstName: "Randa",    lastName: "Slim",       serviceId: "SVC-TN-2024-0110" },
+  { id: "estab-11", email: "clinique.elamen.nabeul@megacare.tn",   firstName: "Mehdi",    lastName: "Oueslati",   serviceId: "SVC-TN-2024-0111" },
+  { id: "estab-12", email: "clinique.ibnrochd@megacare.tn",        firstName: "Asma",     lastName: "Abidi",      serviceId: "SVC-TN-2024-0112" },
+  { id: "estab-13", email: "centre.bizerte@megacare.tn",           firstName: "Tarek",    lastName: "Trabelsi",   serviceId: "SVC-TN-2024-0113" },
+  { id: "estab-14", email: "clinique.palmiers@megacare.tn",        firstName: "Nadia",    lastName: "Ben Salem",  serviceId: "SVC-TN-2024-0114" },
+  { id: "estab-15", email: "polyclinique.soussenord@megacare.tn",  firstName: "Farid",    lastName: "Gharbi",     serviceId: "SVC-TN-2024-0115" },
+  { id: "estab-16", email: "polyclinique.akouda@megacare.tn",      firstName: "Samira",   lastName: "Riahi",      serviceId: "SVC-TN-2024-0116" },
+  { id: "estab-17", email: "clinique.ibnjazzar@megacare.tn",       firstName: "Lotfi",    lastName: "Mssedi",     serviceId: "SVC-TN-2024-0117" },
+  { id: "estab-18", email: "clinique.ksarhellal@megacare.tn",      firstName: "Najla",    lastName: "Saidi",      serviceId: "SVC-TN-2024-0118" },
+  { id: "estab-19", email: "centre.jemmal@megacare.tn",            firstName: "Bassem",   lastName: "Mahjoub",    serviceId: "SVC-TN-2024-0119" },
+  { id: "estab-20", email: "clinique.lesoliviers@megacare.tn",     firstName: "Hatem",    lastName: "Ben Fredj",  serviceId: "SVC-TN-2024-0120" },
+  { id: "estab-21", email: "clinique.elyasmine@megacare.tn",       firstName: "Emna",     lastName: "Toumi",      serviceId: "SVC-TN-2024-0121" },
+  { id: "estab-22", email: "centre.ibnkhaldoun@megacare.tn",       firstName: "Walid",    lastName: "Gargouri",   serviceId: "SVC-TN-2024-0122" },
+  { id: "estab-23", email: "clinique.elamal.kairouan@megacare.tn", firstName: "Sonia",    lastName: "Jebali",     serviceId: "SVC-TN-2024-0123" },
+  { id: "estab-24", email: "centre.beja@megacare.tn",              firstName: "Rachid",   lastName: "Ferchichi",  serviceId: "SVC-TN-2024-0124" },
+  { id: "estab-25", email: "clinique.elhayat.gabes@megacare.tn",   firstName: "Mariam",   lastName: "Khelifi",    serviceId: "SVC-TN-2024-0125" },
+  { id: "estab-26", email: "had.tunisnord@megacare.tn",            firstName: "Olfa",     lastName: "Ayari",      serviceId: "SVC-TN-2024-0126" },
+  { id: "estab-27", email: "had.ariana@megacare.tn",               firstName: "Zied",     lastName: "Mellouli",   serviceId: "SVC-TN-2024-0127" },
+  { id: "estab-28", email: "had.benarous@megacare.tn",             firstName: "Hela",     lastName: "Msaddek",    serviceId: "SVC-TN-2024-0128" },
+  { id: "estab-29", email: "had.sousse@megacare.tn",               firstName: "Anis",     lastName: "Turki",      serviceId: "SVC-TN-2024-0129" },
+  { id: "estab-30", email: "had.monastir@megacare.tn",             firstName: "Dorra",    lastName: "Mansouri",   serviceId: "SVC-TN-2024-0130" },
+  { id: "estab-31", email: "had.sfax@megacare.tn",                 firstName: "Yacine",   lastName: "Lahmar",     serviceId: "SVC-TN-2024-0131" },
+  { id: "estab-32", email: "had.nabeul@megacare.tn",               firstName: "Imen",     lastName: "Baccouche",  serviceId: "SVC-TN-2024-0132" },
+  { id: "estab-33", email: "had.bizerte@megacare.tn",              firstName: "Kamel",    lastName: "Hadj Ali",   serviceId: "SVC-TN-2024-0133" },
+  { id: "estab-34", email: "had.kairouan@megacare.tn",             firstName: "Fatma",    lastName: "Chouchane",  serviceId: "SVC-TN-2024-0134" },
+  { id: "estab-35", email: "had.gabes@megacare.tn",                firstName: "Majdi",    lastName: "Riahi",      serviceId: "SVC-TN-2024-0135" },
+];
+
+async function seedEstablishmentAccounts(hashedPassword) {
+  let created = 0;
+  for (let i = 0; i < ESTAB_ACCOUNTS.length; i++) {
+    const acc = ESTAB_ACCOUNTS[i];
+    const estab = ESTABLISHMENTS[i]; // same index order
+    const exists = await User.findOne({ email: acc.email }).lean();
+    if (exists) continue;
+    await User.create({
+      _id: "svc-" + acc.id,
+      firstName: acc.firstName,
+      lastName: acc.lastName,
+      name: acc.firstName + " " + acc.lastName,
+      email: acc.email,
+      password: hashedPassword,
+      role: "medical_service",
+      status: "approved",
+      phone: "+216 71 000 000",
+      serviceId: acc.serviceId,
+      establishmentId: acc.id,
+      governorate: estab.governorate || "Tunis",
+      delegation: estab.city || "Tunis",
+    });
+    created++;
+  }
+  return created;
+}
+
+/* ================================================================== */
 /*  MAIN SEED FUNCTION                                                 */
 /* ================================================================== */
 async function seedDatabase() {
   try {
+    // --- Testimonials: always seed independently of user data ---
+    try {
+      const testimonialCount = await Testimonial.countDocuments();
+      if (testimonialCount === 0) {
+        await Testimonial.insertMany(SEED_TESTIMONIALS);
+        console.log("  " + SEED_TESTIMONIALS.length + " testimonials seeded");
+      }
+    } catch (e) { console.error("  Testimonial seed error:", e.message); }
+
+    // --- Banner migration: assign banners to establishments with empty imageUrl ---
+    try {
+      const emptyBannerEstabs = await MedicalEstablishment.find({ imageUrl: "" }).lean();
+      if (emptyBannerEstabs.length > 0) {
+        console.log("Migrating " + emptyBannerEstabs.length + " establishment banners...");
+        for (let i = 0; i < emptyBannerEstabs.length; i++) {
+          const banner = BANNER_IMAGES[i % BANNER_IMAGES.length];
+          await MedicalEstablishment.findByIdAndUpdate(emptyBannerEstabs[i]._id, {
+            imageUrl: "/uploads/medical-service-banner/" + banner,
+          });
+        }
+        console.log("  Banners assigned.");
+      }
+    } catch (e) { console.error("  Banner migration error:", e.message); }
+
     const userCount = await User.countDocuments();
     if (userCount > 0) {
+      // Seed independent collections even on already-seeded DBs
+      try {
+        const providerCount = await ParamedicalServiceProvider.countDocuments();
+        if (providerCount === 0) {
+          await ParamedicalServiceProvider.insertMany(PARAMEDICAL_SERVICE_PROVIDERS);
+          console.log("  " + PARAMEDICAL_SERVICE_PROVIDERS.length + " paramedical service providers seeded");
+        }
+      } catch (e) { console.error("  ParamedicalServiceProvider seed error:", e.message); }
+      // Ensure establishment user accounts exist (needed for public booking flow)
+      try {
+        const estabAcctCount = await User.countDocuments({ role: "medical_service", establishmentId: { $exists: true, $ne: null } });
+        if (estabAcctCount === 0) {
+          const h = await bcrypt.hash("Service@2024", 10);
+          const created = await seedEstablishmentAccounts(h);
+          console.log("  " + created + " establishment user accounts created");
+        }
+      } catch (e) { console.error("  EstablishmentAccounts seed error:", e.message); }
       console.log("Database already seeded - skipping");
       return;
     }
@@ -1210,6 +1531,10 @@ async function seedDatabase() {
       });
       await MedicalEstablishment.insertMany(estabs);
       console.log("  " + estabs.length + " establishments");
+      // Create one User account per establishment (needed for public booking flow)
+      const hEstab = await bcrypt.hash("Service@2024", 10);
+      const estabCreated = await seedEstablishmentAccounts(hEstab);
+      console.log("  " + estabCreated + " establishment user accounts");
     } catch (e) { console.error("  Establishment error:", e.message); }
 
     // --- Public lab centers ---
@@ -1221,6 +1546,15 @@ async function seedDatabase() {
       await PublicLabCenter.insertMany(labCenters);
       console.log("  " + labCenters.length + " lab centers");
     } catch (e) { console.error("  LabCenter error:", e.message); }
+
+    // --- Paramedical service providers ---
+    try {
+      const providerCount = await ParamedicalServiceProvider.countDocuments();
+      if (providerCount === 0) {
+        await ParamedicalServiceProvider.insertMany(PARAMEDICAL_SERVICE_PROVIDERS);
+        console.log("  " + PARAMEDICAL_SERVICE_PROVIDERS.length + " paramedical service providers seeded");
+      }
+    } catch (e) { console.error("  ParamedicalServiceProvider seed error:", e.message); }
 
     console.log("\nSeed complete!\n");
   } catch (err) {

@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { AdminDashboardSidebar } from "@/components/AdminDashboardSidebar";
+import { useAdminTheme } from "@/hooks/useAdminTheme";
 import {
   ManagedUser,
   ROLES,
@@ -21,6 +22,7 @@ import { BarChart3, TrendingUp } from "lucide-react";
 export default function AdminStatsPage() {
   const { user, isLoading } = useAuth();
   const navigate = useNavigate();
+  const { isDark } = useAdminTheme();
 
   const [users, setUsers] = useState<ManagedUser[]>([]);
   const [fetching, setFetching] = useState(true);
@@ -77,7 +79,7 @@ export default function AdminStatsPage() {
   const maxTotal = Math.max(...roleStats.map((rs) => rs.total), 1);
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className={`flex min-h-screen bg-background${isDark ? " dark" : ""}`}>
       <AdminDashboardSidebar />
 
       <div className="flex-1 flex flex-col min-w-0">

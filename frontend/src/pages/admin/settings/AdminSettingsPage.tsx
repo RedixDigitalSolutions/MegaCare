@@ -3,6 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { AdminDashboardSidebar } from "@/components/AdminDashboardSidebar";
 import { FaShieldAlt, FaSave, FaEye, FaEyeSlash } from "react-icons/fa";
+import { useAdminTheme } from "@/hooks/useAdminTheme";
 import {
   User,
   Mail,
@@ -14,6 +15,7 @@ import {
 export default function AdminSettingsPage() {
   const { user, isLoading } = useAuth();
   const navigate = useNavigate();
+  const { isDark } = useAdminTheme();
 
   // Profile state
   const [displayName, setDisplayName] = useState(
@@ -110,7 +112,7 @@ export default function AdminSettingsPage() {
   };
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className={`flex min-h-screen bg-background${isDark ? " dark" : ""}`}>
       <AdminDashboardSidebar />
 
       <div className="flex-1 flex flex-col min-w-0">

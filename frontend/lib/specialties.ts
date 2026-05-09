@@ -26,10 +26,15 @@ export const specialtiesMap: Record<string, SpecialtyInfo> = {
   'Dermatologie': {
     name: 'Dermatologie',
     icon: Syringe,
-    description: 'Peau et derme',
+    description: 'Peau, cheveux et ongles',
   },
   'Pédiatrie': {
     name: 'Pédiatrie',
+    icon: Baby,
+    description: 'Santé des enfants',
+  },
+  'Pediatrie': {
+    name: 'Pediatrie',
     icon: Baby,
     description: 'Santé des enfants',
   },
@@ -43,13 +48,28 @@ export const specialtiesMap: Record<string, SpecialtyInfo> = {
     icon: Brain,
     description: 'Bien-être psychologique',
   },
+  'Neurologie': {
+    name: 'Neurologie',
+    icon: Brain,
+    description: 'Cerveau et système nerveux',
+  },
   'Orthopédie': {
     name: 'Orthopédie',
     icon: Bone,
     description: 'Os et articulations',
   },
+  'Rhumatologie': {
+    name: 'Rhumatologie',
+    icon: Bone,
+    description: 'Articulations et tissu conjonctif',
+  },
   'Gynécologie': {
     name: 'Gynécologie',
+    icon: Flower2,
+    description: 'Santé des femmes',
+  },
+  'Gynecologie': {
+    name: 'Gynecologie',
     icon: Flower2,
     description: 'Santé des femmes',
   },
@@ -62,6 +82,21 @@ export const specialtiesMap: Record<string, SpecialtyInfo> = {
     name: 'Ophtalmologie',
     icon: Eye,
     description: 'Santé oculaire',
+  },
+  'Chirurgie generale': {
+    name: 'Chirurgie generale',
+    icon: Syringe,
+    description: 'Interventions chirurgicales',
+  },
+  'Medecine generale': {
+    name: 'Medecine generale',
+    icon: Heart,
+    description: 'Médecin de famille',
+  },
+  'Médecine générale': {
+    name: 'Médecine générale',
+    icon: Heart,
+    description: 'Médecin de famille',
   },
 };
 

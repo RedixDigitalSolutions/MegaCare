@@ -1,17 +1,16 @@
-﻿import { useState, useEffect, useMemo } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+﻿import { useState, useEffect, useMemo, useRef } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { useAuth } from "@/contexts/AuthContext";
 import { GOVERNORATES, DELEGATIONS } from "@/lib/governorates";
 import {
   Search,
-  Star,
   ShoppingCart,
+  ShoppingBag,
   SlidersHorizontal,
   Tag,
   X,
-  ChevronDown,
   Package,
   Shield,
   Activity,
@@ -25,6 +24,8 @@ import {
   CheckCircle,
   Phone,
   Clock,
+  ChevronRight,
+  Info,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -66,107 +67,192 @@ const heroBanners = [
   { icon: "🏃", label: "Rééducation" },
 ];
 
+// ─── Product Modal ────────────────────────────────────────────────────────────
+function ProductModal({
+  product,
+  onClose,
+  onAddToCart,
+}: {
+  product: ParamedicalProduct;
+  onClose: () => void;
+  onAddToCart: (p: ParamedicalProduct) => void;
+}) {
+  const [visible, setVisible] = useState(false);
+  const hasPromo = !!product.originalPrice;
+  const promoPercent = hasPromo
+    ? Math.round(((product.originalPrice! - product.price) / product.originalPrice!) * 100)
+    : 0;
+
+  useEffect(() => {
+    const t = requestAnimationFrame(() => setVisible(true));
+    return () => cancelAnimationFrame(t);
+  }, []);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [onClose]);
+
+  return (
+    <div
+      className={`fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 transition-all duration-300 ${visible ? "bg-black/65 backdrop-blur-md" : "bg-black/0 backdrop-blur-none"}`}
+      onClick={onClose}
+    >
+      <div
+        className={`relative w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl overflow-hidden shadow-[0_32px_80px_rgba(0,0,0,0.45)] transition-all duration-300 ${visible ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Hero image */}
+        <div className="relative h-52 bg-secondary overflow-hidden">
+          {product.imageUrl ? (
+            <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full bg-secondary/40 flex items-center justify-center">
+              <Package size={56} className="text-muted-foreground/30" />
+            </div>
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+          {hasPromo && (
+            <div className="absolute top-4 left-4 flex gap-2">
+              <span className="px-2.5 py-1 bg-emerald-500 text-white text-xs font-bold rounded-full">-{promoPercent}%</span>
+            </div>
+          )}
+          {product.prescription && (
+            <span className="absolute top-4 right-14 px-2.5 py-1 border border-amber-400 text-amber-300 text-xs font-medium rounded-full bg-black/40 backdrop-blur-sm">
+              Ordonnance
+            </span>
+          )}
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 w-8 h-8 rounded-full bg-black/30 backdrop-blur-sm flex items-center justify-center text-white/80 hover:text-white hover:bg-black/50 transition-all"
+          >
+            <X size={16} />
+          </button>
+          {/* Name overlay at bottom of image */}
+          <div className="absolute bottom-0 left-0 right-0 p-4">
+            <p className="text-xs font-semibold text-white/70 uppercase tracking-wide mb-0.5">{product.brand}</p>
+            <h2 className="text-lg font-bold text-white leading-snug drop-shadow-md">{product.name}</h2>
+          </div>
+        </div>
+
+        {/* Body */}
+        <div className="bg-card p-5 space-y-4">
+          {/* Price */}
+          <div className="flex items-baseline gap-2">
+            <span className="text-3xl font-extrabold text-foreground">{product.price.toFixed(2)}</span>
+            <span className="text-base text-muted-foreground">TND</span>
+            {hasPromo && <span className="text-sm text-muted-foreground line-through ml-1">{product.originalPrice!.toFixed(2)} TND</span>}
+          </div>
+
+          {product.shortDesc && (
+            <p className="text-sm text-muted-foreground leading-relaxed">{product.shortDesc}</p>
+          )}
+
+          {product.description && (
+            <p className="text-sm text-muted-foreground leading-relaxed border-t border-border pt-3">{product.description}</p>
+          )}
+
+          <div className="flex gap-3">
+            <button
+              onClick={() => { onAddToCart(product); onClose(); }}
+              disabled={!product.inStock}
+              className="flex-1 flex items-center justify-center gap-2 py-3.5 bg-primary text-primary-foreground rounded-xl text-sm font-bold hover:bg-primary/90 transition disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <ShoppingCart size={15} />
+              Ajouter au panier
+            </button>
+            <button
+              onClick={onClose}
+              className="px-5 py-3.5 rounded-xl border border-border text-muted-foreground text-sm font-medium hover:bg-secondary hover:text-foreground transition"
+            >
+              Fermer
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Product Card ─────────────────────────────────────────────────────────────
 function ProductCard({
   product,
   onAddToCart,
+  onOpenModal,
 }: {
   product: ParamedicalProduct;
   onAddToCart: (p: ParamedicalProduct) => void;
+  onOpenModal: (p: ParamedicalProduct) => void;
 }) {
   const hasPromo = !!product.originalPrice;
   const promoPercent = hasPromo
-    ? Math.round(
-      ((product.originalPrice! - product.price) / product.originalPrice!) *
-      100,
-    )
+    ? Math.round(((product.originalPrice! - product.price) / product.originalPrice!) * 100)
     : 0;
 
   return (
-    <div className="bg-card border border-border rounded-xl overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-200 flex flex-col group">
+    <div
+      className="bg-card border border-border rounded-2xl overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col group cursor-pointer"
+      onClick={() => onOpenModal(product)}
+    >
       {/* Image */}
-      <Link
-        to={`/paramedical/product/${product.id}`}
-        className="relative block h-48 overflow-hidden bg-secondary/20"
-      >
-        <img
-          src={product.imageUrl}
-          alt={product.name}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-        />
-        {hasPromo && (
-          <span className="absolute top-3 left-3 px-2 py-1 bg-emerald-500 text-white text-xs font-bold rounded-lg">
-            -{promoPercent}%
-          </span>
-        )}
-        {product.prescription && (
-          <span className="absolute top-3 right-3 px-2 py-1 border border-amber-400 text-amber-600 dark:text-amber-400 text-xs font-medium rounded-lg bg-card/80 backdrop-blur-sm">
-            Sur ordonnance
-          </span>
-        )}
-        {!product.inStock && (
-          <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-            <span className="px-3 py-1.5 bg-black/70 text-white text-xs font-semibold rounded-xl">
-              Rupture de stock
-            </span>
+      <div className="relative h-44 overflow-hidden bg-secondary/20">
+        {product.imageUrl ? (
+          <img
+            src={product.imageUrl}
+            alt={product.name}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <Package size={48} className="text-muted-foreground/25" />
           </div>
         )}
-      </Link>
+        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+
+        {/* Badges */}
+        <div className="absolute top-3 left-3 flex gap-1.5">
+          {hasPromo && (
+            <span className="px-2 py-0.5 bg-emerald-500 text-white text-[11px] font-bold rounded-full">-{promoPercent}%</span>
+          )}
+          {product.prescription && (
+            <span className="px-2 py-0.5 border border-amber-400/70 text-amber-300 text-[11px] font-medium rounded-full bg-black/30 backdrop-blur-sm">Ordonnance</span>
+          )}
+        </div>
+
+        {!product.inStock && (
+          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+            <span className="px-3 py-1.5 bg-black/70 text-white text-xs font-semibold rounded-xl">Rupture de stock</span>
+          </div>
+        )}
+
+        {/* Name overlay */}
+        <div className="absolute bottom-0 left-0 right-0 px-3 pb-3">
+          <p className="text-[10px] font-semibold text-white/60 uppercase tracking-wide">{product.brand}</p>
+          <h3 className="font-bold text-white text-sm leading-snug line-clamp-2 drop-shadow">{product.name}</h3>
+        </div>
+      </div>
 
       <div className="p-4 flex flex-col flex-1 gap-3">
-        {/* Meta */}
-        <div>
-          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-            {product.brand}
-          </p>
-          <Link to={`/paramedical/product/${product.id}`}>
-            <h3 className="font-bold text-foreground text-sm leading-snug mt-0.5 hover:text-primary transition-colors line-clamp-2">
-              {product.name}
-            </h3>
-          </Link>
-          <p className="text-xs text-muted-foreground mt-1.5 line-clamp-2">
-            {product.shortDesc}
-          </p>
-        </div>
-
-        {/* Rating */}
-        <div className="flex items-center gap-1.5">
-          {[1, 2, 3, 4, 5].map((s) => (
-            <Star
-              key={s}
-              size={12}
-              className={
-                s <= Math.round(product.rating)
-                  ? "text-amber-400 fill-amber-400"
-                  : "text-muted-foreground/30"
-              }
-            />
-          ))}
-          <span className="text-xs text-muted-foreground">
-            ({product.reviews})
-          </span>
-        </div>
+        {/* Desc */}
+        <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">{product.shortDesc}</p>
 
         {/* Price */}
-        <div className="flex items-baseline gap-2">
-          <span className="text-xl font-extrabold text-foreground">
-            {product.price.toFixed(2)}
-          </span>
-          <span className="text-sm text-foreground/60">TND</span>
+        <div className="flex items-baseline gap-1.5 mt-auto">
+          <span className="text-xl font-extrabold text-foreground">{product.price.toFixed(2)}</span>
+          <span className="text-sm text-muted-foreground">TND</span>
           {hasPromo && (
-            <span className="text-sm text-muted-foreground line-through">
-              {product.originalPrice!.toFixed(2)}
-            </span>
+            <span className="text-xs text-muted-foreground line-through ml-1">{product.originalPrice!.toFixed(2)}</span>
           )}
         </div>
 
         {/* Add to cart */}
         <button
-          onClick={() => onAddToCart(product)}
+          onClick={(e) => { e.stopPropagation(); onAddToCart(product); }}
           disabled={!product.inStock}
-          className="mt-auto flex items-center justify-center gap-2 w-full py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-semibold hover:bg-primary/90 transition disabled:opacity-40 disabled:cursor-not-allowed"
+          className="flex items-center justify-center gap-2 w-full py-2.5 bg-primary text-primary-foreground rounded-xl text-sm font-semibold hover:bg-primary/90 active:scale-[0.97] transition-all disabled:opacity-40 disabled:cursor-not-allowed"
         >
-          <ShoppingCart size={15} />
+          <ShoppingCart size={14} />
           Ajouter au panier
         </button>
       </div>
@@ -184,30 +270,24 @@ interface CartItem {
 function CartToast({
   product,
   onClose,
+  onViewCart,
 }: {
   product: ParamedicalProduct;
   onClose: () => void;
+  onViewCart: () => void;
 }) {
   return (
-    <div className="fixed bottom-6 right-6 z-50 flex items-start gap-3 bg-card border border-border shadow-2xl rounded-2xl p-4 max-w-xs animate-in slide-in-from-bottom-4">
-      <img
-        src={product.imageUrl}
-        alt=""
-        className="w-12 h-12 rounded-xl object-cover flex-shrink-0"
-      />
-      <div className="flex-1 min-w-0">
-        <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 mb-0.5">
-          Ajouté au panier ✓
-        </p>
-        <p className="text-sm font-semibold text-foreground line-clamp-1">
-          {product.name}
-        </p>
+    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-3 bg-gray-900 text-white rounded-2xl shadow-2xl border border-white/10 animate-in slide-in-from-bottom-4 duration-300">
+      <div className="w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center shrink-0">
+        <CheckCircle size={14} className="text-white" />
       </div>
+      <span className="text-sm font-medium max-w-[200px] truncate">{product.name}</span>
+      <span className="text-sm text-white/50">ajouté au panier</span>
       <button
-        onClick={onClose}
-        className="text-muted-foreground hover:text-foreground"
+        onClick={() => { onViewCart(); onClose(); }}
+        className="ml-1 flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-xl text-xs font-semibold transition-colors"
       >
-        <X size={16} />
+        <ShoppingBag size={12} /> Voir
       </button>
     </div>
   );
@@ -224,6 +304,104 @@ interface ProviderOption {
   delegation: string;
 }
 
+// ─── Cart Drawer (right-side slide-in, matches Pharmacy cart) ───────────────────
+function CartDrawer({
+  cart,
+  onClose,
+  onUpdateQty,
+  onRemove,
+  onCheckout,
+}: {
+  cart: CartItem[];
+  onClose: () => void;
+  onUpdateQty: (productId: string, qty: number) => void;
+  onRemove: (productId: string) => void;
+  onCheckout: (deliveryMethod: "pickup" | "delivery") => void;
+}) {
+  const [deliveryMethod, setDeliveryMethod] = useState<"pickup" | "delivery">("pickup");
+  const total = cart.reduce((s, item) => s + item.product.price * item.quantity, 0);
+  const DELIVERY_FEE = 8;
+
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end">
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <aside className="relative w-full max-w-sm bg-card border-l border-border flex flex-col shadow-2xl">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-rose-50/50 dark:bg-rose-950/10">
+          <h2 className="font-bold text-foreground flex items-center gap-2">
+            <ShoppingBag size={18} className="text-rose-600" />
+            Parapharmacie ({cart.reduce((s, i) => s + i.quantity, 0)})
+          </h2>
+          <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X size={20} /></button>
+        </div>
+        <div className="flex-1 overflow-y-auto p-5 space-y-2">
+          {cart.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-10">Votre panier parapharmacie est vide.</p>
+          ) : cart.map((item) => (
+            <div key={item.product.id} className="bg-rose-50/30 dark:bg-rose-950/10 rounded-lg p-3 space-y-2 border border-rose-200/40">
+              <div className="flex items-start justify-between">
+                <div className="flex items-start gap-2">
+                  {item.product.imageUrl ? (
+                    <img src={item.product.imageUrl} alt="" className="w-10 h-10 rounded-md object-cover shrink-0" />
+                  ) : (
+                    <Package size={14} className="text-rose-500 mt-0.5 shrink-0" />
+                  )}
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{item.product.name}</p>
+                    <p className="text-xs text-muted-foreground">{item.product.brand} · {item.product.price.toFixed(2)} DT</p>
+                  </div>
+                </div>
+                <button onClick={() => onRemove(item.product.id)} className="text-muted-foreground hover:text-red-500 transition"><Trash2 size={15} /></button>
+              </div>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <button onClick={() => onUpdateQty(item.product.id, item.quantity - 1)} className="w-7 h-7 rounded-md border border-border flex items-center justify-center hover:bg-muted transition"><Minus size={13} /></button>
+                  <span className="text-sm font-bold w-8 text-center">{item.quantity}</span>
+                  <button onClick={() => onUpdateQty(item.product.id, item.quantity + 1)} className="w-7 h-7 rounded-md border border-border flex items-center justify-center hover:bg-muted transition"><Plus size={13} /></button>
+                </div>
+                <span className="text-sm font-bold text-foreground">{(item.product.price * item.quantity).toFixed(2)} DT</span>
+              </div>
+            </div>
+          ))}
+        </div>
+        {cart.length > 0 && (
+          <div className="p-5 border-t border-border space-y-3">
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => setDeliveryMethod("pickup")}
+                className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition text-xs font-semibold ${deliveryMethod === "pickup" ? "border-rose-500 bg-rose-50/60 text-rose-700 dark:bg-rose-950/20 dark:text-rose-400" : "border-border hover:border-rose-300 text-muted-foreground"}`}
+              >
+                <Store size={18} />
+                Retrait sur place
+              </button>
+              <button
+                onClick={() => setDeliveryMethod("delivery")}
+                className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition text-xs font-semibold ${deliveryMethod === "delivery" ? "border-rose-500 bg-rose-50/60 text-rose-700 dark:bg-rose-950/20 dark:text-rose-400" : "border-border hover:border-rose-300 text-muted-foreground"}`}
+              >
+                <Truck size={18} />
+                Livraison (+8 DT)
+              </button>
+            </div>
+            <div className="flex justify-between font-bold text-foreground text-sm">
+              <span>Total{deliveryMethod === "delivery" ? " + livraison" : ""}</span>
+              <span>{(total + (deliveryMethod === "delivery" ? DELIVERY_FEE : 0)).toFixed(2)} DT</span>
+            </div>
+            <button
+              onClick={() => onCheckout(deliveryMethod)}
+              className="w-full py-3 bg-rose-600 text-white rounded-lg font-medium hover:bg-rose-700 transition text-sm flex items-center justify-center gap-2"
+            >
+              {deliveryMethod === "pickup" ? (
+                <><Store size={16} /> Choisir un fournisseur</>
+              ) : (
+                <><Truck size={16} /> Passer la commande</>
+              )}
+            </button>
+          </div>
+        )}
+      </aside>
+    </div>
+  );
+}
+
 // ─── Checkout Modal ─────────────────────────────────────────────────────────────
 function CheckoutModal({
   cart,
@@ -231,6 +409,7 @@ function CheckoutModal({
   onUpdateQty,
   onRemove,
   onOrder,
+  initialDeliveryMethod,
   userGovernorate,
   userDelegation,
 }: {
@@ -239,11 +418,14 @@ function CheckoutModal({
   onUpdateQty: (productId: string, qty: number) => void;
   onRemove: (productId: string) => void;
   onOrder: (data: { deliveryMethod: string; deliveryAddress: string; deliveryGovernorate: string; deliveryDelegation: string; deliveryPhone: string; pickupProviderId?: string }) => Promise<boolean>;
+  initialDeliveryMethod: "pickup" | "delivery";
   userGovernorate?: string;
   userDelegation?: string;
 }) {
-  const [step, setStep] = useState<"cart" | "provider" | "checkout" | "success">("cart");
-  const [deliveryMethod, setDeliveryMethod] = useState<"pickup" | "delivery">("pickup");
+  const [step, setStep] = useState<"provider" | "checkout" | "success">(
+    initialDeliveryMethod === "pickup" ? "provider" : "checkout"
+  );
+  const [deliveryMethod] = useState<"pickup" | "delivery">(initialDeliveryMethod);
   const [address, setAddress] = useState("");
   const [governorate, setGovernorate] = useState(userGovernorate || "");
   const [delegation, setDelegation] = useState(userDelegation || "");
@@ -298,14 +480,6 @@ function CheckoutModal({
     if (ok) setStep("success");
   };
 
-  const handleProceedFromCart = () => {
-    if (deliveryMethod === "pickup") {
-      setStep("provider");
-    } else {
-      setStep("checkout");
-    }
-  };
-
   if (step === "success") {
     return (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
@@ -330,84 +504,12 @@ function CheckoutModal({
       <div className="bg-card rounded-2xl max-w-lg w-full mx-4 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between p-4 border-b border-border">
           <h2 className="text-lg font-bold text-foreground">
-            {step === "cart" ? `Panier (${cart.length})` : step === "provider" ? "Choisir un fournisseur" : "Finaliser la commande"}
+            {step === "provider" ? "Choisir un fournisseur" : "Finaliser la commande"}
           </h2>
           <button onClick={onClose} className="text-muted-foreground hover:text-foreground"><X size={20} /></button>
         </div>
 
-        {step === "cart" ? (
-          <div className="p-4 space-y-4">
-            {cart.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">Votre panier est vide</p>
-            ) : (
-              <>
-                {cart.map((item) => (
-                  <div key={item.product.id} className="flex items-center gap-3 p-3 bg-secondary/30 rounded-xl">
-                    <img src={item.product.imageUrl} alt="" className="w-14 h-14 rounded-lg object-cover flex-shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-foreground line-clamp-1">{item.product.name}</p>
-                      <p className="text-xs text-muted-foreground">{item.product.brand}</p>
-                      <p className="text-sm font-bold text-primary mt-0.5">{(item.product.price * item.quantity).toFixed(2)} TND</p>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                      <button onClick={() => onUpdateQty(item.product.id, item.quantity - 1)} className="w-7 h-7 flex items-center justify-center rounded-lg border border-border hover:bg-secondary transition">
-                        <Minus size={12} />
-                      </button>
-                      <span className="w-6 text-center text-sm font-semibold">{item.quantity}</span>
-                      <button onClick={() => onUpdateQty(item.product.id, item.quantity + 1)} className="w-7 h-7 flex items-center justify-center rounded-lg border border-border hover:bg-secondary transition">
-                        <Plus size={12} />
-                      </button>
-                    </div>
-                    <button onClick={() => onRemove(item.product.id)} className="text-muted-foreground hover:text-red-500 transition">
-                      <Trash2 size={16} />
-                    </button>
-                  </div>
-                ))}
-                <div className="flex items-center justify-between pt-3 border-t border-border">
-                  <span className="font-bold text-foreground">Total articles</span>
-                  <span className="text-xl font-bold text-primary">{total.toFixed(2)} TND</span>
-                </div>
-                {deliveryMethod === "delivery" && (
-                  <div className="flex items-center gap-3 p-3 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-xl">
-                    <Truck size={18} className="text-amber-600 dark:text-amber-400 flex-shrink-0" />
-                    <div className="flex-1">
-                      <p className="text-xs font-semibold text-amber-700 dark:text-amber-300">Frais de livraison à domicile</p>
-                      <p className="text-xs text-amber-600 dark:text-amber-400">Sera ajouté au total de votre commande</p>
-                    </div>
-                    <span className="text-sm font-bold text-amber-700 dark:text-amber-300">+8,00 DT</span>
-                  </div>
-                )}
-
-                {/* Delivery Method */}
-                <div>
-                  <h3 className="text-sm font-bold text-foreground mb-3">Mode de récupération</h3>
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      onClick={() => setDeliveryMethod("pickup")}
-                      className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition ${deliveryMethod === "pickup" ? "border-primary bg-primary/5" : "border-border hover:border-primary/30"}`}
-                    >
-                      <Store size={24} className={deliveryMethod === "pickup" ? "text-primary" : "text-muted-foreground"} />
-                      <span className="text-sm font-semibold">Retrait sur place</span>
-                      <span className="text-xs text-muted-foreground">Gratuit</span>
-                    </button>
-                    <button
-                      onClick={() => setDeliveryMethod("delivery")}
-                      className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition ${deliveryMethod === "delivery" ? "border-primary bg-primary/5" : "border-border hover:border-primary/30"}`}
-                    >
-                      <Truck size={24} className={deliveryMethod === "delivery" ? "text-primary" : "text-muted-foreground"} />
-                      <span className="text-sm font-semibold">Livraison</span>
-                      <span className="text-xs text-muted-foreground">+8 DT</span>
-                    </button>
-                  </div>
-                </div>
-
-                <button onClick={handleProceedFromCart} className="w-full py-3 bg-primary text-primary-foreground rounded-xl font-semibold hover:bg-primary/90 transition">
-                  {deliveryMethod === "pickup" ? "Choisir un fournisseur" : "Passer la commande"}
-                </button>
-              </>
-            )}
-          </div>
-        ) : step === "provider" ? (
+        {step === "provider" ? (
           /* ── Provider Picker Step ── */
           <div className="p-4 space-y-4">
             {loadingProviders ? (
@@ -455,7 +557,7 @@ function CheckoutModal({
               </div>
             )}
             <div className="flex gap-3">
-              <button onClick={() => setStep("cart")} className="flex-1 py-2.5 border border-border rounded-xl font-medium text-sm hover:bg-secondary/50 transition">
+              <button onClick={onClose} className="flex-1 py-2.5 border border-border rounded-xl font-medium text-sm hover:bg-secondary/50 transition">
                 Retour
               </button>
               <button
@@ -546,7 +648,7 @@ function CheckoutModal({
             </div>
 
             <div className="flex gap-3">
-              <button onClick={() => setStep(deliveryMethod === "pickup" ? "provider" : "cart")} className="flex-1 py-2.5 border border-border rounded-xl font-medium text-sm hover:bg-secondary/50 transition">
+              <button onClick={() => deliveryMethod === "pickup" ? setStep("provider") : onClose()} className="flex-1 py-2.5 border border-border rounded-xl font-medium text-sm hover:bg-secondary/50 transition">
                 Retour
               </button>
               <button
@@ -575,7 +677,7 @@ export default function ParamedicalPage() {
 
   useEffect(() => {
     setLoading(true);
-    fetch("/api/public/paramedical-products")
+    fetch("/api/public/parapharmacy-products")
       .then((r) => r.json())
       .then((data) => setProducts(Array.isArray(data) ? data : []))
       .catch(() => setProducts([]))
@@ -596,39 +698,71 @@ export default function ParamedicalPage() {
 
   const [query, setQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Tous");
-  const [priceMax, setPriceMax] = useState(700);
-  const [minRating, setMinRating] = useState(0);
-  const [inStockOnly, setInStockOnly] = useState(false);
+  const [selectedGovernorate, setSelectedGovernorate] = useState("");
+  const [selectedDelegation, setSelectedDelegation] = useState("");
   const [prescriptionFilter, setPrescriptionFilter] = useState<
     "all" | "no-rx" | "rx"
   >("all");
   const [sort, setSort] = useState<
-    "price-asc" | "price-desc" | "rating" | "name"
-  >("rating");
+    "price-asc" | "price-desc" | "name"
+  >("price-asc");
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<ParamedicalProduct | null>(null);
   const [cart, setCart] = useState<CartItem[]>(() => {
     try {
+      if (!localStorage.getItem("megacare_token")) return [];
       const saved = localStorage.getItem("megacare_para_cart");
       return saved ? JSON.parse(saved) : [];
     } catch { return []; }
   });
+  const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
+  const [checkoutDelivery, setCheckoutDelivery] = useState<"pickup" | "delivery">("pickup");
   const [showCheckout, setShowCheckout] = useState(false);
   const [toastProduct, setToastProduct] = useState<ParamedicalProduct | null>(null);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cartSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const cartCount = cart.reduce((s, item) => s + item.quantity, 0);
 
-  // Persist cart to localStorage & broadcast count to Header
+  // Load para cart from DB on mount (per-user persistence)
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const token = localStorage.getItem("megacare_token");
+    if (!token) return;
+    fetch("/api/cart", { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (data?.paraItems?.length) {
+          setCart(data.paraItems);
+          localStorage.setItem("megacare_para_cart", JSON.stringify(data.paraItems));
+        }
+      })
+      .catch(() => { });
+  }, [isAuthenticated]);
+
+  // Persist cart to localStorage & broadcast count to Header + save to DB (debounced)
   useEffect(() => {
     localStorage.setItem("megacare_para_cart", JSON.stringify(cart));
     window.dispatchEvent(new CustomEvent("megacare:cart", {
       detail: { paramedical: cartCount },
     }));
-  }, [cart, cartCount]);
+    if (!isAuthenticated) return;
+    if (cartSaveTimer.current) clearTimeout(cartSaveTimer.current);
+    cartSaveTimer.current = setTimeout(() => {
+      const token = localStorage.getItem("megacare_token");
+      if (!token) return;
+      fetch("/api/cart", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ paraItems: cart }),
+      }).catch(() => { });
+    }, 1000);
+  }, [cart, cartCount, isAuthenticated]);
 
   // Open cart from Header navigation (query param)
   useEffect(() => {
     if (searchParams.get("openCart")) {
-      setShowCheckout(true);
+      setCartDrawerOpen(true);
       searchParams.delete("openCart");
       setSearchParams(searchParams, { replace: true });
     }
@@ -638,11 +772,17 @@ export default function ParamedicalPage() {
   useEffect(() => {
     const handler = (e: Event) => {
       const type = (e as CustomEvent).detail;
-      if (type === "paramedical") setShowCheckout(true);
+      if (type === "paramedical") setCartDrawerOpen(true);
     };
     window.addEventListener("megacare:open-cart", handler);
     return () => window.removeEventListener("megacare:open-cart", handler);
   }, []);
+
+  const handleOpenCheckout = (deliveryMethod: "pickup" | "delivery") => {
+    setCheckoutDelivery(deliveryMethod);
+    setCartDrawerOpen(false);
+    setShowCheckout(true);
+  };
 
   const handleAddToCart = (product: ParamedicalProduct) => {
     if (!isAuthenticated) {
@@ -656,8 +796,9 @@ export default function ParamedicalPage() {
       }
       return [...prev, { product, quantity: 1 }];
     });
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     setToastProduct(product);
-    setTimeout(() => setToastProduct(null), 3500);
+    toastTimerRef.current = setTimeout(() => setToastProduct(null), 2500);
   };
 
   const handleUpdateQty = (productId: string, qty: number) => {
@@ -708,9 +849,6 @@ export default function ParamedicalPage() {
     }
     if (selectedCategory !== "Tous")
       result = result.filter((p) => p.category === selectedCategory);
-    result = result.filter((p) => p.price <= priceMax);
-    if (minRating > 0) result = result.filter((p) => p.rating >= minRating);
-    if (inStockOnly) result = result.filter((p) => p.inStock);
     if (prescriptionFilter === "no-rx")
       result = result.filter((p) => !p.prescription);
     if (prescriptionFilter === "rx")
@@ -718,7 +856,6 @@ export default function ParamedicalPage() {
 
     if (sort === "price-asc") result.sort((a, b) => a.price - b.price);
     else if (sort === "price-desc") result.sort((a, b) => b.price - a.price);
-    else if (sort === "rating") result.sort((a, b) => b.rating - a.rating);
     else result.sort((a, b) => a.name.localeCompare(b.name));
 
     return result;
@@ -726,9 +863,6 @@ export default function ParamedicalPage() {
     products,
     query,
     selectedCategory,
-    priceMax,
-    minRating,
-    inStockOnly,
     prescriptionFilter,
     sort,
   ]);
@@ -736,11 +870,8 @@ export default function ParamedicalPage() {
   const resetFilters = () => {
     setQuery("");
     setSelectedCategory("Tous");
-    setPriceMax(700);
-    setMinRating(0);
-    setInStockOnly(false);
     setPrescriptionFilter("all");
-    setSort("rating");
+    setSort("price-asc");
   };
 
   const FilterSidebar = () => (
@@ -770,68 +901,6 @@ export default function ParamedicalPage() {
             </span>
           </button>
         ))}
-      </div>
-
-      {/* Price */}
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <h4 className="text-sm font-bold text-foreground">Prix max</h4>
-          <span className="text-sm font-bold text-primary">{priceMax} TND</span>
-        </div>
-        <input
-          type="range"
-          min={10}
-          max={700}
-          step={10}
-          value={priceMax}
-          onChange={(e) => setPriceMax(Number(e.target.value))}
-          className="w-full accent-primary"
-        />
-        <div className="flex justify-between text-xs text-muted-foreground mt-1">
-          <span>10 TND</span>
-          <span>700 TND</span>
-        </div>
-      </div>
-
-      {/* Note minimum */}
-      <div>
-        <h4 className="text-sm font-bold text-foreground mb-3">Note minimum</h4>
-        <div className="flex gap-2 flex-wrap">
-          {[0, 3, 4, 4.5].map((r) => (
-            <button
-              key={r}
-              onClick={() => setMinRating(r)}
-              className={`px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-colors ${minRating === r
-                ? "bg-primary text-primary-foreground"
-                : "bg-secondary text-foreground/80 hover:bg-secondary/70"
-                }`}
-            >
-              {r === 0 ? "Tous" : `${r}+ ★`}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Disponibilité */}
-      <div>
-        <h4 className="text-sm font-bold text-foreground mb-3">
-          Disponibilité
-        </h4>
-        <label className="flex items-center gap-2 cursor-pointer">
-          <div
-            onClick={() => setInStockOnly(!inStockOnly)}
-            className={`relative w-10 h-5 rounded-full transition-colors cursor-pointer ${inStockOnly ? "bg-primary" : "bg-secondary"
-              }`}
-          >
-            <div
-              className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${inStockOnly ? "translate-x-5" : "translate-x-0.5"
-                }`}
-            />
-          </div>
-          <span className="text-sm text-foreground/80">
-            En stock uniquement
-          </span>
-        </label>
       </div>
 
       {/* Ordonnance */}
@@ -877,27 +946,72 @@ export default function ParamedicalPage() {
 
       <main className="flex-1 pt-24">
         {/* Header Section */}
-        <section className="bg-gradient-to-r from-primary to-primary/80 text-white py-12">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
-            <div className="text-center space-y-4">
-              <h1 className="text-4xl font-bold">Paramédicaux & Soins</h1>
-              <p className="text-lg opacity-90 max-w-2xl mx-auto">
-                Matériel médical, orthopédie, soins à domicile et bien-être.
-                Disponible dans vos pharmacies partenaires.
+        <section className="relative overflow-hidden bg-gray-950 py-16 md:py-20">
+          <div className="absolute inset-0 bg-gradient-to-br from-rose-950 via-gray-900 to-purple-950" />
+          <div
+            className="absolute inset-0 opacity-40"
+            style={{ backgroundImage: "radial-gradient(ellipse at 20% 60%, #e11d48 0%, transparent 45%), radial-gradient(ellipse at 80% 15%, #9333ea 0%, transparent 40%)" }}
+          />
+          <div className="absolute inset-0 bg-[linear-gradient(to_bottom,transparent_60%,rgba(0,0,0,0.5)_100%)]" />
+
+          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-7">
+            <div className="text-center space-y-3">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-white/10 border border-white/15 rounded-full text-white/70 text-xs font-medium mb-1 backdrop-blur-sm">
+                <ShoppingBag size={13} /> Bien-être & Soins
+              </div>
+              <h1 className="text-4xl md:text-5xl font-bold text-white tracking-tight">
+                Parapharmacie
+              </h1>
+              <p className="text-white/55 text-base md:text-lg max-w-xl mx-auto leading-relaxed">
+                Matériel médical, orthopédie, soins à domicile et bien-être — disponible chez vos fournisseurs partenaires.
               </p>
             </div>
+
             <div className="relative max-w-2xl mx-auto">
-              <Search
-                className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"
-                size={20}
-              />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/35 pointer-events-none" size={17} />
               <input
                 type="text"
-                placeholder="Rechercher un produit, une marque..."
+                placeholder="Rechercher un produit, une marque…"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 rounded-lg bg-white text-foreground placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full pl-11 pr-4 py-3.5 rounded-2xl bg-white/10 border border-white/15 text-white placeholder-white/35 focus:outline-none focus:ring-2 focus:ring-white/20 focus:bg-white/15 backdrop-blur-sm text-sm transition-all"
               />
+              {query && (
+                <button onClick={() => setQuery("")} className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70 transition-colors">
+                  <X size={15} />
+                </button>
+              )}
+            </div>
+
+            <div className="flex flex-wrap gap-3 justify-center">
+              <div className="flex items-center gap-2 bg-white/10 border border-white/15 rounded-xl px-3.5 py-2 backdrop-blur-sm">
+                <MapPin size={14} className="text-white/50 shrink-0" />
+                <select
+                  value={selectedGovernorate}
+                  onChange={(e) => { setSelectedGovernorate(e.target.value); setSelectedDelegation(""); }}
+                  className="bg-transparent text-white border-none outline-none text-sm font-medium cursor-pointer"
+                >
+                  <option value="" className="text-foreground bg-gray-900">Toutes les régions</option>
+                  {GOVERNORATES.map((g) => (
+                    <option key={g} value={g} className="text-foreground bg-gray-900">{g}</option>
+                  ))}
+                </select>
+              </div>
+              {selectedGovernorate && DELEGATIONS[selectedGovernorate] && (
+                <div className="flex items-center gap-2 bg-white/10 border border-white/15 rounded-xl px-3.5 py-2 backdrop-blur-sm">
+                  <MapPin size={13} className="text-white/50 shrink-0" />
+                  <select
+                    value={selectedDelegation}
+                    onChange={(e) => setSelectedDelegation(e.target.value)}
+                    className="bg-transparent text-white border-none outline-none text-sm font-medium cursor-pointer"
+                  >
+                    <option value="" className="text-foreground bg-gray-900">Toutes les délégations</option>
+                    {DELEGATIONS[selectedGovernorate].map((d) => (
+                      <option key={d} value={d} className="text-foreground bg-gray-900">{d}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
           </div>
         </section>
@@ -955,7 +1069,6 @@ export default function ParamedicalPage() {
                   onChange={(e) => setSort(e.target.value as typeof sort)}
                   className="px-3 py-2 bg-input border border-border rounded-lg text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 >
-                  <option value="rating">Mieux notés</option>
                   <option value="price-asc">Prix croissant</option>
                   <option value="price-desc">Prix décroissant</option>
                   <option value="name">Nom A–Z</option>
@@ -992,6 +1105,7 @@ export default function ParamedicalPage() {
                       key={p.id}
                       product={p}
                       onAddToCart={handleAddToCart}
+                      onOpenModal={setSelectedProduct}
                     />
                   ))}
                 </div>
@@ -1032,15 +1146,36 @@ export default function ParamedicalPage() {
         </div>
       </div>
 
+      {/* Product detail modal */}
+      {selectedProduct && (
+        <ProductModal
+          product={selectedProduct}
+          onClose={() => setSelectedProduct(null)}
+          onAddToCart={handleAddToCart}
+        />
+      )}
+
       {/* Cart toast */}
       {toastProduct && (
         <CartToast
           product={toastProduct}
           onClose={() => setToastProduct(null)}
+          onViewCart={() => { setToastProduct(null); setCartDrawerOpen(true); }}
         />
       )}
 
-      {/* Checkout modal */}
+      {/* Cart drawer (slide-in from right) */}
+      {cartDrawerOpen && (
+        <CartDrawer
+          cart={cart}
+          onClose={() => setCartDrawerOpen(false)}
+          onUpdateQty={handleUpdateQty}
+          onRemove={handleRemoveFromCart}
+          onCheckout={handleOpenCheckout}
+        />
+      )}
+
+      {/* Checkout modal (provider/details steps) */}
       {showCheckout && (
         <CheckoutModal
           cart={cart}
@@ -1048,8 +1183,9 @@ export default function ParamedicalPage() {
           onUpdateQty={handleUpdateQty}
           onRemove={handleRemoveFromCart}
           onOrder={handleOrder}
-          userGovernorate={user?.governorate}
-          userDelegation={user?.delegation}
+          initialDeliveryMethod={checkoutDelivery}
+          userGovernorate={selectedGovernorate || user?.governorate}
+          userDelegation={selectedDelegation || user?.delegation}
         />
       )}
 

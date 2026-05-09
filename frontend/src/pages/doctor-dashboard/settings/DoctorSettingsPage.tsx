@@ -20,7 +20,11 @@ import {
   BadgeCheck,
   Camera,
   KeyRound,
+  MapPin,
+  ExternalLink,
 } from "lucide-react";
+
+const MAPS_URL_REGEX = /^https?:\/\/(maps\.google\.|goo\.gl\/maps|maps\.app\.goo\.gl|www\.google\.[a-z.]+\/maps)/i;
 
 export default function DoctorSettingsPage() {
   const { user, isLoading, isAuthenticated, updateUser } = useAuth();
@@ -39,6 +43,7 @@ export default function DoctorSettingsPage() {
   const [phone, setPhone] = useState("");
   const [specialty, setSpecialty] = useState("");
   const [licenseId, setLicenseId] = useState("");
+  const [mapsUrl, setMapsUrl] = useState("");
 
   // Save state
   const [saving, setSaving] = useState(false);
@@ -71,6 +76,7 @@ export default function DoctorSettingsPage() {
       setPhone(user.phone ?? "");
       setSpecialty(user.specialization ?? "");
       setLicenseId(user.doctorId ?? "");
+      setMapsUrl((user as any).mapsUrl ?? "");
       if (user.avatar) setProfileImageUrl(user.avatar);
 
       // Fetch full profile from backend to get avatar (may be stripped from localStorage)
@@ -85,7 +91,7 @@ export default function DoctorSettingsPage() {
               setProfileImageUrl(data.user.avatar);
             }
           })
-          .catch(() => {});
+          .catch(() => { });
       }
     }
   }, [user]);
@@ -129,7 +135,7 @@ export default function DoctorSettingsPage() {
           lastName,
           email,
           phone,
-          specialization: specialty,
+          mapsUrl,
           avatar: profileImageUrl || undefined,
         }),
       });
@@ -437,17 +443,20 @@ export default function DoctorSettingsPage() {
                     </div>
                   </div>
 
-                  {/* Specialty */}
+                  {/* Specialty — read-only */}
                   <div className="space-y-1.5">
-                    <label className="block text-sm font-medium text-foreground">
+                    <label className="flex items-center gap-1.5 text-sm font-medium text-foreground">
                       Spécialité
+                      <span className="ml-1 text-xs font-normal text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                        lecture seule
+                      </span>
                     </label>
                     <input
                       type="text"
                       value={specialty}
-                      onChange={(e) => setSpecialty(e.target.value)}
-                      placeholder="ex. Cardiologie"
-                      className="w-full px-4 py-2.5 border border-border rounded-xl bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/30 text-sm transition"
+                      readOnly
+                      placeholder="Spécialité non définie"
+                      className="w-full px-4 py-2.5 border border-border rounded-xl bg-muted text-muted-foreground text-sm cursor-not-allowed"
                     />
                   </div>
 
@@ -467,6 +476,37 @@ export default function DoctorSettingsPage() {
                       className="w-full px-4 py-2.5 border border-border rounded-xl bg-muted text-muted-foreground text-sm cursor-not-allowed"
                     />
                   </div>
+                </div>
+              </div>
+
+              {/* ── Location ── */}
+              <div className="bg-card rounded-2xl border border-border p-6 space-y-5">
+                <div className="flex items-center gap-2.5 pb-3 border-b border-border">
+                  <div className="p-2 bg-primary/10 rounded-lg">
+                    <MapPin size={18} className="text-primary" />
+                  </div>
+                  <div>
+                    <h2 className="text-base font-bold text-foreground">Localisation</h2>
+                    <p className="text-xs text-muted-foreground">Lien Google Maps affiché sur votre fiche publique</p>
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="block text-sm font-medium text-foreground">Lien Google Maps <span className="text-xs font-normal text-muted-foreground">(optionnel)</span></label>
+                  <input
+                    type="text"
+                    value={mapsUrl}
+                    onChange={(e) => setMapsUrl(e.target.value)}
+                    placeholder="https://maps.google.com/..."
+                    className="w-full px-4 py-2.5 border border-border rounded-xl bg-background text-foreground outline-none focus:ring-2 focus:ring-primary/30 text-sm transition"
+                  />
+                  {mapsUrl && !MAPS_URL_REGEX.test(mapsUrl) && (
+                    <p className="text-xs text-red-500 mt-1">URL Google Maps invalide (doit commencer par maps.google.com, goo.gl/maps…)</p>
+                  )}
+                  {mapsUrl && MAPS_URL_REGEX.test(mapsUrl) && (
+                    <a href={mapsUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-xs text-primary hover:underline mt-1">
+                      <ExternalLink size={11} />Voir sur Maps
+                    </a>
+                  )}
                 </div>
               </div>
 

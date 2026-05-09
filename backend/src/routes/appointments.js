@@ -5,6 +5,19 @@ const { randomUUID } = require("crypto");
 const Appointment = require("../models/Appointment");
 const Dossier = require("../models/Dossier");
 
+// Serialize a Mongoose Date field to a plain "YYYY-MM-DD" string.
+// Prevents the frontend from receiving "2026-05-04T00:00:00.000Z" and
+// misinterpreting it as the previous local day in negative-offset timezones.
+function serializeDate(d) {
+  if (!d) return d;
+  const dt = d instanceof Date ? d : new Date(d);
+  return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, "0")}-${String(dt.getUTCDate()).padStart(2, "0")}`;
+}
+
+function serializeAppt(a) {
+  return { ...a, id: a._id, date: serializeDate(a.date) };
+}
+
 // GET /api/appointments
 router.get("/", authMiddleware, async (req, res) => {
   const page = Math.max(1, parseInt(req.query.page) || 1);
@@ -16,7 +29,7 @@ router.get("/", authMiddleware, async (req, res) => {
     Appointment.countDocuments(filter),
   ]);
   res.json({
-    data: result.map((a) => ({ ...a, id: a._id })),
+    data: result.map(serializeAppt),
     total,
     page,
     limit,
@@ -31,7 +44,7 @@ router.get("/:id", authMiddleware, async (req, res) => {
   if (appt.patientId !== req.user.id && appt.doctorId !== req.user.id) {
     return res.status(403).json({ message: "Accès refusé" });
   }
-  res.json({ ...appt, id: appt._id });
+  res.json(serializeAppt(appt));
 });
 
 // POST /api/appointments
@@ -81,7 +94,7 @@ router.post("/", authMiddleware, async (req, res) => {
     await dossier.save();
   }
 
-  res.status(201).json({ ...appt.toObject(), id: appt._id });
+  res.status(201).json(serializeAppt(appt.toObject()));
 });
 
 // PUT /api/appointments/:id
@@ -104,7 +117,7 @@ router.put("/:id", authMiddleware, async (req, res) => {
   }
   Object.assign(appt, updates);
   await appt.save();
-  res.json({ ...appt.toObject(), id: appt._id });
+  res.json(serializeAppt(appt.toObject()));
 });
 
 // DELETE /api/appointments/:id
@@ -145,7 +158,45 @@ router.patch("/:id/status", authMiddleware, async (req, res) => {
     );
   }
 
-  res.json({ ...appt.toObject(), id: appt._id });
+  res.json(serializeAppt(appt.toObject()));
+});
+
+// ── Facility appointments (Medical Services + Labs) for a patient ──────────
+// GET /api/appointments/facility — returns all facility appointments for the authenticated patient
+router.get("/facility", authMiddleware, async (req, res) => {
+  const FacilityAppointment = require("../models/FacilityAppointment");
+  const MedicalEstablishment = require("../models/MedicalEstablishment");
+  const PublicLabCenter = require("../models/PublicLabCenter");
+
+  const type = req.query.type; // 'med_service' | 'lab' | undefined (all)
+  const filter = { patientId: req.user.id };
+  if (type && ["med_service", "lab"].includes(type)) {
+    filter.facilityType = type;
+  }
+
+  const appts = await FacilityAppointment.find(filter).sort({ date: -1, time: -1 }).lean();
+
+  // Enrich with facility names
+  const medIds = appts.filter((a) => a.facilityType === "med_service").map((a) => a.facilityId);
+  const labIds = appts.filter((a) => a.facilityType === "lab").map((a) => a.facilityId);
+
+  const [medEstabs, labs] = await Promise.all([
+    medIds.length > 0 ? MedicalEstablishment.find({ _id: { $in: medIds } }).select("_id name").lean() : [],
+    labIds.length > 0 ? PublicLabCenter.find({ _id: { $in: labIds } }).select("_id name").lean() : [],
+  ]);
+
+  const facilityMap = Object.fromEntries([
+    ...medEstabs.map((e) => [String(e._id), e.name]),
+    ...labs.map((l) => [String(l._id), l.name]),
+  ]);
+
+  res.json(
+    appts.map((a) => ({
+      ...a,
+      id: a._id,
+      facilityName: facilityMap[a.facilityId] || "Établissement",
+    }))
+  );
 });
 
 module.exports = router;

@@ -3,6 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { AdminDashboardSidebar } from "@/components/AdminDashboardSidebar";
 import { UserDetailSlideOver } from "../UserDetailSlideOver";
+import { useAdminTheme } from "@/hooks/useAdminTheme";
 import {
   ManagedUser,
   AdminAction,
@@ -14,17 +15,29 @@ import {
   resolveNewStatus,
 } from "../adminConfig";
 import { FaCheckCircle, FaSync, FaBan, FaUserSlash } from "react-icons/fa";
-import { Calendar } from "lucide-react";
+import { Calendar, Filter } from "lucide-react";
 
 export default function AdminSuspendedPage() {
   const { user, isLoading } = useAuth();
   const navigate = useNavigate();
+  const { isDark } = useAdminTheme();
 
   const [users, setUsers] = useState<ManagedUser[]>([]);
   const [fetching, setFetching] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [detailUser, setDetailUser] = useState<ManagedUser | null>(null);
   const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState<string>("all");
+
+  const ROLE_OPTS = [
+    { value: "all", label: "Tous les rôles" },
+    { value: "doctor", label: "Médecins" },
+    { value: "patient", label: "Patients" },
+    { value: "pharmacy", label: "Pharmaciens" },
+    { value: "medical_service", label: "Services Médicaux" },
+    { value: "lab_radiology", label: "Labos & Radiologie" },
+    { value: "paramedical", label: "Paramédicaux" },
+  ];
 
   const loadUsers = useCallback(async () => {
     setFetching(true);
@@ -67,26 +80,27 @@ export default function AdminSuspendedPage() {
   const filtered = suspended.filter((u) => {
     const q = search.toLowerCase();
     return (
-      !q ||
-      getDisplayName(u).toLowerCase().includes(q) ||
-      u.email.toLowerCase().includes(q) ||
-      (roleConfig[u.role]?.label ?? "").toLowerCase().includes(q)
+      (roleFilter === "all" || u.role === roleFilter) &&
+      (!q ||
+        getDisplayName(u).toLowerCase().includes(q) ||
+        u.email.toLowerCase().includes(q) ||
+        (roleConfig[u.role]?.label ?? "").toLowerCase().includes(q))
     );
   });
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className={`flex min-h-screen bg-background${isDark ? " dark" : ""}`}>
       <AdminDashboardSidebar />
 
       <div className="flex-1 flex flex-col min-w-0">
         {/* Page header */}
-        <div className="px-6 py-5 border-b border-border bg-card/50 shrink-0 flex items-center justify-between">
+        <div className="px-6 py-5 border-b border-border bg-card/50 shrink-0 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
               Comptes suspendus
               {suspended.length > 0 && (
                 <span className="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 text-sm font-bold">
-                  {suspended.length}
+                  {filtered.length}
                 </span>
               )}
             </h1>
@@ -94,14 +108,29 @@ export default function AdminSuspendedPage() {
               Gérez les comptes suspendus et réactivez-les si nécessaire
             </p>
           </div>
-          <button
-            onClick={loadUsers}
-            disabled={fetching}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-border text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition disabled:opacity-50"
-          >
-            <FaSync size={12} className={fetching ? "animate-spin" : ""} />
-            Actualiser
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Role filter */}
+            <div className="relative flex items-center gap-1.5">
+              <Filter size={13} className="text-muted-foreground" />
+              <select
+                value={roleFilter}
+                onChange={(e) => setRoleFilter(e.target.value)}
+                className="pl-2 pr-7 py-2 text-sm bg-card border border-border rounded-xl text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 appearance-none"
+              >
+                {ROLE_OPTS.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+            </div>
+            <button
+              onClick={loadUsers}
+              disabled={fetching}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl border border-border text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition disabled:opacity-50"
+            >
+              <FaSync size={12} className={fetching ? "animate-spin" : ""} />
+              Actualiser
+            </button>
+          </div>
         </div>
 
         <main className="flex-1 overflow-y-auto px-6 py-8 space-y-6">

@@ -6,7 +6,7 @@ const medicalEstablishmentSchema = new mongoose.Schema(
         name: { type: String, required: true },
         type: {
             type: String,
-            enum: ["Clinique", "Hôpital", "HAD", "Centre médical"],
+            enum: ["Clinique", "Hospitalisation À Domicile", "Centre médical"],
             required: true,
         },
         governorate: { type: String, default: "" },
@@ -21,6 +21,7 @@ const medicalEstablishmentSchema = new mongoose.Schema(
         emergencies: { type: Boolean, default: false },
         imageUrl: { type: String, default: "" },
         description: { type: String, default: "" },
+        mapUrl: { type: String, default: "" },
         beds: { type: Number, default: 0 },
         doctors: { type: Number, default: 0 },
         founded: { type: Number, default: 2000 },

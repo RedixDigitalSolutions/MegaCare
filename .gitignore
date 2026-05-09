@@ -49,3 +49,9 @@ coverage/
 # Misc
 *.pem
 .cache/
+
+# Database — the committed dump lives at backend/dump/ and IS tracked.
+# Ignore any ad-hoc local dumps created at other paths.
+/dump/
+*.dump
+mongodump-*/

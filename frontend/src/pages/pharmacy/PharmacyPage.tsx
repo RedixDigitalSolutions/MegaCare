@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
-import { Search, Star, ShoppingCart, Pill, MapPin, Clock, Phone, CheckCircle, X, Plus, Minus, Trash2, Store, Stethoscope, AlertTriangle } from "lucide-react";
+import { Search, ShoppingCart, Pill, MapPin, Clock, Phone, CheckCircle, X, Plus, Minus, Trash2, Store, Stethoscope, AlertTriangle, Shield, ShoppingBag } from "lucide-react";
 import { MedicineModal, type Medicine } from "@/components/MedicineModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { QRCodeSVG } from "qrcode.react";
@@ -31,10 +31,11 @@ interface OrderConfirmation {
 export default function PharmacyPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Tous");
-  const [priceRange, setPriceRange] = useState([0, 100]);
-  const [sortBy, setSortBy] = useState<"price" | "rating">("price");
+  const [sortBy, setSortBy] = useState<"price" | "pharmacy">("price");
   const [selectedGovernorate, setSelectedGovernorate] = useState("");
   const [selectedDelegation, setSelectedDelegation] = useState("");
+  const [selectedPharmacyFilter, setSelectedPharmacyFilter] = useState<string>("");
+  const [onDutyOnly, setOnDutyOnly] = useState(false);
   const [selectedMedicine, setSelectedMedicine] = useState<Medicine | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { user, isAuthenticated } = useAuth();
@@ -44,29 +45,63 @@ export default function PharmacyPage() {
   const [medicines, setMedicines] = useState<(Medicine & { pharmacyId?: string })[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Dual cart state — Pharmacy (prescription) vs Parapharmacy (OTC)
+  // Dual cart state — Pharmacy prescriptions
   const [pharmaCart, setPharmaCart] = useState<CartItem[]>(() => {
     try {
+      if (!localStorage.getItem("megacare_token")) return [];
       const saved = localStorage.getItem("megacare_pharma_cart");
       return saved ? JSON.parse(saved) : [];
     } catch { return []; }
   });
   const [pharmaCartOpen, setPharmaCartOpen] = useState(false);
+  const [cartToast, setCartToast] = useState<string | null>(null);
+  const cartToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Load pharma cart from DB on mount (per-user persistence)
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const token = localStorage.getItem("megacare_token");
+    if (!token) return;
+    fetch("/api/cart", { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => {
+        if (data?.pharmaItems?.length) {
+          setPharmaCart(data.pharmaItems);
+          localStorage.setItem("megacare_pharma_cart", JSON.stringify(data.pharmaItems));
+        }
+      })
+      .catch(() => {});
+  }, [isAuthenticated]);
+
+  // Save pharma cart to DB on change (debounced 1 s)
+  const pharmaCartSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    if (pharmaCartSaveTimer.current) clearTimeout(pharmaCartSaveTimer.current);
+    pharmaCartSaveTimer.current = setTimeout(() => {
+      const token = localStorage.getItem("megacare_token");
+      if (!token) return;
+      fetch("/api/cart", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ pharmaItems: pharmaCart }),
+      }).catch(() => {});
+    }, 1000);
+  }, [pharmaCart, isAuthenticated]);
 
   // Broadcast cart counts to Header via custom events + persist to localStorage
   useEffect(() => {
     localStorage.setItem("megacare_pharma_cart", JSON.stringify(pharmaCart));
-    localStorage.removeItem("megacare_parapharma_cart");
     window.dispatchEvent(new CustomEvent("megacare:cart", {
-      detail: { pharma: pharmaCart.length, para: 0 },
+      detail: { pharma: pharmaCart.length },
     }));
   }, [pharmaCart]);
 
-  // Listen for "open cart" requests from Header
+  // Listen for "open pharma cart" requests from Header
   useEffect(() => {
     const handler = (e: Event) => {
       const type = (e as CustomEvent).detail;
-      if (type === "pharma" || type === "para") setPharmaCartOpen(true);
+      if (type === "pharma") setPharmaCartOpen(true);
     };
     window.addEventListener("megacare:open-cart", handler);
     return () => window.removeEventListener("megacare:open-cart", handler);
@@ -75,7 +110,7 @@ export default function PharmacyPage() {
   // Open cart from Header navigation (query param)
   useEffect(() => {
     const openCart = searchParams.get("openCart");
-    if (openCart === "pharma" || openCart === "para") { setPharmaCartOpen(true); searchParams.delete("openCart"); setSearchParams(searchParams, { replace: true }); }
+    if (openCart === "pharma") { setPharmaCartOpen(true); searchParams.delete("openCart"); setSearchParams(searchParams, { replace: true }); }
   }, [searchParams]);
   const [checkoutOpen, setCheckoutOpen] = useState<"pharma" | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -141,6 +176,7 @@ export default function PharmacyPage() {
     if ((prevGovRef.current !== selectedGovernorate && prevGovRef.current !== "") ||
         (prevDelRef.current !== selectedDelegation && prevDelRef.current !== "")) {
       setPharmaCart([]);
+      setSelectedPharmacyFilter("");
     }
     prevGovRef.current = selectedGovernorate;
     prevDelRef.current = selectedDelegation;
@@ -162,6 +198,11 @@ export default function PharmacyPage() {
       return;
     }
     const isPrescription = med.prescription ?? false;
+
+    // Show toast
+    if (cartToastTimer.current) clearTimeout(cartToastTimer.current);
+    setCartToast(med.name);
+    cartToastTimer.current = setTimeout(() => setCartToast(null), 2500);
 
     setPharmaCart((prev) => {
       const existing = prev.find((c) => c.id === med.id);
@@ -269,7 +310,7 @@ export default function PharmacyPage() {
 
   const sortedMedicines = [...medicines].sort((a, b) => {
     if (sortBy === "price") return a.price - b.price;
-    if (sortBy === "rating") return b.rating - a.rating;
+    if (sortBy === "pharmacy") return (a.pharmacy || "").localeCompare(b.pharmacy || "");
     return 0;
   });
 
@@ -284,10 +325,15 @@ export default function PharmacyPage() {
       (selectedCategory === "Vitamines & Suppléments" && (med.category?.includes("Vitamine") || med.category?.includes("Supplé"))) ||
       (selectedCategory === "Dermatologie" && med.category?.includes("Derm")) ||
       (selectedCategory === "Grippe & Rhume" && (med.category?.includes("Grippe") || med.category?.includes("Rhume")));
-    const matchesPrice =
-      med.price >= priceRange[0] && med.price <= priceRange[1];
-    return matchesSearch && matchesCategory && matchesPrice;
+    const matchesPharmacy =
+      !selectedPharmacyFilter || med.pharmacy === selectedPharmacyFilter;
+    const matchesOnDuty =
+      !onDutyOnly || (med as any).pharmacyIsOnDuty;
+    return matchesSearch && matchesCategory && matchesPharmacy && matchesOnDuty;
   });
+
+  // Unique pharmacy names for filter
+  const uniquePharmacies = Array.from(new Set(medicines.map((m) => m.pharmacy).filter(Boolean))).sort();
 
   return (
     <>
@@ -535,63 +581,92 @@ export default function PharmacyPage() {
         )}
 
         {/* Hero Section */}
-        <div className="bg-gradient-to-r from-primary to-primary/80 text-white py-12">
-          <div className="max-w-7xl mx-auto px-4 space-y-8">
-            <div className="text-center space-y-4">
-              <h1 className="text-4xl font-bold">Pharmacie</h1>
-              <p className="text-lg opacity-90">
-                Commandez vos médicaments en ligne — retrait en pharmacie
+        <section className="relative overflow-hidden bg-gray-950 py-16 md:py-20">
+          <div className="absolute inset-0 bg-gradient-to-br from-green-950 via-gray-900 to-emerald-950" />
+          <div
+            className="absolute inset-0 opacity-40"
+            style={{ backgroundImage: "radial-gradient(ellipse at 20% 65%, #16a34a 0%, transparent 45%), radial-gradient(ellipse at 80% 15%, #059669 0%, transparent 40%)" }}
+          />
+          <div className="absolute inset-0 bg-[linear-gradient(to_bottom,transparent_60%,rgba(0,0,0,0.5)_100%)]" />
+
+          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-7">
+            <div className="text-center space-y-3">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-white/10 border border-white/15 rounded-full text-white/70 text-xs font-medium mb-1 backdrop-blur-sm">
+                <Pill size={13} /> Médicaments & Ordonnances
+              </div>
+              <h1 className="text-4xl md:text-5xl font-bold text-white tracking-tight">
+                Pharmacie
+              </h1>
+              <p className="text-white/55 text-base md:text-lg max-w-xl mx-auto leading-relaxed">
+                Commandez vos médicaments en ligne — retrait en pharmacie partenaire.
               </p>
             </div>
 
             {/* Search Bar */}
             <div className="relative max-w-2xl mx-auto">
-              <Search
-                className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"
-                size={20}
-              />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/35 pointer-events-none" size={17} />
               <input
                 type="text"
-                placeholder="Rechercher par nom, principe actif, symptôme..."
+                placeholder="Nom, principe actif, symptôme…"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 rounded-lg bg-white text-foreground placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full pl-11 pr-4 py-3.5 rounded-2xl bg-white/10 border border-white/15 text-white placeholder-white/35 focus:outline-none focus:ring-2 focus:ring-white/20 focus:bg-white/15 backdrop-blur-sm text-sm transition-all"
               />
+              {searchQuery && (
+                <button onClick={() => setSearchQuery("")} className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/70 transition-colors">
+                  <X size={15} />
+                </button>
+              )}
             </div>
 
-            {/* Governorate & Delegation Selectors */}
-            <div className="flex gap-4 justify-center items-center flex-wrap">
-              <div className="flex items-center gap-2 bg-white/20 rounded-lg px-4 py-2">
-                <MapPin size={16} />
+            {/* Location + pharmacy selects */}
+            <div className="flex flex-wrap gap-3 justify-center">
+              <div className="flex items-center gap-2 bg-white/10 border border-white/15 rounded-xl px-3.5 py-2 backdrop-blur-sm">
+                <MapPin size={14} className="text-white/50 shrink-0" />
                 <select
                   value={selectedGovernorate}
-                  onChange={(e) => { setSelectedGovernorate(e.target.value); setSelectedDelegation(""); }}
+                  onChange={(e) => { setSelectedGovernorate(e.target.value); setSelectedDelegation(""); setSelectedPharmacyFilter(""); }}
                   className="bg-transparent text-white border-none outline-none text-sm font-medium cursor-pointer"
                 >
-                  <option value="" className="text-foreground">Toutes les régions</option>
+                  <option value="" className="text-foreground bg-gray-900">Toutes les régions</option>
                   {GOVERNORATES.map((g) => (
-                    <option key={g} value={g} className="text-foreground">{g}</option>
+                    <option key={g} value={g} className="text-foreground bg-gray-900">{g}</option>
                   ))}
                 </select>
               </div>
               {selectedGovernorate && DELEGATIONS[selectedGovernorate] && (
-                <div className="flex items-center gap-2 bg-white/20 rounded-lg px-4 py-2">
-                  <MapPin size={14} />
+                <div className="flex items-center gap-2 bg-white/10 border border-white/15 rounded-xl px-3.5 py-2 backdrop-blur-sm">
+                  <MapPin size={13} className="text-white/50 shrink-0" />
                   <select
                     value={selectedDelegation}
-                    onChange={(e) => setSelectedDelegation(e.target.value)}
+                    onChange={(e) => { setSelectedDelegation(e.target.value); setSelectedPharmacyFilter(""); }}
                     className="bg-transparent text-white border-none outline-none text-sm font-medium cursor-pointer"
                   >
-                    <option value="" className="text-foreground">Toutes les délégations</option>
+                    <option value="" className="text-foreground bg-gray-900">Toutes les délégations</option>
                     {DELEGATIONS[selectedGovernorate].map((d) => (
-                      <option key={d} value={d} className="text-foreground">{d}</option>
+                      <option key={d} value={d} className="text-foreground bg-gray-900">{d}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              {uniquePharmacies.length > 0 && (
+                <div className="flex items-center gap-2 bg-white/10 border border-white/15 rounded-xl px-3.5 py-2 backdrop-blur-sm">
+                  <Store size={13} className="text-white/50 shrink-0" />
+                  <select
+                    value={selectedPharmacyFilter}
+                    onChange={(e) => setSelectedPharmacyFilter(e.target.value)}
+                    className="bg-transparent text-white border-none outline-none text-sm font-medium cursor-pointer"
+                  >
+                    <option value="" className="text-foreground bg-gray-900">Toutes les pharmacies</option>
+                    {uniquePharmacies.map((ph) => (
+                      <option key={ph} value={ph} className="text-foreground bg-gray-900">{ph}</option>
                     ))}
                   </select>
                 </div>
               )}
             </div>
           </div>
-        </div>
+        </section>
 
         {/* Main Content */}
         <div className="max-w-7xl mx-auto px-4 py-12">
@@ -599,9 +674,9 @@ export default function PharmacyPage() {
             {/* Sidebar - Categories & Filters */}
             <div className="space-y-6">
               {/* Categories */}
-              <div className="bg-card rounded-lg border border-border p-4 space-y-3">
-                <h3 className="font-bold text-foreground flex items-center gap-2">
-                  <Pill size={18} /> Catégories
+              <div className="bg-card rounded-xl border border-border p-4 space-y-2">
+                <h3 className="font-bold text-foreground text-sm flex items-center gap-2">
+                  <Pill size={15} /> Catégories
                 </h3>
                 {categories.map((cat) => (
                   <button
@@ -624,40 +699,38 @@ export default function PharmacyPage() {
                 ))}
               </div>
 
-              {/* Price Filter */}
-              <div className="bg-card rounded-lg border border-border p-4 space-y-3">
-                <h3 className="font-bold text-foreground">Prix</h3>
-                <div className="space-y-2">
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    value={priceRange[1]}
-                    onChange={(e) =>
-                      setPriceRange([priceRange[0], parseInt(e.target.value)])
-                    }
-                    className="w-full"
-                  />
-                  <div className="text-sm text-muted-foreground">
-                    Jusqu'à {priceRange[1]} DT
-                  </div>
-                </div>
-              </div>
-
               {/* Sort Options */}
-              <div className="bg-card rounded-lg border border-border p-4 space-y-3">
-                <h3 className="font-bold text-foreground">Trier par</h3>
+              <div className="bg-card rounded-xl border border-border p-4 space-y-3">
+                <h3 className="font-bold text-foreground text-sm">Trier par</h3>
                 <select
                   value={sortBy}
                   onChange={(e) =>
-                    setSortBy(e.target.value as "price" | "rating")
+                    setSortBy(e.target.value as "price" | "pharmacy")
                   }
-                  className="w-full px-3 py-2 bg-background border border-border rounded text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full px-3 py-2 bg-background border border-border rounded-lg text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                 >
                   <option value="price">Prix (croissant)</option>
-                  <option value="rating">Note (décroissant)</option>
+                  <option value="pharmacy">Pharmacie (A → Z)</option>
                 </select>
               </div>
+
+              {/* On-duty filter */}
+              <button
+                onClick={() => setOnDutyOnly((v) => !v)}
+                className={`w-full flex items-center justify-between gap-2 px-4 py-3 rounded-xl border-2 font-medium text-sm transition-all ${
+                  onDutyOnly
+                    ? "border-green-500 bg-green-50 text-green-700 dark:bg-green-950/20 dark:text-green-400"
+                    : "border-border bg-card text-foreground hover:border-green-400"
+                }`}
+              >
+                <span className="flex items-center gap-2">
+                  <Shield size={15} className={onDutyOnly ? "text-green-600" : "text-muted-foreground"} />
+                  Pharmacies de garde
+                </span>
+                <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${onDutyOnly ? "bg-green-500 text-white" : "bg-secondary text-muted-foreground"}`}>
+                  {onDutyOnly ? "ON" : "OFF"}
+                </span>
+              </button>
             </div>
 
             {/* Products Grid */}
@@ -685,13 +758,13 @@ export default function PharmacyPage() {
                       <div
                         key={med.id}
                         onClick={() => handleOpenModal(med)}
-                        className="group bg-card border border-border rounded-xl overflow-hidden hover:shadow-xl hover:-translate-y-1 transition-all duration-200 cursor-pointer flex flex-col"
+                        className="group bg-card border border-border rounded-2xl overflow-hidden hover:shadow-lg hover:border-primary/30 hover:-translate-y-0.5 transition-all duration-200 cursor-pointer flex flex-col"
                       >
                         {/* Image Area */}
                         <div
-                          className={`relative h-40 flex items-center justify-center shrink-0 ${med.prescription
-                            ? "bg-gradient-to-br from-orange-50 to-red-100"
-                            : "bg-gradient-to-br from-blue-50 to-indigo-100"
+                          className={`relative h-36 flex items-center justify-center shrink-0 ${med.prescription
+                            ? "bg-gradient-to-br from-orange-50 via-red-50 to-red-100 dark:from-orange-950/20 dark:to-red-950/20"
+                            : "bg-gradient-to-br from-blue-50 via-indigo-50 to-indigo-100 dark:from-blue-950/20 dark:to-indigo-950/20"
                             }`}
                         >
                           {med.imageUrl ? (
@@ -701,9 +774,9 @@ export default function PharmacyPage() {
                               className="h-full w-full object-contain p-4"
                             />
                           ) : (
-                            <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-md group-hover:scale-110 transition-transform duration-200">
+                            <div className="w-14 h-14 bg-white dark:bg-card rounded-2xl flex items-center justify-center shadow-md group-hover:scale-105 transition-transform duration-200">
                               <Pill
-                                size={28}
+                                size={26}
                                 className={
                                   med.prescription
                                     ? "text-orange-500"
@@ -712,72 +785,57 @@ export default function PharmacyPage() {
                               />
                             </div>
                           )}
-                          {/* Status Badge */}
+                          {/* Prescription badge */}
                           <div className="absolute top-2.5 left-2.5">
                             <span
-                              className={`text-xs font-semibold px-2 py-0.5 rounded-full ${med.prescription
+                              className={`text-[11px] font-bold px-2 py-0.5 rounded-full shadow-sm ${med.prescription
                                 ? "bg-orange-500 text-white"
-                                : "bg-green-500 text-white"
+                                : "bg-emerald-500 text-white"
                                 }`}
                             >
-                              {med.prescription ? "📋 Ordon." : "✓ Libre"}
+                              {med.prescription ? "📋 Ordonnance" : "✓ Libre"}
                             </span>
                           </div>
+                          {/* On duty badge */}
+                          {(med as any).pharmacyIsOnDuty && (
+                            <div className="absolute top-2.5 right-2.5">
+                              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-green-500 text-white shadow-sm">De garde</span>
+                            </div>
+                          )}
                         </div>
 
-                        <div className="p-3.5 space-y-2.5 flex flex-col flex-1">
+                        <div className="p-3.5 space-y-2 flex flex-col flex-1">
                           {/* Title & Brand */}
                           <div>
-                            <h3 className="font-bold text-foreground group-hover:text-primary transition-colors text-sm leading-tight line-clamp-2">
+                            <h3 className="font-bold text-foreground group-hover:text-primary transition-colors text-sm leading-snug line-clamp-2">
                               {med.name}
                             </h3>
-                            <p className="text-xs text-muted-foreground mt-0.5">
-                              {med.form}
-                            </p>
-                            <span className="inline-block text-xs font-medium bg-secondary text-secondary-foreground px-1.5 py-0.5 rounded mt-1">
-                              {med.brand}
-                            </span>
+                            <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                              <span className="text-[11px] text-muted-foreground">{med.form}</span>
+                              {med.brand && (
+                                <span className="inline-block text-[11px] font-semibold bg-primary/10 text-primary px-1.5 py-0.5 rounded-md">{med.brand}</span>
+                              )}
+                            </div>
                           </div>
 
                           {/* Description */}
-                          <p className="text-xs text-muted-foreground line-clamp-1 italic flex-1">
-                            {med.description}
-                          </p>
+                          {med.description && (
+                            <p className="text-[11px] text-muted-foreground line-clamp-2 italic flex-1 leading-relaxed">
+                              {med.description}
+                            </p>
+                          )}
 
-                          {/* Rating */}
-                          <div className="flex items-center gap-1.5">
-                            <div className="flex gap-0.5">
-                              {[...Array(5)].map((_, i) => (
-                                <Star
-                                  key={i}
-                                  size={11}
-                                  className={
-                                    i < Math.floor(med.rating)
-                                      ? "fill-yellow-400 text-yellow-400"
-                                      : "fill-gray-200 text-gray-200"
-                                  }
-                                />
-                              ))}
-                            </div>
-                            <span className="text-xs font-semibold text-foreground">
-                              {med.rating}
-                            </span>
-                          </div>
-
-                          {/* Pharmacy Info */}
+                          {/* Pharmacy */}
                           {med.pharmacy && (
                           <div className="space-y-1">
                             <div className="flex items-center gap-1.5">
-                              <MapPin size={11} className="text-primary shrink-0" />
-                              <span className="text-xs text-muted-foreground truncate">{med.pharmacy}</span>
+                              <Store size={11} className="text-primary shrink-0" />
+                              <span className="text-[11px] text-muted-foreground truncate font-medium">{med.pharmacy}</span>
                             </div>
                             {(med as any).pharmacyOpeningHours && (
                             <div className="flex items-center gap-1.5">
                               <Clock size={11} className="text-muted-foreground shrink-0" />
-                              <span className="text-xs text-muted-foreground">{(med as any).pharmacyOpeningHours}</span>
-                              {(med as any).pharmacyIsOnDuty && (
-                                <span className="text-[10px] bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full font-medium">De garde</span>
-                              )}
+                              <span className="text-[11px] text-muted-foreground">{(med as any).pharmacyOpeningHours}</span>
                             </div>
                             )}
                           </div>
@@ -786,10 +844,10 @@ export default function PharmacyPage() {
                           {/* Price & Action */}
                           <div className="flex items-center justify-between pt-2 border-t border-border mt-auto">
                             <div>
-                              <span className="text-lg font-bold text-primary">
+                              <span className="text-base font-bold text-primary">
                                 {med.price} DT
                               </span>
-                              <span className="text-xs text-muted-foreground ml-1">
+                              <span className="text-[11px] text-muted-foreground ml-1">
                                 TTC
                               </span>
                             </div>
@@ -798,10 +856,13 @@ export default function PharmacyPage() {
                                 e.stopPropagation();
                                 addToCart(med);
                               }}
-                              disabled={med.available <= 0}
-                              className="flex items-center gap-1 bg-primary text-primary-foreground px-2.5 py-1.5 rounded-lg hover:bg-primary/90 active:scale-95 transition-all text-xs font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all active:scale-95 ${
+                                pharmaCart.find((c) => c.id === med.id)
+                                  ? "bg-emerald-500 text-white"
+                                  : "bg-primary text-primary-foreground hover:bg-primary/90"
+                              }`}
                             >
-                              <ShoppingCart size={13} />
+                              <ShoppingCart size={12} />
                               {pharmaCart.find((c) => c.id === med.id) ? "Ajouté ✓" : "Ajouter"}
                             </button>
                           </div>
@@ -814,21 +875,28 @@ export default function PharmacyPage() {
             </div>
           </div>
         </div>
-        {/* ── Floating Cart FAB ── */}
-        {pharmaCart.length > 0 && !pharmaCartOpen && (
-          <button
-            onClick={() => setPharmaCartOpen(true)}
-            className="fixed bottom-6 right-6 z-40 w-14 h-14 rounded-full bg-orange-600 text-white shadow-lg hover:bg-orange-700 active:scale-95 transition-all flex items-center justify-center"
-            title="Panier Pharmacie"
-          >
-            <Stethoscope size={22} />
-            <span className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center shadow">
-              {pharmaCart.reduce((s, c) => s + c.quantity, 0)}
-            </span>
-          </button>
-        )}
       </main>
       <Footer />
+
+      {/* ── Add-to-cart toast ─────────────────────────────────────────── */}
+      <div
+        className={`fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-5 py-3 bg-gray-900 text-white rounded-2xl shadow-2xl border border-white/10 transition-all duration-300 ${
+          cartToast ? "opacity-100 translate-y-0 pointer-events-auto" : "opacity-0 translate-y-4 pointer-events-none"
+        }`}
+      >
+        <div className="w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center shrink-0">
+          <CheckCircle size={14} className="text-white" />
+        </div>
+        <span className="text-sm font-medium max-w-[200px] truncate">{cartToast}</span>
+        <span className="text-sm text-white/50">ajouté au panier</span>
+        <button
+          onClick={() => { setPharmaCartOpen(true); setCartToast(null); }}
+          className="ml-1 flex items-center gap-1.5 px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-xl text-xs font-semibold transition-colors"
+        >
+          <ShoppingBag size={12} /> Voir
+        </button>
+      </div>
+
       <MedicineModal
         medicine={selectedMedicine}
         isOpen={isModalOpen}

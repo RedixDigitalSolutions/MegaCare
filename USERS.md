@@ -3,40 +3,59 @@
 All data is seeded automatically on first backend startup (`npm run dev`).
 Seeding only runs if the users collection is empty.
 
+Additional one-off scripts create lab and establishment accounts:
+- `node src/create-lab-accounts.js` — creates 7 public-lab-center login accounts
+- `node src/create-establishment-accounts.js` — creates 35 medical-service login accounts
+
+---
+
+## ⚡ Quick Reference — One Login Per Role
+
+| Role | Email | Password |
+| --- | --- | --- |
+| Admin | admin@megacare.tn | Admin@megacare2024 |
+| Patient | fatima.benali@gmail.com | Patient@2024 |
+| Doctor | dr.mansouri@megacare.tn | Medecin@2024 |
+| Pharmacy | pharmacie.tunis.1@megacare.tn | Pharmacien@2024 |
+| Lab / Radiology (seeded) | labo.elamal@megacare.tn | Labo@2024 |
+| Lab / Radiology (script) | labo.central.tunis@megacare.tn | Lab@2024 |
+| Medical Service (legacy) | had.sante@megacare.tn | Service@2024 |
+| Medical Service (estab) | clinique.lamarsa@megacare.tn | Service@2024 |
+| Paramedical / Parapharmacie | para.tunis.1@megacare.tn | Paramedical@2024 |
+
 ---
 
 ## 📊 Database Summary
 
 | Collection | Count |
 | --- | --- |
-| users | 256 |
-| appointments | ~125 |
-| doctors | 3 |
+| users | 304 |
+| appointments | 117 |
+| doctors | 10 |
 | dossiers | 8 |
 | medicines | 25 |
-| products | 1779 |
-| orders | ~70 |
+| products | 1809 |
+| orders | 72 |
 | prescriptions | 25 |
-
-| messages | ~32 |
+| messages | 37 |
 | labtests | 30 |
-| labresults | 19 |
+| labresults | 26 |
 | supplierorders | 15 |
-| vitals | ~68 |
+| vitals | 79 |
 | medservicepatients | 8 |
 | medserviceequipments | 7 |
 | medserviceteammembers | 6 |
-| medservicevisits | ~43 |
+| medservicevisits | 46 |
 | medserviceinvoices | 12 |
 | medserviceprescriptions | 8 |
 | medservicesettings | 1 |
 | paramedpatients | 10 |
-| paramedappointments | ~58 |
+| paramedappointments | 58 |
 | paramedsupplies | 10 |
 | paramedcaresessions | 15 |
-| paramedicalproducts | 15 |
-| paramedicalcatalogs | 15 |
-| medicalestablishments | 9 |
+| paramedicalproducts | 37 |
+| paramedicalcatalogs | 35 |
+| medicalestablishments | 35 |
 | publiclabcenters | 9 |
 
 ---
@@ -49,14 +68,22 @@ Seeding only runs if the users collection is empty.
 
 ---
 
-## 🩺 Doctors (4)
+## 🩺 Doctors (10 — all approved)
 
-| Name | Email | Password | Specialty | Doctor ID | Status |
-| --- | --- | --- | --- | --- | --- |
-| Amira Mansouri | dr.mansouri@megacare.tn | Medecin@2024 | Cardiologie | MED-TN-2024-0742 | approved |
-| Slim Hajri | dr.hajri@megacare.tn | Medecin@2024 | Dermatologie | MED-TN-2024-0891 | approved |
-| Ines Ben Youssef | dr.benyoussef@megacare.tn | Medecin@2024 | Pediatrie | MED-TN-2024-0556 | approved |
-| Karim Tlili | dr.tlili@megacare.tn | Medecin@2024 | Neurologie | MED-TN-2024-0991 | **pending** |
+**Password (all):** `Medecin@2024`
+
+| Name | Email | Specialty | Doctor ID | Status |
+| --- | --- | --- | --- | --- |
+| Amira Mansouri | dr.mansouri@megacare.tn | Cardiologie | MED-TN-2024-0742 | approved |
+| Slim Hajri | dr.hajri@megacare.tn | Dermatologie | MED-TN-2024-0891 | approved |
+| Ines Ben Youssef | dr.benyoussef@megacare.tn | Pediatrie | MED-TN-2024-0556 | approved |
+| Karim Tlili | dr.tlili@megacare.tn | Neurologie | MED-TN-2024-0991 | approved |
+| Sonia Belhaj | dr.belhaj@megacare.tn | Gynecologie | MED-TN-2024-1123 | approved |
+| Riadh Chaabane | dr.chaabane@megacare.tn | Ophtalmologie | MED-TN-2024-1254 | approved |
+| Leila Trabelsi | dr.trabelsi@megacare.tn | Psychiatrie | MED-TN-2024-1387 | approved |
+| Nizar Gharbi | dr.gharbi@megacare.tn | Chirurgie generale | MED-TN-2024-1498 | approved |
+| Hajer Mekni | dr.mekni@megacare.tn | Rhumatologie | MED-TN-2024-1612 | approved |
+| Bassem Zouari | dr.zouari@megacare.tn | Medecine generale | MED-TN-2024-1734 | approved |
 
 ---
 
@@ -96,24 +123,88 @@ Seeding only runs if the users collection is empty.
 
 ---
 
-## 🧪 Lab / Radiology (2)
+## 🧪 Lab / Radiology (9)
 
-| Name | Email | Password | Company | Lab ID |
+Two separate seeding methods are used, resulting in two different passwords:
+
+### Seeded via `seed.js` — password: `Labo@2024`
+
+| Name | Email | Company | Lab ID | Governorate |
 | --- | --- | --- | --- | --- |
-| Yassine Bouzid | labo.elamal@megacare.tn | Labo@2024 | Laboratoire El Amal | LAB-TN-2024-0031 |
-| Rym Ferchichi | labo.pasteur@megacare.tn | Labo@2024 | Centre Radio-Diagnostic Pasteur | LAB-TN-2024-0042 |
+| Yassine Bouzid | labo.elamal@megacare.tn | Laboratoire El Amal | LAB-TN-2024-0031 | Ariana |
+| Rym Ferchichi | labo.pasteur@megacare.tn | Centre Radio-Diagnostic Pasteur | LAB-TN-2024-0042 | Tunis |
+
+### Created via `create-lab-accounts.js` — password: `Lab@2024`
+
+| Name | Email | Company | Lab ID | Governorate |
+| --- | --- | --- | --- | --- |
+| Karim Mansouri | labo.central.tunis@megacare.tn | Laboratoire Central de Tunis | LAB-TN-2024-0011 | Tunis |
+| Sana Belhaj | radio.avicenne@megacare.tn | Centre d'Imagerie Avicenne | LAB-TN-2024-0012 | Tunis |
+| Mounir Ghribi | radio.sfax@megacare.tn | Centre Radio-Diagnostic Sfax | LAB-TN-2024-0014 | Sfax |
+| Leila Ben Romdhane | irm.monastir@megacare.tn | Centre IRM Monastir | LAB-TN-2024-0016 | Monastir |
+| Tarek Saidi | labo.biosante.nabeul@megacare.tn | Laboratoire Bio-Sante Nabeul | LAB-TN-2024-0017 | Nabeul |
+| Ines Jelassi | radio.benarous@megacare.tn | Centre de Radiologie Ben Arous | LAB-TN-2024-0018 | Ben Arous |
+| Anis Trabelsi | labo.moderne.bizerte@megacare.tn | Laboratoire Moderne Bizerte | LAB-TN-2024-0019 | Bizerte |
 
 ---
 
-## 🏥 Medical Service (1)
+## 🏥 Medical Services (36 — 35 establishments + 1 legacy)
 
-| Name | Email | Password | Company | Service ID |
-| --- | --- | --- | --- | --- |
-| Rania Cherif | had.sante@megacare.tn | Service@2024 | HAD Sante a Domicile | SVC-TN-2024-0012 |
+> One account per establishment, linked via `establishmentId`.
+
+**Password (all):** `Service@2024`
+
+### Legacy account — seeded via `seed.js`
+
+| Name | Email | Company | Service ID |
+| --- | --- | --- | --- |
+| Rania Cherif | had.sante@megacare.tn | HAD Sante a Domicile | SVC-TN-2024-0012 |
+
+### Establishment accounts — created via `create-establishment-accounts.js`
+
+| Name (Director) | Email | Establishment | Type | Governorate | Establishment ID | Service ID |
+| --- | --- | --- | --- | --- | --- | --- |
+| Amira Bouslama | clinique.lamarsa@megacare.tn | Clinique La Marsa | Clinique | Tunis | estab-01 | SVC-TN-2024-0101 |
+| Khalil Sfar | clinique.pasteur@megacare.tn | Clinique Pasteur | Clinique | Tunis | estab-02 | SVC-TN-2024-0102 |
+| Sirine Chaabane | clinique.alhayat@megacare.tn | Clinique Al Hayat | Clinique | Tunis | estab-03 | SVC-TN-2024-0103 |
+| Mounir Taoufik | clinique.taoufik@megacare.tn | Clinique Taoufik | Clinique | Tunis | estab-04 | SVC-TN-2024-0104 |
+| Leila Dridi | clinique.carthage@megacare.tn | Clinique Carthage | Clinique | Tunis | estab-05 | SVC-TN-2024-0105 |
+| Sami Belhaj | centre.elmenzah@megacare.tn | Centre Medical El Menzah | Centre médical | Tunis | estab-06 | SVC-TN-2024-0106 |
+| Ines Karray | polyclinique.jasmins@megacare.tn | Polyclinique Les Jasmins | Clinique | Ariana | estab-07 | SVC-TN-2024-0107 |
+| Wafa Hammami | clinique.ennasr@megacare.tn | Clinique Ennasr | Clinique | Ariana | estab-08 | SVC-TN-2024-0108 |
+| Hichem Zouari | polyclinique.lasoukra@megacare.tn | Polyclinique La Soukra | Clinique | Ariana | estab-09 | SVC-TN-2024-0109 |
+| Randa Slim | clinique.megrine@megacare.tn | Clinique Megrine | Clinique | Ben Arous | estab-10 | SVC-TN-2024-0110 |
+| Mehdi Oueslati | clinique.elamen.nabeul@megacare.tn | Clinique El Amen Nabeul | Clinique | Nabeul | estab-11 | SVC-TN-2024-0111 |
+| Asma Abidi | clinique.ibnrochd@megacare.tn | Clinique Ibn Rochd Hammamet | Clinique | Nabeul | estab-12 | SVC-TN-2024-0112 |
+| Tarek Trabelsi | centre.bizerte@megacare.tn | Centre Medical Bizerte | Centre médical | Bizerte | estab-13 | SVC-TN-2024-0113 |
+| Nadia Ben Salem | clinique.palmiers@megacare.tn | Clinique Les Palmiers | Clinique | Sousse | estab-14 | SVC-TN-2024-0114 |
+| Farid Gharbi | polyclinique.soussenord@megacare.tn | Polyclinique Sousse Nord | Clinique | Sousse | estab-15 | SVC-TN-2024-0115 |
+| Samira Riahi | polyclinique.akouda@megacare.tn | Polyclinique Akouda | Clinique | Sousse | estab-16 | SVC-TN-2024-0116 |
+| Lotfi Mssedi | clinique.ibnjazzar@megacare.tn | Clinique Ibn El Jazzar | Clinique | Monastir | estab-17 | SVC-TN-2024-0117 |
+| Najla Saidi | clinique.ksarhellal@megacare.tn | Clinique Ksar Hellal | Clinique | Monastir | estab-18 | SVC-TN-2024-0118 |
+| Bassem Mahjoub | centre.jemmal@megacare.tn | Centre Medical Jemmal | Centre médical | Monastir | estab-19 | SVC-TN-2024-0119 |
+| Hatem Ben Fredj | clinique.lesoliviers@megacare.tn | Clinique Les Oliviers | Clinique | Sfax | estab-20 | SVC-TN-2024-0120 |
+| Emna Toumi | clinique.elyasmine@megacare.tn | Clinique El Yasmine Sfax | Clinique | Sfax | estab-21 | SVC-TN-2024-0121 |
+| Walid Gargouri | centre.ibnkhaldoun@megacare.tn | Centre Medical Ibn Khaldoun | Centre médical | Sfax | estab-22 | SVC-TN-2024-0122 |
+| Sonia Jebali | clinique.elamal.kairouan@megacare.tn | Clinique El Amal Kairouan | Clinique | Kairouan | estab-23 | SVC-TN-2024-0123 |
+| Rachid Ferchichi | centre.beja@megacare.tn | Centre Medical Beja | Centre médical | Beja | estab-24 | SVC-TN-2024-0124 |
+| Mariam Khelifi | clinique.elhayat.gabes@megacare.tn | Clinique El Hayat Gabes | Clinique | Gabes | estab-25 | SVC-TN-2024-0125 |
+| Olfa Ayari | had.tunisnord@megacare.tn | HAD Soins Tunis Nord | Hospitalisation À Domicile | Tunis | estab-26 | SVC-TN-2024-0126 |
+| Zied Mellouli | had.ariana@megacare.tn | HAD Ariana Domicile Sante | Hospitalisation À Domicile | Ariana | estab-27 | SVC-TN-2024-0127 |
+| Hela Msaddek | had.benarous@megacare.tn | HAD Ben Arous Confort Soin | Hospitalisation À Domicile | Ben Arous | estab-28 | SVC-TN-2024-0128 |
+| Anis Turki | had.sousse@megacare.tn | HAD Sousse Aile Medicale | Hospitalisation À Domicile | Sousse | estab-29 | SVC-TN-2024-0129 |
+| Dorra Mansouri | had.monastir@megacare.tn | HAD Monastir Sante Proximite | Hospitalisation À Domicile | Monastir | estab-30 | SVC-TN-2024-0130 |
+| Yacine Lahmar | had.sfax@megacare.tn | HAD Sfax Soins Integres | Hospitalisation À Domicile | Sfax | estab-31 | SVC-TN-2024-0131 |
+| Imen Baccouche | had.nabeul@megacare.tn | HAD Nabeul Cap Bon Sante | Hospitalisation À Domicile | Nabeul | estab-32 | SVC-TN-2024-0132 |
+| Kamel Hadj Ali | had.bizerte@megacare.tn | HAD Bizerte Nord Sante | Hospitalisation À Domicile | Bizerte | estab-33 | SVC-TN-2024-0133 |
+| Fatma Chouchane | had.kairouan@megacare.tn | HAD Kairouan Domicile Plus | Hospitalisation À Domicile | Kairouan | estab-34 | SVC-TN-2024-0134 |
+| Majdi Riahi | had.gabes@megacare.tn | HAD Gabes Soins Domicile | Hospitalisation À Domicile | Gabes | estab-35 | SVC-TN-2024-0135 |
 
 ---
 
-## 💅 Parapharmacies (120 — 5 per governorate)
+## 💅 Parapharmacies / Paramedical Service Providers (120 — 5 per governorate)
+
+> System role: `paramedical`. These accounts cover both parapharmacy storefronts and home-care paramedical service providers in the platform.
 
 **Email pattern:** `para.{governorate}.{1-5}@megacare.tn`  
 **Password (all):** `Paramedical@2024`  
@@ -161,7 +252,7 @@ Seeding only runs if the users collection is empty.
 | Layla Meddeb | layla.meddeb@gmail.com | Patient@2024 | +216 98 567 890 |
 | Youssef Bouazizi | youssef.bouazizi@gmail.com | Patient@2024 | +216 52 112 233 |
 | Nour Triki | nour.triki@gmail.com | Patient@2024 | +216 55 998 877 |
-| Karim Saidi |   | Patient@2024 | +216 97 332 211 |
+| Karim Saidi | karim.saidi@gmail.com | Patient@2024 | +216 97 332 211 |
 
 ---
 

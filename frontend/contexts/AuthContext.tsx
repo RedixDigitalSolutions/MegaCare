@@ -151,6 +151,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const logout = () => {
     setUser(null);
+    localStorage.removeItem("megacare_token");
     localStorage.removeItem("megacare_user");
   };
 

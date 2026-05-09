@@ -13,7 +13,6 @@ interface PharmacySettings {
   phone: string;
   companyName: string;
   address: string;
-  coordinates: { lat: number; lng: number } | null;
   wilaya: string;
   city: string;
   governorate: string;
@@ -70,18 +69,6 @@ export default function PharmacySettingsPage() {
     setSettings({ ...settings, [field]: value });
   };
 
-  const handleCoordChange = (field: "lat" | "lng", value: string) => {
-    if (!settings) return;
-    const num = parseFloat(value);
-    setSettings({
-      ...settings,
-      coordinates: {
-        lat: field === "lat" ? (isNaN(num) ? 0 : num) : (settings.coordinates?.lat ?? 0),
-        lng: field === "lng" ? (isNaN(num) ? 0 : num) : (settings.coordinates?.lng ?? 0),
-      },
-    });
-  };
-
   const handleSave = async () => {
     if (!settings) return;
     setSaving(true);
@@ -100,7 +87,6 @@ export default function PharmacySettingsPage() {
           phone: settings.phone,
           companyName: settings.companyName,
           address: settings.address,
-          coordinates: settings.coordinates,
           wilaya: settings.wilaya,
           city: settings.city,
           governorate: settings.governorate,
@@ -152,11 +138,10 @@ export default function PharmacySettingsPage() {
               {/* Success/Error message */}
               {message && (
                 <div
-                  className={`p-4 rounded-lg border text-sm font-medium ${
-                    message.type === "success"
+                  className={`p-4 rounded-lg border text-sm font-medium ${message.type === "success"
                       ? "bg-green-50 border-green-200 text-green-700"
                       : "bg-red-50 border-red-200 text-red-700"
-                  }`}
+                    }`}
                 >
                   {message.text}
                 </div>
@@ -306,32 +291,6 @@ export default function PharmacySettingsPage() {
                         <option key={d} value={d}>{d}</option>
                       ))}
                     </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-1">
-                      Latitude
-                    </label>
-                    <input
-                      type="number"
-                      step="any"
-                      value={settings.coordinates?.lat ?? ""}
-                      onChange={(e) => handleCoordChange("lat", e.target.value)}
-                      className={inputClass}
-                      placeholder="36.8065"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-1">
-                      Longitude
-                    </label>
-                    <input
-                      type="number"
-                      step="any"
-                      value={settings.coordinates?.lng ?? ""}
-                      onChange={(e) => handleCoordChange("lng", e.target.value)}
-                      className={inputClass}
-                      placeholder="10.1815"
-                    />
                   </div>
                   <div className="md:col-span-2">
                     <label className="block text-sm font-medium text-foreground mb-1">

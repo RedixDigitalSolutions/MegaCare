@@ -65,7 +65,7 @@ export default function MedicalServicePrescriptionsPage() {
     const r = await fetch(url, {
       method: editingId ? "PUT" : "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${tok()}` },
-      body: JSON.stringify({ ...form, date: form.date || new Date().toISOString().slice(0, 10) }),
+      body: JSON.stringify({ ...form, date: form.date || (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; })() }),
     });
     const data = await r.json();
     if (editingId) setRxList(prev => prev.map(r => r.id === editingId ? data : r));

@@ -22,7 +22,7 @@ const paramedicalOrderSchema = new mongoose.Schema(
     deliveryPhone: { type: String, default: "" },
     status: {
       type: String,
-      enum: ["pending", "confirmed", "ready", "delivered", "cancelled"],
+      enum: ["pending", "confirmed", "in_delivery", "delivered", "cancelled"],
       default: "pending",
     },
   },

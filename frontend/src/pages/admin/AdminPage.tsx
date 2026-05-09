@@ -2,6 +2,14 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
 import { useEffect, useState, useCallback } from "react";
 import {
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from "recharts";
+import {
   FaUserMd,
   FaPills,
   FaHospital,
@@ -11,7 +19,6 @@ import {
   FaCheckCircle,
   FaTimesCircle,
   FaClock,
-  FaShieldAlt,
   FaUsers,
   FaSync,
   FaBan,
@@ -19,6 +26,7 @@ import {
 import {
   X,
   ChevronRight,
+  ChevronLeft,
   Mail,
   Phone,
   Calendar,
@@ -29,6 +37,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { AdminDashboardSidebar } from "@/components/AdminDashboardSidebar";
+import { useAdminTheme } from "@/hooks/useAdminTheme";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -73,37 +82,37 @@ const roleConfig: Record<
     label: "Patient",
     Icon: FaUserAlt,
     gradient: "from-blue-500 to-cyan-500",
-    light: "bg-blue-50 text-blue-700",
+    light: "bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400",
   },
   doctor: {
     label: "Médecin",
     Icon: FaUserMd,
     gradient: "from-emerald-500 to-teal-500",
-    light: "bg-emerald-50 text-emerald-700",
+    light: "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400",
   },
   pharmacy: {
     label: "Pharmacien",
     Icon: FaPills,
     gradient: "from-green-500 to-lime-500",
-    light: "bg-green-50 text-green-700",
+    light: "bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400",
   },
   medical_service: {
     label: "Services Médicaux",
     Icon: FaHospital,
     gradient: "from-purple-500 to-indigo-500",
-    light: "bg-purple-50 text-purple-700",
+    light: "bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400",
   },
   lab_radiology: {
     label: "Labos & Radiologie",
     Icon: FaMicroscope,
     gradient: "from-rose-500 to-pink-500",
-    light: "bg-rose-50 text-rose-700",
+    light: "bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400",
   },
   paramedical: {
     label: "Paramédicaux",
     Icon: FaUserNurse,
     gradient: "from-sky-500 to-blue-500",
-    light: "bg-sky-50 text-sky-700",
+    light: "bg-sky-50 dark:bg-sky-900/30 text-sky-700 dark:text-sky-400",
   },
 };
 
@@ -113,27 +122,27 @@ const statusCfg: Record<
 > = {
   pending: {
     label: "En attente",
-    bg: "bg-amber-100",
-    text: "text-amber-700",
-    border: "border-amber-200",
+    bg: "bg-amber-100 dark:bg-amber-900/30",
+    text: "text-amber-700 dark:text-amber-400",
+    border: "border-amber-200 dark:border-amber-800/50",
   },
   approved: {
     label: "Approuvé",
-    bg: "bg-emerald-100",
-    text: "text-emerald-700",
-    border: "border-emerald-200",
+    bg: "bg-emerald-100 dark:bg-emerald-900/30",
+    text: "text-emerald-700 dark:text-emerald-400",
+    border: "border-emerald-200 dark:border-emerald-800/50",
   },
   rejected: {
     label: "Refusé",
-    bg: "bg-red-100",
-    text: "text-red-700",
-    border: "border-red-200",
+    bg: "bg-red-100 dark:bg-red-900/30",
+    text: "text-red-700 dark:text-red-400",
+    border: "border-red-200 dark:border-red-800/50",
   },
   suspended: {
     label: "Suspendu",
-    bg: "bg-slate-100",
-    text: "text-slate-600",
-    border: "border-slate-200",
+    bg: "bg-slate-100 dark:bg-slate-800/50",
+    text: "text-slate-600 dark:text-slate-400",
+    border: "border-slate-200 dark:border-slate-700/50",
   },
 };
 
@@ -174,6 +183,7 @@ const getRegDate = (u: ManagedUser) => {
 export default function AdminDashboardPage() {
   const { user, logout, isLoading } = useAuth();
   const navigate = useNavigate();
+  const { isDark } = useAdminTheme();
 
   const [users, setUsers] = useState<ManagedUser[]>([]);
   const [fetching, setFetching] = useState(true);
@@ -181,6 +191,16 @@ export default function AdminDashboardPage() {
   const [filter, setFilter] = useState<FilterStatus>("all");
   const [search, setSearch] = useState("");
   const [detailUser, setDetailUser] = useState<ManagedUser | null>(null);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 10;
+
+  interface AdminStats {
+    total: number;
+    roles: Record<string, number>;
+    genders: { male: number; female: number; other: number };
+    statuses: Record<string, number>;
+  }
+  const [stats, setStats] = useState<AdminStats | null>(null);
 
   // ── Fetch ─────────────────────────────────────────────────────────────────
 
@@ -189,10 +209,12 @@ export default function AdminDashboardPage() {
     if (!token) return;
     setFetching(true);
     try {
-      const res = await fetch("/api/admin/users", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) setUsers(await res.json());
+      const [usersRes, statsRes] = await Promise.all([
+        fetch("/api/admin/users", { headers: { Authorization: `Bearer ${token}` } }),
+        fetch("/api/admin/stats", { headers: { Authorization: `Bearer ${token}` } }),
+      ]);
+      if (usersRes.ok) setUsers(await usersRes.json());
+      if (statsRes.ok) setStats(await statsRes.json());
     } finally {
       setFetching(false);
     }
@@ -282,10 +304,14 @@ export default function AdminDashboardPage() {
     return matchStatus && matchSearch;
   });
 
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePageNow = Math.min(page, totalPages);
+  const paginated = filtered.slice((safePageNow - 1) * PAGE_SIZE, safePageNow * PAGE_SIZE);
+
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className={`flex min-h-screen bg-background${isDark ? " dark" : ""}`}>
       <AdminDashboardSidebar />
 
       <div className="flex-1 flex flex-col min-w-0">
@@ -330,10 +356,10 @@ export default function AdminDashboardPage() {
               };
               const styles: Record<FilterStatus, string> = {
                 all: "text-foreground bg-card border-border",
-                pending: "text-amber-700 bg-amber-50 border-amber-200",
-                approved: "text-emerald-700 bg-emerald-50 border-emerald-200",
-                rejected: "text-red-700 bg-red-50 border-red-200",
-                suspended: "text-slate-600 bg-slate-50 border-slate-200",
+                pending: "text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800/50",
+                approved: "text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/50",
+                rejected: "text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-800/50",
+                suspended: "text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/30 border-slate-200 dark:border-slate-700/50",
               };
               return (
                 <button
@@ -351,6 +377,108 @@ export default function AdminDashboardPage() {
               );
             })}
           </div>
+
+          {/* ── Charts ── */}
+          {stats && (
+            <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Role distribution pie */}
+              <div className="bg-card border border-border rounded-2xl p-5">
+                <h2 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
+                  <FaUsers size={13} className="text-primary" />
+                  Répartition par rôle
+                </h2>
+                <ResponsiveContainer width="100%" height={220}>
+                  <PieChart>
+                    <Pie
+                      data={Object.entries(stats.roles)
+                        .filter(([, v]) => v > 0)
+                        .map(([role, value]) => ({
+                          name: roleConfig[role]?.label ?? role,
+                          value,
+                          color: {
+                            patient: "#3b82f6",
+                            doctor: "#10b981",
+                            pharmacy: "#84cc16",
+                            medical_service: "#8b5cf6",
+                            lab_radiology: "#f43f5e",
+                            paramedical: "#0ea5e9",
+                          }[role] ?? "#94a3b8",
+                        }))}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={80}
+                      innerRadius={40}
+                      paddingAngle={3}
+                    >
+                      {Object.entries(stats.roles)
+                        .filter(([, v]) => v > 0)
+                        .map(([role]) => (
+                          <Cell
+                            key={role}
+                            fill={
+                              ({
+                                patient: "#3b82f6",
+                                doctor: "#10b981",
+                                pharmacy: "#84cc16",
+                                medical_service: "#8b5cf6",
+                                lab_radiology: "#f43f5e",
+                                paramedical: "#0ea5e9",
+                              } as Record<string, string>)[role] ?? "#94a3b8"
+                            }
+                          />
+                        ))}
+                    </Pie>
+                    <Tooltip
+                      formatter={(value: number) => [`${value} utilisateur${value > 1 ? "s" : ""}`, ""]}
+                      contentStyle={{ fontSize: 12, borderRadius: 8 }}
+                    />
+                    <Legend iconSize={10} wrapperStyle={{ fontSize: 11 }} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* Gender pie */}
+              <div className="bg-card border border-border rounded-2xl p-5">
+                <h2 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
+                  <FaUserAlt size={13} className="text-primary" />
+                  Démographie (genre)
+                </h2>
+                <ResponsiveContainer width="100%" height={220}>
+                  <PieChart>
+                    <Pie
+                      data={[
+                        { name: "Hommes", value: stats.genders.male, color: "#3b82f6" },
+                        { name: "Femmes", value: stats.genders.female, color: "#ec4899" },
+                        { name: "Non renseigné", value: stats.genders.other, color: "#94a3b8" },
+                      ].filter((d) => d.value > 0)}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      outerRadius={80}
+                      innerRadius={40}
+                      paddingAngle={3}
+                    >
+                      {[
+                        { name: "Hommes", color: "#3b82f6" },
+                        { name: "Femmes", color: "#ec4899" },
+                        { name: "Non renseigné", color: "#94a3b8" },
+                      ].map((entry) => (
+                        <Cell key={entry.name} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      formatter={(value: number) => [`${value} utilisateur${value > 1 ? "s" : ""}`, ""]}
+                      contentStyle={{ fontSize: 12, borderRadius: 8 }}
+                    />
+                    <Legend iconSize={10} wrapperStyle={{ fontSize: 11 }} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+            </section>
+          )}
 
           {/* ── 4. Role-Based Stats ── */}
           <section className="space-y-3">
@@ -382,22 +510,22 @@ export default function AdminDashboardPage() {
                       </p>
                       <div className="flex flex-wrap gap-2 mt-2">
                         {rs.pending > 0 && (
-                          <span className="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">
+                          <span className="text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-2 py-0.5 rounded-full">
                             {rs.pending} en attente
                           </span>
                         )}
                         {rs.approved > 0 && (
-                          <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">
+                          <span className="text-xs bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-2 py-0.5 rounded-full">
                             {rs.approved} approuvé{rs.approved > 1 ? "s" : ""}
                           </span>
                         )}
                         {rs.rejected > 0 && (
-                          <span className="text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full">
+                          <span className="text-xs bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 px-2 py-0.5 rounded-full">
                             {rs.rejected} refusé{rs.rejected > 1 ? "s" : ""}
                           </span>
                         )}
                         {rs.suspended > 0 && (
-                          <span className="text-xs bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">
+                          <span className="text-xs bg-slate-100 dark:bg-slate-800/50 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded-full">
                             {rs.suspended} suspendu{rs.suspended > 1 ? "s" : ""}
                           </span>
                         )}
@@ -426,7 +554,7 @@ export default function AdminDashboardPage() {
                   {pendingUsers.length}
                 </span>
               </div>
-              <div className="bg-amber-50 border border-amber-200 rounded-2xl divide-y divide-amber-200/60 overflow-hidden">
+              <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/40 rounded-2xl divide-y divide-amber-200/60 dark:divide-amber-800/30 overflow-hidden">
                 {pendingUsers.map((u) => {
                   const cfg = roleConfig[u.role] ?? roleConfig.patient;
                   const { Icon: RoleIcon, gradient, label } = cfg;
@@ -445,7 +573,7 @@ export default function AdminDashboardPage() {
                           <p className="text-sm font-semibold text-foreground">
                             {getDisplayName(u)}
                           </p>
-                          <span className="text-xs bg-amber-200/70 text-amber-800 px-2 py-0.5 rounded-full">
+                          <span className="text-xs bg-amber-200/70 dark:bg-amber-800/50 text-amber-800 dark:text-amber-300 px-2 py-0.5 rounded-full">
                             {label}
                           </span>
                         </div>
@@ -506,7 +634,7 @@ export default function AdminDashboardPage() {
                 type="text"
                 placeholder="Rechercher par nom, email ou rôle..."
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => { setSearch(e.target.value); setPage(1); }}
                 className="flex-1 min-w-48 px-4 py-2 bg-card border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
               />
               <div className="flex rounded-xl border border-border overflow-hidden text-xs font-medium">
@@ -529,7 +657,7 @@ export default function AdminDashboardPage() {
                   return (
                     <button
                       key={key}
-                      onClick={() => setFilter(key)}
+                      onClick={() => { setFilter(key); setPage(1); }}
                       className={`px-3 py-2 transition ${filter === key ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground hover:text-foreground"}`}
                     >
                       {labels[key]}
@@ -560,8 +688,9 @@ export default function AdminDashboardPage() {
                 </p>
               </div>
             ) : (
+              <>
               <div className="space-y-2.5">
-                {filtered.map((u) => {
+                {paginated.map((u) => {
                   const cfg = roleConfig[u.role] ?? roleConfig.patient;
                   const { Icon: RoleIcon, gradient, label, light } = cfg;
                   return (
@@ -641,7 +770,7 @@ export default function AdminDashboardPage() {
                             <button
                               onClick={() => handleAction(u.id, "suspend")}
                               disabled={actionLoading === u.id + "suspend"}
-                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-50 text-xs font-semibold transition disabled:opacity-50"
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 text-xs font-semibold transition disabled:opacity-50"
                             >
                               <FaBan size={11} />
                               Suspendre
@@ -660,7 +789,7 @@ export default function AdminDashboardPage() {
                           <button
                             onClick={() => handleAction(u.id, "reactivate")}
                             disabled={actionLoading === u.id + "reactivate"}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-300 text-emerald-600 hover:bg-emerald-50 text-xs font-semibold transition disabled:opacity-50"
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-300 dark:border-emerald-700 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-xs font-semibold transition disabled:opacity-50"
                           >
                             <FaCheckCircle size={11} />
                             Réactiver
@@ -670,7 +799,7 @@ export default function AdminDashboardPage() {
                           <button
                             onClick={() => handleAction(u.id, "approve")}
                             disabled={actionLoading === u.id + "approve"}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-300 text-emerald-600 hover:bg-emerald-50 text-xs font-semibold transition disabled:opacity-50"
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-300 dark:border-emerald-700 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-xs font-semibold transition disabled:opacity-50"
                           >
                             <FaCheckCircle size={11} />
                             Ré-approuver
@@ -681,30 +810,55 @@ export default function AdminDashboardPage() {
                   );
                 })}
               </div>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between pt-4 border-t border-border">
+                  <p className="text-xs text-muted-foreground">
+                    {(safePageNow - 1) * PAGE_SIZE + 1}–{Math.min(safePageNow * PAGE_SIZE, filtered.length)} sur {filtered.length} utilisateurs
+                  </p>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                      disabled={safePageNow === 1}
+                      className="p-2 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition disabled:opacity-40"
+                    >
+                      <ChevronLeft size={14} />
+                    </button>
+                    {Array.from({ length: totalPages }, (_, i) => i + 1)
+                      .filter((p) => p === 1 || p === totalPages || Math.abs(p - safePageNow) <= 1)
+                      .reduce<(number | "…")[]>((acc, p, idx, arr) => {
+                        if (idx > 0 && typeof arr[idx - 1] === "number" && (p as number) - (arr[idx - 1] as number) > 1) acc.push("…");
+                        acc.push(p);
+                        return acc;
+                      }, [])
+                      .map((p, i) =>
+                        p === "…" ? (
+                          <span key={`dots-${i}`} className="px-2 text-muted-foreground text-xs">…</span>
+                        ) : (
+                          <button
+                            key={p}
+                            onClick={() => setPage(p as number)}
+                            className={`w-8 h-8 rounded-lg text-xs font-medium transition ${safePageNow === p ? "bg-primary text-primary-foreground" : "border border-border text-muted-foreground hover:text-foreground hover:bg-muted"}`}
+                          >
+                            {p}
+                          </button>
+                        )
+                      )}
+                    <button
+                      onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                      disabled={safePageNow === totalPages}
+                      className="p-2 rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-muted transition disabled:opacity-40"
+                    >
+                      <ChevronRight size={14} />
+                    </button>
+                  </div>
+                </div>
+              )}
+              </>
             )}
           </section>
 
-          {/* Admin note */}
-          <div className="p-4 rounded-2xl bg-muted/40 border border-border text-xs text-muted-foreground flex items-start gap-2">
-            <FaShieldAlt size={13} className="text-primary mt-0.5 shrink-0" />
-            <div>
-              <span className="font-semibold text-foreground">
-                Compte admin par défaut :
-              </span>{" "}
-              <code className="bg-muted px-1.5 py-0.5 rounded">
-                admin@megacare.tn
-              </code>
-              {" / "}
-              <code className="bg-muted px-1.5 py-0.5 rounded">
-                Admin@megacare2024
-              </code>
-              {" — Connectez-vous via la page "}
-              <Link to="/login" className="text-primary underline">
-                Connexion
-              </Link>
-              {" en sélectionnant le rôle Administrateur."}
-            </div>
-          </div>
         </main>
       </div>
 
@@ -824,7 +978,7 @@ export default function AdminDashboardPage() {
 
               {/* Role-specific extra info */}
               {detailUser.role === "doctor" && (
-                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-sm text-emerald-800">
+                <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/40 rounded-xl p-4 text-sm text-emerald-800 dark:text-emerald-300">
                   <p className="font-semibold mb-1">Informations médicales</p>
                   <p>Licence : {detailUser.doctorId ?? "Non renseignée"}</p>
                   {detailUser.specialization && (
@@ -833,7 +987,7 @@ export default function AdminDashboardPage() {
                 </div>
               )}
               {detailUser.role === "pharmacy" && (
-                <div className="bg-green-50 border border-green-200 rounded-xl p-4 text-sm text-green-800">
+                <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800/40 rounded-xl p-4 text-sm text-green-800 dark:text-green-300">
                   <p className="font-semibold mb-1">Informations pharmacie</p>
                   <p>Agrément : {detailUser.pharmacyId ?? "Non renseigné"}</p>
                   {detailUser.address && <p>Adresse : {detailUser.address}</p>}
@@ -841,7 +995,7 @@ export default function AdminDashboardPage() {
               )}
               {(detailUser.role === "medical_service" ||
                 detailUser.role === "lab_radiology") && (
-                <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 text-sm text-purple-800">
+                <div className="bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800/40 rounded-xl p-4 text-sm text-purple-800 dark:text-purple-300">
                   <p className="font-semibold mb-1">
                     Informations établissement
                   </p>
@@ -880,7 +1034,7 @@ export default function AdminDashboardPage() {
                   <button
                     onClick={() => handleAction(detailUser.id, "suspend")}
                     disabled={!!actionLoading}
-                    className="flex-1 flex items-center justify-center gap-2 py-2.5 border border-slate-300 text-slate-700 hover:bg-slate-50 rounded-xl text-sm font-semibold transition disabled:opacity-50"
+                    className="flex-1 flex items-center justify-center gap-2 py-2.5 border border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 rounded-xl text-sm font-semibold transition disabled:opacity-50"
                   >
                     <FaBan size={13} />
                     Suspendre le compte
@@ -909,7 +1063,7 @@ export default function AdminDashboardPage() {
                 <button
                   onClick={() => handleAction(detailUser.id, "approve")}
                   disabled={!!actionLoading}
-                  className="w-full flex items-center justify-center gap-2 py-2.5 border border-emerald-300 text-emerald-700 hover:bg-emerald-50 rounded-xl text-sm font-semibold transition disabled:opacity-50"
+                  className="w-full flex items-center justify-center gap-2 py-2.5 border border-emerald-300 dark:border-emerald-700 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-xl text-sm font-semibold transition disabled:opacity-50"
                 >
                   <FaCheckCircle size={13} />
                   Ré-approuver le compte

@@ -9,7 +9,6 @@ import {
   FileText,
   Search,
   ShoppingCart,
-  Truck,
   Shield,
   Lock,
   Award,
@@ -18,6 +17,10 @@ import {
   ChevronDown,
   Stethoscope,
   Pill,
+  Building2,
+  FlaskConical,
+  Heart,
+  ShoppingBag,
 } from "lucide-react";
 
 type Tab = "comment" | "tarifs" | "faq";
@@ -70,17 +73,61 @@ const pharmacySteps = [
   },
   {
     icon: <ShoppingCart className="w-6 h-6" />,
-    title: "Commander en ligne",
+    title: "Récupérer en pharmacie",
     description:
-      "Ajoutez au panier, choisissez votre pharmacie et réglez en toute sécurité en quelques clics.",
+      "Choisissez votre pharmacie partenaire et retirez vos médicaments directement sur place.",
     color: "bg-emerald-500",
   },
+];
+
+const otherServices = [
   {
-    icon: <Truck className="w-6 h-6" />,
-    title: "Livraison rapide",
-    description:
-      "Recevez vos médicaments en 2 à 4 heures selon votre zone. Suivi en temps réel disponible.",
-    color: "bg-teal-500",
+    icon: <Stethoscope className="w-6 h-6" />,
+    title: "Médecins & Téléconsultation",
+    description: "Consultez des médecins généralistes et spécialistes en vidéo depuis chez vous.",
+    color: "bg-blue-500/10 text-blue-500",
+    href: "/doctors",
+    label: "Trouver un médecin",
+  },
+  {
+    icon: <Pill className="w-6 h-6" />,
+    title: "Pharmacie en ligne",
+    description: "Trouvez vos médicaments et retirez-les directement dans votre pharmacie partenaire.",
+    color: "bg-green-500/10 text-green-500",
+    href: "/pharmacy",
+    label: "Accéder à la pharmacie",
+  },
+  {
+    icon: <Building2 className="w-6 h-6" />,
+    title: "Services Médicaux",
+    description: "Trouvez une clinique ou un centre médical près de chez vous et prenez rendez-vous en ligne.",
+    color: "bg-sky-500/10 text-sky-500",
+    href: "/services-medicaux",
+    label: "Trouver un centre",
+  },
+  {
+    icon: <FlaskConical className="w-6 h-6" />,
+    title: "Labos & Radiologie",
+    description: "Réservez vos analyses médicales et examens d'imagerie dans les meilleurs laboratoires.",
+    color: "bg-violet-500/10 text-violet-500",
+    href: "/labos-radiologie",
+    label: "Trouver un laboratoire",
+  },
+  {
+    icon: <Heart className="w-6 h-6" />,
+    title: "Paramédicaux & Soins",
+    description: "Contactez infirmiers, kinésithérapeutes et autres professionnels de santé à domicile.",
+    color: "bg-rose-500/10 text-rose-500",
+    href: "/paramedical-services",
+    label: "Trouver un professionnel",
+  },
+  {
+    icon: <ShoppingBag className="w-6 h-6" />,
+    title: "Parapharmacie",
+    description: "Commandez vos produits de santé, bien-être et hygiène auprès de nos partenaires certifiés.",
+    color: "bg-amber-500/10 text-amber-500",
+    href: "/parapharmacy",
+    label: "Voir les produits",
   },
 ];
 
@@ -311,7 +358,7 @@ export default function GuidePage() {
                       Pharmacie en ligne
                     </h2>
                     <p className="text-muted-foreground text-sm">
-                      Commandez vos médicaments avec livraison rapide
+                      Trouvez vos médicaments et retirez-les en pharmacie partenaire
                     </p>
                   </div>
                 </div>
@@ -342,8 +389,39 @@ export default function GuidePage() {
               </div>
             </section>
 
-            {/* Security */}
+            {/* Other services */}
             <section className="py-16 bg-background">
+              <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="flex items-center gap-3 mb-10">
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <CheckCircle className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold text-foreground">Autres services</h2>
+                    <p className="text-muted-foreground text-sm">Tous les services de santé disponibles sur MegaCare</p>
+                  </div>
+                </div>
+                <div className="grid sm:grid-cols-2 gap-5">
+                  {otherServices.map((svc, i) => (
+                    <div key={i} className="group bg-card border border-border rounded-2xl p-6 hover:border-primary/30 hover:shadow-lg transition-all duration-300 flex gap-4 items-start">
+                      <div className={`w-12 h-12 rounded-xl ${svc.color} flex items-center justify-center shrink-0 transition-transform duration-300 group-hover:scale-110`}>
+                        {svc.icon}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-lg font-semibold text-foreground mb-1">{svc.title}</h3>
+                        <p className="text-muted-foreground text-sm leading-relaxed mb-3">{svc.description}</p>
+                        <Link to={svc.href} className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:opacity-80 transition-opacity">
+                          {svc.label} <ArrowRight className="w-3.5 h-3.5" />
+                        </Link>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </section>
+
+            {/* Security */}
+            <section className="py-16 bg-secondary/30">
               <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
                 <h2 className="text-2xl font-bold text-foreground mb-8 text-center">
                   Sécurité & confidentialité

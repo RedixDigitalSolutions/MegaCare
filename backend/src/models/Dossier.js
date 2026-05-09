@@ -53,8 +53,10 @@ const dossierSchema = new mongoose.Schema(
     ],
     consultations: [
       {
+        appointmentId: String,
         doctorId: String,
         doctorName: String,
+        doctorSpeciality: String,
         date: { type: String, default: () => new Date().toISOString() },
         symptoms: String,
         observations: String,
@@ -63,6 +65,7 @@ const dossierSchema = new mongoose.Schema(
           {
             name: String,
             dosage: String,
+            instructions: String,
           },
         ],
         followUp: String,

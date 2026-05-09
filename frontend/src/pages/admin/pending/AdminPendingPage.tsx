@@ -3,6 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { AdminDashboardSidebar } from "@/components/AdminDashboardSidebar";
 import { UserDetailSlideOver } from "../UserDetailSlideOver";
+import { useAdminTheme } from "@/hooks/useAdminTheme";
 import {
   ManagedUser,
   AdminAction,
@@ -18,16 +19,18 @@ import {
   FaSync,
   FaClipboardCheck,
 } from "react-icons/fa";
-import { ChevronRight, AlertTriangle } from "lucide-react";
+import { ChevronRight, AlertTriangle, Filter } from "lucide-react";
 
 export default function AdminPendingPage() {
   const { user, isLoading } = useAuth();
   const navigate = useNavigate();
+  const { isDark } = useAdminTheme();
 
   const [users, setUsers] = useState<ManagedUser[]>([]);
   const [fetching, setFetching] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [detailUser, setDetailUser] = useState<ManagedUser | null>(null);
+  const [roleFilter, setRoleFilter] = useState<string>("all");
 
   const loadUsers = useCallback(async () => {
     setFetching(true);
@@ -67,21 +70,31 @@ export default function AdminPendingPage() {
   if (user.role !== "admin") return null;
 
   const pending = users.filter((u) => u.status === "pending");
+  const filteredPending = roleFilter === "all" ? pending : pending.filter((u) => u.role === roleFilter);
+  const ROLE_OPTS = [
+    { value: "all", label: "Tous les rôles" },
+    { value: "doctor", label: "Médecins" },
+    { value: "patient", label: "Patients" },
+    { value: "pharmacy", label: "Pharmaciens" },
+    { value: "medical_service", label: "Services Médicaux" },
+    { value: "lab_radiology", label: "Labos & Radiologie" },
+    { value: "paramedical", label: "Paramédicaux" },
+  ];
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className={`flex min-h-screen bg-background${isDark ? " dark" : ""}`}>
       <AdminDashboardSidebar />
 
       <div className="flex-1 flex flex-col min-w-0">
         {/* Page header */}
-        <div className="px-6 py-5 border-b border-border bg-card/50 shrink-0 flex items-center justify-between">
+        <div className="px-6 py-5 border-b border-border bg-card/50 shrink-0 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
             <div>
               <h1 className="text-xl font-bold text-foreground flex items-center gap-2">
                 Approbations en attente
                 {pending.length > 0 && (
                   <span className="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-700 text-sm font-bold">
-                    {pending.length}
+                    {filteredPending.length}
                   </span>
                 )}
               </h1>
@@ -90,14 +103,29 @@ export default function AdminPendingPage() {
               </p>
             </div>
           </div>
-          <button
-            onClick={loadUsers}
-            disabled={fetching}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-border text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition disabled:opacity-50"
-          >
-            <FaSync size={12} className={fetching ? "animate-spin" : ""} />
-            Actualiser
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Role filter */}
+            <div className="relative flex items-center gap-1.5">
+              <Filter size={13} className="text-muted-foreground" />
+              <select
+                value={roleFilter}
+                onChange={(e) => setRoleFilter(e.target.value)}
+                className="pl-2 pr-7 py-2 text-sm bg-card border border-border rounded-xl text-foreground focus:outline-none focus:ring-2 focus:ring-primary/40 appearance-none"
+              >
+                {ROLE_OPTS.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+            </div>
+            <button
+              onClick={loadUsers}
+              disabled={fetching}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl border border-border text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition disabled:opacity-50"
+            >
+              <FaSync size={12} className={fetching ? "animate-spin" : ""} />
+              Actualiser
+            </button>
+          </div>
         </div>
 
         <main className="flex-1 overflow-y-auto px-6 py-8">
@@ -124,14 +152,16 @@ export default function AdminPendingPage() {
               <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800">
                 <AlertTriangle size={15} className="shrink-0" />
                 <span>
-                  <strong>{pending.length}</strong> compte
-                  {pending.length !== 1 ? "s" : ""} en attente de validation.
+                  <strong>{filteredPending.length}</strong> compte
+                  {filteredPending.length !== 1 ? "s" : ""} en attente de validation.
                   Vérifiez les informations avant d&apos;approuver.
                 </span>
               </div>
 
               {/* Pending list */}
-              {pending.map((u) => {
+              {filteredPending.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-10">Aucun compte en attente pour ce rôle.</p>
+              ) : filteredPending.map((u) => {
                 const cfg = roleConfig[u.role] ?? roleConfig.patient;
                 const { Icon: RoleIcon, gradient, label } = cfg;
                 return (

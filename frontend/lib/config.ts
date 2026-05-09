@@ -58,12 +58,11 @@ export const allServices = [
     "Ophtalmologie",
     "ORL",
     "Soins infirmiers",
-    "HAD",
+    "Hospitalisation À Domicile",
 ] as const;
 
 export const establishmentTypes = [
     "Clinique",
-    "Hôpital",
-    "HAD",
+    "Hospitalisation À Domicile",
     "Centre médical",
 ] as const;

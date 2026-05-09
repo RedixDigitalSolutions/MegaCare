@@ -39,6 +39,7 @@ interface Message {
 interface Medication {
   name: string;
   dosage: string;
+  instructions: string;
 }
 
 export default function LiveConsultationPage() {
@@ -76,7 +77,7 @@ export default function LiveConsultationPage() {
   const [observations, setObservations] = useState("");
   const [diagnosis, setDiagnosis] = useState("");
   const [medications, setMedications] = useState<Medication[]>([
-    { name: "", dosage: "" },
+    { name: "", dosage: "", instructions: "" },
   ]);
   const [followUp, setFollowUp] = useState("");
   const [privateNotes, setPrivateNotes] = useState("");
@@ -200,7 +201,7 @@ export default function LiveConsultationPage() {
   };
 
   const addMedication = () => {
-    setMedications((prev) => [...prev, { name: "", dosage: "" }]);
+    setMedications((prev) => [...prev, { name: "", dosage: "", instructions: "" }]);
   };
 
   const removeMedication = (index: number) => {
@@ -229,12 +230,14 @@ export default function LiveConsultationPage() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
+          appointmentId: appointmentId || undefined,
           symptoms,
           observations,
           diagnosis,
           medications: medications.filter((m) => m.name.trim()),
           followUp,
           notes: privateNotes,
+          durationSeconds: elapsedTime,
         }),
       });
       if (res.ok) {
@@ -386,8 +389,8 @@ export default function LiveConsultationPage() {
                   <button
                     onClick={toggleCamera}
                     className={`p-2 rounded-full transition ${cameraOn
-                        ? "bg-gray-700 text-white hover:bg-gray-600"
-                        : "bg-red-500 text-white hover:bg-red-600"
+                      ? "bg-gray-700 text-white hover:bg-gray-600"
+                      : "bg-red-500 text-white hover:bg-red-600"
                       }`}
                   >
                     {cameraOn ? <Video size={16} /> : <VideoOff size={16} />}
@@ -395,8 +398,8 @@ export default function LiveConsultationPage() {
                   <button
                     onClick={toggleMic}
                     className={`p-2 rounded-full transition ${micOn
-                        ? "bg-gray-700 text-white hover:bg-gray-600"
-                        : "bg-red-500 text-white hover:bg-red-600"
+                      ? "bg-gray-700 text-white hover:bg-gray-600"
+                      : "bg-red-500 text-white hover:bg-red-600"
                       }`}
                   >
                     {micOn ? <Mic size={16} /> : <MicOff size={16} />}
@@ -486,33 +489,43 @@ export default function LiveConsultationPage() {
                     <Pill size={14} className="text-purple-500" />
                     Médicaments prescrits
                   </label>
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {medications.map((med, index) => (
-                      <div key={index} className="flex items-center gap-2">
+                      <div key={index} className="space-y-1.5 p-3 border border-border rounded-lg bg-secondary/20">
+                        <div className="flex items-center gap-2">
+                          <input
+                            value={med.name}
+                            onChange={(e) =>
+                              updateMedication(index, "name", e.target.value)
+                            }
+                            placeholder="Nom du médicament"
+                            className="flex-1 border border-border rounded-lg px-3 py-2 text-sm bg-background text-foreground focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none"
+                          />
+                          <input
+                            value={med.dosage}
+                            onChange={(e) =>
+                              updateMedication(index, "dosage", e.target.value)
+                            }
+                            placeholder="Posologie (ex : 1 cp matin)"
+                            className="w-48 border border-border rounded-lg px-3 py-2 text-sm bg-background text-foreground focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none"
+                          />
+                          {medications.length > 1 && (
+                            <button
+                              onClick={() => removeMedication(index)}
+                              className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          )}
+                        </div>
                         <input
-                          value={med.name}
+                          value={med.instructions}
                           onChange={(e) =>
-                            updateMedication(index, "name", e.target.value)
+                            updateMedication(index, "instructions", e.target.value)
                           }
-                          placeholder="Nom du médicament"
-                          className="flex-1 border border-border rounded-lg px-3 py-2 text-sm bg-background text-foreground focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none"
+                          placeholder="Instructions d'usage (ex : à prendre après le repas, pendant 7 jours)"
+                          className="w-full border border-border rounded-lg px-3 py-2 text-sm bg-background text-foreground focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none"
                         />
-                        <input
-                          value={med.dosage}
-                          onChange={(e) =>
-                            updateMedication(index, "dosage", e.target.value)
-                          }
-                          placeholder="Posologie"
-                          className="w-40 border border-border rounded-lg px-3 py-2 text-sm bg-background text-foreground focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none"
-                        />
-                        {medications.length > 1 && (
-                          <button
-                            onClick={() => removeMedication(index)}
-                            className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        )}
                       </div>
                     ))}
                     <button
@@ -626,8 +639,8 @@ export default function LiveConsultationPage() {
                       >
                         <div
                           className={`max-w-[80%] rounded-xl px-3 py-2 text-sm ${isMine
-                              ? "bg-primary text-primary-foreground rounded-br-sm"
-                              : "bg-muted text-foreground rounded-bl-sm"
+                            ? "bg-primary text-primary-foreground rounded-br-sm"
+                            : "bg-muted text-foreground rounded-bl-sm"
                             }`}
                         >
                           <p>{msg.content}</p>

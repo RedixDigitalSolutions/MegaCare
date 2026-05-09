@@ -2,7 +2,7 @@ import { DoctorDashboardSidebar } from "@/components/DoctorDashboardSidebar";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
-import { Video, TrendingUp, Star, Clock, Settings } from "lucide-react";
+import { Video, TrendingUp, Star, Clock, Settings, Trophy, Zap, Target } from "lucide-react";
 import { useEffect, useState, useCallback } from "react";
 
 interface Appointment {
@@ -314,6 +314,67 @@ export default function DoctorDashboardPage() {
               })}
             </div>
 
+            {/* 🏆 Gamified Goal Tracker */}
+            {(() => {
+              const GOAL_TARGET = 15;
+              const completedCount = allAppointments.filter((a) => a.status === "completed").length;
+              const progress = Math.min((completedCount / GOAL_TARGET) * 100, 100);
+              const goalReached = completedCount >= GOAL_TARGET;
+              const remaining = Math.max(GOAL_TARGET - completedCount, 0);
+              const getMessage = () => {
+                if (goalReached) return { text: "🎉 Félicitations ! Vous avez atteint votre objectif — un mois offert vous attend !", color: "text-emerald-700" };
+                if (completedCount >= 12) return { text: "🔥 Presque là ! Plus que " + remaining + " consultation" + (remaining > 1 ? "s" : "") + " pour décrocher votre récompense !", color: "text-orange-600" };
+                if (completedCount >= 8) return { text: "⚡ Excellent élan ! Continuez ainsi, vous êtes sur la bonne voie.", color: "text-blue-600" };
+                if (completedCount >= 4) return { text: "💪 Bonne progression ! Chaque consultation compte — gardez le rythme.", color: "text-primary" };
+                return { text: "🚀 Lancez-vous ! Complétez 15 consultations et obtenez un mois gratuit sur MegaCare.", color: "text-muted-foreground" };
+              };
+              const msg = getMessage();
+              return (
+                <div className={`rounded-2xl border-2 p-6 ${goalReached ? "bg-gradient-to-r from-emerald-50 to-green-50 border-emerald-300" : "bg-gradient-to-r from-primary/5 via-violet-500/5 to-transparent border-primary/20"}`}>
+                  <div className="flex items-start justify-between mb-4 gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2.5 rounded-xl ${goalReached ? "bg-emerald-100" : "bg-primary/10"}`}>
+                        {goalReached ? <Trophy size={22} className="text-emerald-600" /> : <Target size={22} className="text-primary" />}
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-foreground text-base">
+                          {goalReached ? "Objectif atteint !" : "Objectif du mois"}
+                        </h3>
+                        <p className="text-xs text-muted-foreground mt-0.5">Complétez 15 consultations → Mois gratuit 🎁</p>
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <span className={`text-3xl font-black ${goalReached ? "text-emerald-600" : "text-primary"}`}>{completedCount}</span>
+                      <span className="text-lg font-semibold text-muted-foreground">/{GOAL_TARGET}</span>
+                    </div>
+                  </div>
+
+                  {/* Progress bar */}
+                  <div className="relative w-full h-3 bg-muted rounded-full overflow-hidden mb-3">
+                    <div
+                      className={`h-full rounded-full transition-all duration-700 ease-out ${goalReached ? "bg-emerald-500" : "bg-gradient-to-r from-primary via-violet-500 to-primary"}`}
+                      style={{ width: `${progress}%` }}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <p className={`text-sm font-medium ${msg.color}`}>{msg.text}</p>
+                    {!goalReached && (
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground shrink-0 ml-4">
+                        <Zap size={12} className="text-yellow-500" />
+                        {remaining} restante{remaining > 1 ? "s" : ""}
+                      </div>
+                    )}
+                    {goalReached && (
+                      <span className="flex items-center gap-1 px-3 py-1 bg-emerald-100 text-emerald-700 text-xs font-bold rounded-full shrink-0 ml-4">
+                        <Trophy size={11} /> Récompense débloquée
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
+
             {/* Pending Appointments Alert */}
             {pendingAppointments.length > 0 && (
               <div className="bg-orange-50 border border-orange-200 rounded-lg p-6 space-y-4">
@@ -372,10 +433,10 @@ export default function DoctorDashboardPage() {
                     <div
                       key={idx}
                       className={`flex items-center gap-4 p-3 rounded-lg transition ${slot.status === "free"
-                          ? "bg-secondary/30 hover:bg-secondary"
-                          : slot.status === "confirmed"
-                            ? "bg-blue-50 border border-blue-200"
-                            : "bg-orange-50 border border-orange-200"
+                        ? "bg-secondary/30 hover:bg-secondary"
+                        : slot.status === "confirmed"
+                          ? "bg-blue-50 border border-blue-200"
+                          : "bg-orange-50 border border-orange-200"
                         }`}
                     >
                       <p className="w-16 font-mono font-bold text-foreground">
@@ -391,8 +452,8 @@ export default function DoctorDashboardPage() {
                             </p>
                             <p
                               className={`text-xs ${slot.status === "confirmed"
-                                  ? "text-blue-700"
-                                  : "text-orange-700"
+                                ? "text-blue-700"
+                                : "text-orange-700"
                                 }`}
                             >
                               {slot.status === "confirmed"
@@ -461,7 +522,6 @@ export default function DoctorDashboardPage() {
 
             {/* Statistics */}
             <div className="grid md:grid-cols-2 gap-6">
-              {/* Appointments by status */}
               <div className="bg-card rounded-xl border border-border p-6 space-y-4">
                 <h3 className="font-bold text-foreground">
                   Répartition par statut
@@ -528,8 +588,8 @@ export default function DoctorDashboardPage() {
                         </div>
                         <span
                           className={`text-xs font-semibold px-2 py-0.5 rounded-full ${a.status === "confirmed"
-                              ? "bg-blue-100 text-blue-700"
-                              : "bg-orange-100 text-orange-700"
+                            ? "bg-blue-100 text-blue-700"
+                            : "bg-orange-100 text-orange-700"
                             }`}
                         >
                           {a.status === "confirmed" ? "Confirmé" : "En attente"}

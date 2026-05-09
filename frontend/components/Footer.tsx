@@ -19,14 +19,32 @@ import { FaTiktok } from "react-icons/fa6";
 export function Footer() {
   const currentYear = new Date().getFullYear();
   const [email, setEmail] = useState("");
-  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "duplicate" | "error">("idle");
+  const [touched, setTouched] = useState(false);
 
-  const handleSubscribe = (e: React.FormEvent) => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const isValidEmail = emailRegex.test(email);
+  const showError = touched && email.length > 0 && !isValidEmail;
+
+  const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (email) {
-      setIsSubscribed(true);
-      setTimeout(() => setIsSubscribed(false), 3000);
+    setTouched(true);
+    if (!isValidEmail) return;
+    setStatus("loading");
+    try {
+      const res = await fetch("/api/public/newsletter", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      if (res.status === 409) { setStatus("duplicate"); return; }
+      if (!res.ok) { setStatus("error"); return; }
+      setStatus("success");
       setEmail("");
+      setTouched(false);
+      setTimeout(() => setStatus("idle"), 4000);
+    } catch {
+      setStatus("error");
     }
   };
 
@@ -66,24 +84,45 @@ export function Footer() {
                   <input
                     type="email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(e) => { setEmail(e.target.value); if (status === "error" || status === "duplicate") setStatus("idle"); }}
+                    onBlur={() => setTouched(true)}
                     placeholder="Votre adresse email"
-                    className="w-full px-6 py-4 bg-white/10 border border-white/20 rounded-2xl text-background placeholder:text-background/40 focus:outline-none focus:border-accent focus:bg-white/15 transition-all duration-300"
+                    className={`w-full px-6 py-4 bg-white/10 border rounded-2xl text-background placeholder:text-background/40 focus:outline-none focus:bg-white/15 transition-all duration-300 ${
+                      showError ? "border-red-400 focus:border-red-400" : "border-white/20 focus:border-accent"
+                    }`}
                     required
                   />
                 </div>
                 <button
                   type="submit"
-                  className="px-6 py-4 bg-gradient-to-r from-primary to-accent text-primary-foreground rounded-2xl font-semibold hover:shadow-xl hover:shadow-accent/25 hover:scale-105 transition-all duration-300 flex items-center gap-2"
+                  disabled={status === "loading" || status === "success"}
+                  className="px-6 py-4 bg-gradient-to-r from-primary to-accent text-primary-foreground rounded-2xl font-semibold hover:shadow-xl hover:shadow-accent/25 hover:scale-105 transition-all duration-300 flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
                 >
                   <FaPaperPlane />
-                  <span className="hidden sm:inline">S'inscrire</span>
+                  <span className="hidden sm:inline">
+                    {status === "loading" ? "..." : "S'inscrire"}
+                  </span>
                 </button>
               </div>
 
-              {isSubscribed && (
-                <p className="absolute -bottom-8 left-0 text-sm text-accent animate-fade-in">
-                  Merci pour votre inscription!
+              {showError && (
+                <p className="mt-2 text-sm text-red-400">
+                  Veuillez entrer une adresse email valide.
+                </p>
+              )}
+              {status === "success" && (
+                <p className="mt-2 text-sm text-accent animate-fade-in">
+                  ✓ Merci pour votre inscription !
+                </p>
+              )}
+              {status === "duplicate" && (
+                <p className="mt-2 text-sm text-amber-400">
+                  Cette adresse est déjà inscrite.
+                </p>
+              )}
+              {status === "error" && (
+                <p className="mt-2 text-sm text-red-400">
+                  Une erreur s'est produite. Réessayez.
                 </p>
               )}
             </form>
@@ -107,7 +146,7 @@ export function Footer() {
                   MEGACARE
                 </span>
                 <p className="text-xs text-background/60 -mt-0.5">
-                  Votre sante, connectee
+                  Votre Santé, connectée
                 </p>
               </div>
             </Link>
@@ -143,9 +182,8 @@ export function Footer() {
             <ul className="space-y-4">
               <FooterLink href="/doctors">Trouver un medecin</FooterLink>
               <FooterLink href="/pharmacy">Pharmacie en ligne</FooterLink>
-              <FooterLink href="/how-it-works">Comment ca marche</FooterLink>
-              <FooterLink href="/pricing">Tarifs</FooterLink>
-              <FooterLink href="/dashboards-overview">
+              <FooterLink href="/guide">Comment ça marche</FooterLink>
+              <FooterLink href="/dashboard">
                 Tableau de bord
               </FooterLink>
             </ul>
@@ -232,11 +270,7 @@ export function Footer() {
               />
             </a>
 
-            <div className="flex flex-wrap items-center justify-center gap-4 text-xs text-background/50">
-              <span>Regule par le Ministere de la Sante Tunisien</span>
-              <span className="hidden sm:inline">|</span>
-              <span>Loi organique n2004-63</span>
-            </div>
+
 
             {/* Back to Top */}
             <button

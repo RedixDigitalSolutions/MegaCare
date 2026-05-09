@@ -107,6 +107,7 @@ export const AuthProvider = ({ children, }) => {
     };
     const logout = () => {
         setUser(null);
+        localStorage.removeItem("megacare_token");
         localStorage.removeItem("megacare_user");
     };
     return (_jsx(AuthContext.Provider, { value: {

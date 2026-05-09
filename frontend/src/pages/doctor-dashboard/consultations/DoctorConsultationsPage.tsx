@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { DoctorDashboardSidebar } from "@/components/DoctorDashboardSidebar";
 import {
   Clock,
@@ -83,6 +83,8 @@ function mapStatus(raw: string): ConsultStatus {
 export default function DoctorConsultationsPage() {
   const { user, isLoading, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const showTodayOnly = searchParams.get("today") === "true";
   const [activeTab, setActiveTab] = useState<TabFilter>("Toutes");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -110,10 +112,14 @@ export default function DoctorConsultationsPage() {
   if (isLoading || !isAuthenticated || !user || user.role !== "doctor")
     return null;
 
-  const items = appointments.map((a) => ({
-    ...a,
-    displayStatus: mapStatus(a.status),
-  }));
+  const todayStr = new Date().toISOString().split("T")[0];
+
+  const items = appointments
+    .filter((a) => !showTodayOnly || a.date === todayStr)
+    .map((a) => ({
+      ...a,
+      displayStatus: mapStatus(a.status),
+    }));
 
   const filtered =
     activeTab === "Toutes"
@@ -135,11 +141,18 @@ export default function DoctorConsultationsPage() {
         <main className="flex-1 overflow-auto">
           {/* Sticky Header */}
           <div className="bg-card border-b border-border p-6 sticky top-0 z-10">
-            <h1 className="text-3xl font-bold text-foreground">
-              Consultations
-            </h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-3xl font-bold text-foreground">
+                Consultations
+              </h1>
+              {showTodayOnly && (
+                <span className="px-2.5 py-1 bg-primary/10 text-primary text-xs font-semibold rounded-full">
+                  Aujourd'hui
+                </span>
+              )}
+            </div>
             <p className="text-muted-foreground mt-1">
-              Historique complet par patient
+              {showTodayOnly ? `Consultations du ${new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}` : "Historique complet par patient"}
             </p>
           </div>
 

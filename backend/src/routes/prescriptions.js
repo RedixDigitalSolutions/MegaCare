@@ -27,6 +27,26 @@ router.get("/", authMiddleware, async (req, res) => {
   });
 });
 
+// GET /api/prescriptions/verify/:secretCode — pharmacy verifies prescription
+// IMPORTANT: must be defined BEFORE /:id to avoid Express matching "verify" as an id
+router.get("/verify/:secretCode", authMiddleware, async (req, res) => {
+  const pres = await Prescription.findOne({ secretCode: req.params.secretCode.toUpperCase() }).lean();
+  if (!pres) return res.status(404).json({ message: "Ordonnance introuvable" });
+
+  const User = require("../models/User");
+  const [doctor, patient] = await Promise.all([
+    User.findById(pres.doctorId).lean(),
+    pres.patientId ? User.findById(pres.patientId).lean() : null,
+  ]);
+
+  res.json({
+    ...pres,
+    id: pres._id,
+    doctorName: doctor ? `Dr. ${doctor.firstName} ${doctor.lastName}` : "Médecin inconnu",
+    patientName: patient ? `${patient.firstName} ${patient.lastName}` : "Patient inconnu",
+  });
+});
+
 // GET /api/prescriptions/:id
 router.get("/:id", authMiddleware, async (req, res) => {
   const pres = await Prescription.findById(req.params.id).lean();
@@ -57,25 +77,11 @@ router.post("/", authMiddleware, async (req, res) => {
   res.status(201).json({ ...pres.toObject(), id: pres._id });
 });
 
-// GET /api/prescriptions/verify/:secretCode — pharmacy verifies prescription
-router.get("/verify/:secretCode", authMiddleware, async (req, res) => {
-  const pres = await Prescription.findOne({ secretCode: req.params.secretCode }).lean();
-  if (!pres) return res.status(404).json({ message: "Ordonnance introuvable" });
-
-  const User = require("../models/User");
-  const doctor = await User.findById(pres.doctorId).lean();
-  const patient = await User.findById(pres.patientId).lean();
-
-  res.json({
-    ...pres,
-    id: pres._id,
-    doctorName: doctor ? `Dr. ${doctor.firstName} ${doctor.lastName}` : "Médecin",
-    patientName: patient ? `${patient.firstName} ${patient.lastName}` : "Patient",
-  });
-});
-
-// PATCH /api/prescriptions/:id/purchase — mark as purchased
+// PATCH /api/prescriptions/:id/purchase — mark as purchased (pharmacy/admin only)
 router.patch("/:id/purchase", authMiddleware, async (req, res) => {
+  if (req.user.role !== "pharmacy" && req.user.role !== "admin") {
+    return res.status(403).json({ message: "Seule une pharmacie agréée peut valider une ordonnance" });
+  }
   const pres = await Prescription.findById(req.params.id);
   if (!pres) return res.status(404).json({ message: "Ordonnance non trouvée" });
   pres.purchaseStatus = "purchased";

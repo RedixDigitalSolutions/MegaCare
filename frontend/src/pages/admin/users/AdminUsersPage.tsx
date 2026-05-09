@@ -3,6 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { AdminDashboardSidebar } from "@/components/AdminDashboardSidebar";
 import { UserDetailSlideOver } from "../UserDetailSlideOver";
+import { useAdminTheme } from "@/hooks/useAdminTheme";
 import {
   ManagedUser,
   AdminAction,
@@ -23,11 +24,12 @@ import {
   FaTimesCircle,
   FaBan,
 } from "react-icons/fa";
-import { Calendar, Search } from "lucide-react";
+import { Calendar, Search, ChevronLeft, ChevronRight } from "lucide-react";
 
 export default function AdminUsersPage() {
   const { user, isLoading } = useAuth();
   const navigate = useNavigate();
+  const { isDark } = useAdminTheme();
 
   const [users, setUsers] = useState<ManagedUser[]>([]);
   const [fetching, setFetching] = useState(true);
@@ -36,6 +38,8 @@ export default function AdminUsersPage() {
   const [roleFilter, setRoleFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [detailUser, setDetailUser] = useState<ManagedUser | null>(null);
+  const [page, setPage] = useState(1);
+  const PAGE_SIZE = 20;
 
   const loadUsers = useCallback(async () => {
     setFetching(true);
@@ -82,6 +86,9 @@ export default function AdminUsersPage() {
     suspended: users.filter((u) => u.status === "suspended").length,
   };
 
+  // Reset to page 1 whenever filters or search change
+  useEffect(() => { setPage(1); }, [filter, roleFilter, search]);
+
   const filtered = users.filter((u) => {
     const matchStatus = filter === "all" || u.status === filter;
     const matchRole = roleFilter === "all" || u.role === roleFilter;
@@ -94,8 +101,11 @@ export default function AdminUsersPage() {
     return matchStatus && matchRole && matchSearch;
   });
 
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className={`flex min-h-screen bg-background${isDark ? " dark" : ""}`}>
       <AdminDashboardSidebar />
 
       <div className="flex-1 flex flex-col min-w-0">
@@ -138,10 +148,10 @@ export default function AdminUsersPage() {
               };
               const styles: Record<FilterStatus, string> = {
                 all: "text-foreground bg-card border-border",
-                pending: "text-amber-700 bg-amber-50 border-amber-200",
-                approved: "text-emerald-700 bg-emerald-50 border-emerald-200",
-                rejected: "text-red-700 bg-red-50 border-red-200",
-                suspended: "text-slate-600 bg-slate-50 border-slate-200",
+                pending: "text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800/50",
+                approved: "text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/50",
+                rejected: "text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-800/50",
+                suspended: "text-slate-600 dark:text-slate-400 bg-slate-50 dark:bg-slate-800/30 border-slate-200 dark:border-slate-700/50",
               };
               return (
                 <button
@@ -238,7 +248,7 @@ export default function AdminUsersPage() {
             </div>
           ) : (
             <div className="space-y-2.5">
-              {filtered.map((u) => {
+              {paginated.map((u) => {
                 const cfg = roleConfig[u.role] ?? roleConfig.patient;
                 const { Icon: RoleIcon, gradient, label, light } = cfg;
                 return (
@@ -312,7 +322,7 @@ export default function AdminUsersPage() {
                           <button
                             onClick={() => handleAction(u.id, "suspend")}
                             disabled={actionLoading === u.id + "suspend"}
-                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-50 text-xs font-semibold transition disabled:opacity-50"
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 text-xs font-semibold transition disabled:opacity-50"
                           >
                             <FaBan size={11} /> Suspendre
                           </button>
@@ -329,7 +339,7 @@ export default function AdminUsersPage() {
                         <button
                           onClick={() => handleAction(u.id, "reactivate")}
                           disabled={actionLoading === u.id + "reactivate"}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-300 text-emerald-600 hover:bg-emerald-50 text-xs font-semibold transition disabled:opacity-50"
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-300 dark:border-emerald-700 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-xs font-semibold transition disabled:opacity-50"
                         >
                           <FaCheckCircle size={11} /> Réactiver
                         </button>
@@ -338,7 +348,7 @@ export default function AdminUsersPage() {
                         <button
                           onClick={() => handleAction(u.id, "approve")}
                           disabled={actionLoading === u.id + "approve"}
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-300 text-emerald-600 hover:bg-emerald-50 text-xs font-semibold transition disabled:opacity-50"
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-300 dark:border-emerald-700 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-xs font-semibold transition disabled:opacity-50"
                         >
                           <FaCheckCircle size={11} /> Ré-approuver
                         </button>
@@ -347,6 +357,57 @@ export default function AdminUsersPage() {
                   </div>
                 );
               })}
+            </div>
+          )}
+
+          {/* Pagination */}
+          {!fetching && filtered.length > PAGE_SIZE && (
+            <div className="flex items-center justify-between pt-2">
+              <p className="text-xs text-muted-foreground">
+                {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} sur {filtered.length} utilisateur{filtered.length !== 1 ? "s" : ""}
+              </p>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-border text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <ChevronLeft size={14} /> Préc.
+                </button>
+                <div className="flex gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1)
+                    .filter((p) => p === 1 || p === totalPages || Math.abs(p - page) <= 2)
+                    .reduce<(number | "...")[]>((acc, p, idx, arr) => {
+                      if (idx > 0 && (p as number) - (arr[idx - 1] as number) > 1) acc.push("...");
+                      acc.push(p);
+                      return acc;
+                    }, [])
+                    .map((p, idx) =>
+                      p === "..." ? (
+                        <span key={`ellipsis-${idx}`} className="px-2 py-1.5 text-sm text-muted-foreground">…</span>
+                      ) : (
+                        <button
+                          key={p}
+                          onClick={() => setPage(p as number)}
+                          className={`w-8 h-8 rounded-lg text-sm font-medium transition ${
+                            page === p
+                              ? "bg-primary text-primary-foreground"
+                              : "border border-border text-muted-foreground hover:text-foreground hover:bg-muted"
+                          }`}
+                        >
+                          {p}
+                        </button>
+                      )
+                    )}
+                </div>
+                <button
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg border border-border text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Suiv. <ChevronRight size={14} />
+                </button>
+              </div>
             </div>
           )}
         </main>

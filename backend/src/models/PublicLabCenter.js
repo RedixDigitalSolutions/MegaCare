@@ -23,6 +23,7 @@ const publicLabCenterSchema = new mongoose.Schema(
         imageUrl: { type: String, default: "" },
         description: { type: String, default: "" },
         open24h: { type: Boolean, default: false },
+        mapUrl: { type: String, default: "" },
     },
     { timestamps: true, _id: false }
 );
